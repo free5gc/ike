@@ -1,4 +1,4 @@
-module ike
+module github.com/free5gc/ike
 
 go 1.14
 

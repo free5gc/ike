@@ -1,7 +1,7 @@
 package esn
 
 import (
-	"ike/types"
+	"github.com/free5gc/ike/types"
 )
 
 const string_ESN_DISABLE string = "ESN_DISABLE"

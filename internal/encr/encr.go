@@ -2,19 +2,24 @@ package encr
 
 import (
 	"fmt"
-	"ike/internal/logger"
-	itypes "ike/internal/types"
-	"ike/message"
-	types "ike/types"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/free5gc/ike/internal/logger"
+	itypes "github.com/free5gc/ike/internal/types"
+	"github.com/free5gc/ike/message"
+	types "github.com/free5gc/ike/types"
 )
 
-var encrLog *logrus.Entry
-var encrString map[uint16]func(uint16, uint16, []byte) string
+var (
+	encrLog    *logrus.Entry
+	encrString map[uint16]func(uint16, uint16, []byte) string
+)
 
-var encrTypes map[string]ENCRType
-var encrKTypes map[string]ENCRKType
+var (
+	encrTypes  map[string]ENCRType
+	encrKTypes map[string]ENCRKType
+)
 
 func init() {
 	// Log
@@ -77,7 +82,6 @@ func init() {
 			panic("IKE ENCR failed to init.")
 		}
 	}
-
 }
 
 func SetPriority(algolist []string) error {
@@ -103,7 +107,7 @@ func SetKPriority(algolist map[string]uint32) error {
 	}
 	// set priority
 	for algo, priority := range algolist {
-		encrKTypes[algo].setPriority(uint32(priority))
+		encrKTypes[algo].setPriority(priority)
 	}
 	return nil
 }

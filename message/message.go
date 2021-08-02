@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 
-	"ike/internal/logger"
-	"ike/types"
-
 	"github.com/sirupsen/logrus"
+
+	"github.com/free5gc/ike/internal/logger"
+	"github.com/free5gc/ike/types"
 )
 
 // Log
@@ -423,7 +423,6 @@ func (securityAssociation *SecurityAssociation) unmarshal(rawData []byte) error 
 				} else {
 					transform.AttributeValue = binary.BigEndian.Uint16(transformData[10:12])
 				}
-
 			}
 
 			switch transform.TransformType {
@@ -785,27 +784,27 @@ type Delete struct {
 	SPIs        []byte
 }
 
-func (delete *Delete) Type() types.IKEPayloadType { return types.TypeD }
+func (d *Delete) Type() types.IKEPayloadType { return types.TypeD }
 
-func (delete *Delete) marshal() ([]byte, error) {
+func (d *Delete) marshal() ([]byte, error) {
 	msgLog.Info("[Delete] marshal(): Start marshalling")
 
-	if len(delete.SPIs) != (int(delete.SPISize) * int(delete.NumberOfSPI)) {
+	if len(d.SPIs) != (int(d.SPISize) * int(d.NumberOfSPI)) {
 		return nil, fmt.Errorf("Total bytes of all SPIs not correct")
 	}
 
 	deleteData := make([]byte, 4)
 
-	deleteData[0] = delete.ProtocolID
-	deleteData[1] = delete.SPISize
-	binary.BigEndian.PutUint16(deleteData[2:4], delete.NumberOfSPI)
+	deleteData[0] = d.ProtocolID
+	deleteData[1] = d.SPISize
+	binary.BigEndian.PutUint16(deleteData[2:4], d.NumberOfSPI)
 
-	deleteData = append(deleteData, delete.SPIs...)
+	deleteData = append(deleteData, d.SPIs...)
 
 	return deleteData, nil
 }
 
-func (delete *Delete) unmarshal(rawData []byte) error {
+func (d *Delete) unmarshal(rawData []byte) error {
 	msgLog.Info("[Delete] unmarshal(): Start unmarshalling received bytes")
 	msgLog.Tracef("[Delete] unmarshal(): Payload length %d bytes", len(rawData))
 
@@ -821,11 +820,11 @@ func (delete *Delete) unmarshal(rawData []byte) error {
 			return errors.New("Delete: No Sufficient bytes to get SPIs according to the length specified in header")
 		}
 
-		delete.ProtocolID = rawData[0]
-		delete.SPISize = spiSize
-		delete.NumberOfSPI = numberOfSPI
+		d.ProtocolID = rawData[0]
+		d.SPISize = spiSize
+		d.NumberOfSPI = numberOfSPI
 
-		delete.SPIs = append(delete.SPIs, rawData[4:]...)
+		d.SPIs = append(d.SPIs, rawData[4:]...)
 	}
 
 	return nil
@@ -1355,7 +1354,6 @@ func (eap *EAP) unmarshal(rawData []byte) error {
 		}
 
 		eap.EAPTypeData = append(eap.EAPTypeData, eapTypeData)
-
 	}
 
 	return nil

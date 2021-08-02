@@ -6,10 +6,11 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"ike/internal/lib"
-	itypes "ike/internal/types"
-	types "ike/types"
 	"io"
+
+	"github.com/free5gc/ike/internal/lib"
+	itypes "github.com/free5gc/ike/internal/types"
+	types "github.com/free5gc/ike/types"
 )
 
 const (
@@ -35,8 +36,10 @@ func toString_ENCR_AES_CBC(attrType uint16, intValue uint16, bytesValue []byte) 
 	}
 }
 
-var _ ENCRType = &ENCR_AES_CBC{}
-var _ ENCRKType = &ENCR_AES_CBC{}
+var (
+	_ ENCRType  = &ENCR_AES_CBC{}
+	_ ENCRKType = &ENCR_AES_CBC{}
+)
 
 type ENCR_AES_CBC struct {
 	priority  uint32

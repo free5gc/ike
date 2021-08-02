@@ -3,15 +3,16 @@ package security
 import (
 	"bytes"
 	"fmt"
-	"ike/internal/dh"
-	"ike/internal/encr"
-	"ike/internal/esn"
-	"ike/internal/integ"
-	"ike/internal/prf"
-	"ike/message"
-	"ike/types"
 	"sync"
 	"testing"
+
+	"github.com/free5gc/ike/internal/dh"
+	"github.com/free5gc/ike/internal/encr"
+	"github.com/free5gc/ike/internal/esn"
+	"github.com/free5gc/ike/internal/integ"
+	"github.com/free5gc/ike/internal/prf"
+	"github.com/free5gc/ike/message"
+	"github.com/free5gc/ike/types"
 )
 
 func TestGenerateRandomNumber(t *testing.T) {
@@ -67,12 +68,12 @@ func TestIKESelectProposal(t *testing.T) {
 	// Types' pointers
 	dhType1 := dh.StrToType("DH_1024_BIT_MODP")
 	dhType2 := dh.StrToType("DH_2048_BIT_MODP")
-	//encrType1 := encr.StrToType("ENCR_AES_CBC_128")
-	//encrType2 := encr.StrToType("ENCR_AES_CBC_192")
+	// encrType1 := encr.StrToType("ENCR_AES_CBC_128")
+	// encrType2 := encr.StrToType("ENCR_AES_CBC_192")
 	encrType3 := encr.StrToType("ENCR_AES_CBC_256")
-	//integType1 := integ.StrToType("AUTH_HMAC_MD5_96")
+	// integType1 := integ.StrToType("AUTH_HMAC_MD5_96")
 	integType2 := integ.StrToType("AUTH_HMAC_SHA1_96")
-	//prfType1 := prf.StrToType("PRF_HMAC_MD5")
+	// prfType1 := prf.StrToType("PRF_HMAC_MD5")
 	prfType2 := prf.StrToType("PRF_HMAC_SHA1")
 
 	// Transforms
@@ -251,7 +252,6 @@ func TestIKESelectProposal(t *testing.T) {
 	if ikesa.SelectProposal(proposal) {
 		t.Fatal("SelectProposal returned a false result")
 	}
-
 }
 
 func TestIKEToProposal(t *testing.T) {
@@ -307,14 +307,14 @@ func TestChildSelectProposal(t *testing.T) {
 	// Types' pointers
 	dhType1 := dh.StrToType("DH_1024_BIT_MODP")
 	dhType2 := dh.StrToType("DH_2048_BIT_MODP")
-	//encrKType1 := encr.StrToKType("ENCR_AES_CBC_128")
-	//encrKType2 := encr.StrToKType("ENCR_AES_CBC_192")
+	// encrKType1 := encr.StrToKType("ENCR_AES_CBC_128")
+	// encrKType2 := encr.StrToKType("ENCR_AES_CBC_192")
 	encrKType3 := encr.StrToKType("ENCR_AES_CBC_256")
-	//integKType1 := integ.StrToKType("AUTH_HMAC_MD5_96")
+	// integKType1 := integ.StrToKType("AUTH_HMAC_MD5_96")
 	integKType2 := integ.StrToKType("AUTH_HMAC_SHA1_96")
-	//prfType1 := prf.StrToType("PRF_HMAC_MD5")
-	//prfType2 := prf.StrToType("PRF_HMAC_SHA1")
-	//esnType1 := esn.StrToType("ESN_ENABLE")
+	// prfType1 := prf.StrToType("PRF_HMAC_MD5")
+	// prfType2 := prf.StrToType("PRF_HMAC_SHA1")
+	// esnType1 := esn.StrToType("ESN_ENABLE")
 	esnType2 := esn.StrToType("ESN_DISABLE")
 
 	// Transforms

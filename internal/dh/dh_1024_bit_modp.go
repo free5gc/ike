@@ -1,8 +1,9 @@
 package dh
 
 import (
-	"ike/types"
 	"math/big"
+
+	"github.com/free5gc/ike/types"
 )
 
 const (

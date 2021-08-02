@@ -6,33 +6,36 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"hash"
 	"io"
 	"math/big"
 	"net"
 	"strings"
 
-	"ike/internal/dh"
-	"ike/internal/encr"
-	"ike/internal/esn"
-	"ike/internal/integ"
-	"ike/internal/lib"
-	"ike/internal/logger"
-	"ike/internal/prf"
-	itypes "ike/internal/types"
-	"ike/message"
-	types "ike/types"
-
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
+
+	"github.com/free5gc/ike/internal/dh"
+	"github.com/free5gc/ike/internal/encr"
+	"github.com/free5gc/ike/internal/esn"
+	"github.com/free5gc/ike/internal/integ"
+	"github.com/free5gc/ike/internal/lib"
+	"github.com/free5gc/ike/internal/logger"
+	"github.com/free5gc/ike/internal/prf"
+	itypes "github.com/free5gc/ike/internal/types"
+	"github.com/free5gc/ike/message"
+	types "github.com/free5gc/ike/types"
 )
 
 // Log
 var secLog *logrus.Entry
 
 // General data
-var randomNumberMaximum big.Int
-var randomNumberMinimum big.Int
+var (
+	randomNumberMaximum big.Int
+	randomNumberMinimum big.Int
+)
 
 func init() {
 	// Log
@@ -66,7 +69,7 @@ func GenerateRandomUint8() (uint8, error) {
 		secLog.Errorf("Read random failed: %+v", err)
 		return 0, errors.New("Read failed")
 	}
-	return uint8(number[0]), nil
+	return number[0], nil
 }
 
 func concatenateNonceAndSPI(nonce []byte, SPI_initiator uint64, SPI_responder uint64) []byte {
@@ -247,7 +250,9 @@ func (ikesa *IKESA) GenerateKey(concatenatedNonce, dhSharedKey []byte) error {
 	secLog.Tracef("DH shared key:\n%s", hex.Dump(dhSharedKey))
 
 	prf := ikesa.prfInfo.Init(concatenatedNonce)
-	_, _ = prf.Write(dhSharedKey) // hash.Hash.Write() never return an error
+	if _, err := prf.Write(dhSharedKey); err != nil {
+		return err
+	}
 
 	skeyseed := prf.Sum(nil)
 	seed := concatenateNonceAndSPI(concatenatedNonce, ikesa.RemoteSPI, ikesa.LocalSPI)
@@ -255,6 +260,9 @@ func (ikesa *IKESA) GenerateKey(concatenatedNonce, dhSharedKey []byte) error {
 	secLog.Tracef("SKEYSEED:\n%s", hex.Dump(skeyseed))
 
 	keyStream := lib.PrfPlus(ikesa.prfInfo.Init(skeyseed), seed, totalKeyLength)
+	if keyStream == nil {
+		return errors.New("Error happened in PrfPlus")
+	}
 
 	// Assign keys into context
 	sk_d := keyStream[:length_SK_d]
@@ -304,11 +312,17 @@ func (ikesa *IKESA) VerifyIKEChecksum(role int, data []byte) bool {
 	var calculatedChecksum []byte
 	if role == types.Role_Initiator {
 		ikesa.Integ_i.Reset()
-		_, _ = ikesa.Integ_i.Write(checkedData) // hash.Hash.Write() never return an error
+		if _, err := ikesa.Integ_i.Write(checkedData); err != nil {
+			secLog.Errorf("VerifyIKEChecksum(%d): %+v", role, err)
+			return false
+		}
 		calculatedChecksum = ikesa.Integ_i.Sum(nil)
 	} else {
 		ikesa.Integ_r.Reset()
-		_, _ = ikesa.Integ_r.Write(checkedData) // hash.Hash.Write() never return an error
+		if _, err := ikesa.Integ_r.Write(checkedData); err != nil {
+			secLog.Errorf("VerifyIKEChecksum(%d): %+v", role, err)
+			return false
+		}
 		calculatedChecksum = ikesa.Integ_r.Sum(nil)
 	}
 
@@ -328,11 +342,15 @@ func (ikesa *IKESA) CalcIKEChecksum(role int, data []byte) error {
 	var calculatedChecksum []byte
 	if role == types.Role_Initiator {
 		ikesa.Integ_i.Reset()
-		_, _ = ikesa.Integ_i.Write(checkedData) // hash.Hash.Write() never return an error
+		if _, err := ikesa.Integ_i.Write(checkedData); err != nil {
+			return fmt.Errorf("CalcIKEChecksum(%d): %+v", role, err)
+		}
 		calculatedChecksum = ikesa.Integ_i.Sum(nil)
 	} else {
 		ikesa.Integ_r.Reset()
-		_, _ = ikesa.Integ_r.Write(checkedData) // hash.Hash.Write() never return an error
+		if _, err := ikesa.Integ_r.Write(checkedData); err != nil {
+			return fmt.Errorf("CalcIKEChecksum(%d): %+v", role, err)
+		}
 		calculatedChecksum = ikesa.Integ_r.Sum(nil)
 	}
 
@@ -571,6 +589,9 @@ func (childsa *ChildSA) GenerateKey(prf hash.Hash, dhSharedKey, concatenatedNonc
 	}
 
 	keyStream := lib.PrfPlus(prf, seed, totalKeyLength)
+	if keyStream == nil {
+		return errors.New("Error happened in PrfPlus")
+	}
 
 	childsa.initiatorToResponderEncrKey =
 		append(childsa.initiatorToResponderEncrKey, keyStream[:lengthEncrKeyIPSec]...)
@@ -589,7 +610,6 @@ func (childsa *ChildSA) GenerateKey(prf hash.Hash, dhSharedKey, concatenatedNonc
 	}
 
 	return nil
-
 }
 
 func (childsa *ChildSA) GenerateXFRMContext(role int) {
@@ -867,7 +887,7 @@ func DecryptProcedure(ikeSecurityAssociation *context.IKESecurityAssociation, ik
 		transformIntegrityAlgorithm.TransformID, transformIntegrityAlgorithm.AttributePresent,
 		transformIntegrityAlgorithm.AttributeValue)
 	if !ok {
-		secLog.Error("Get key length of an unsupported algorithm. This may imply an unsupported tranform is chosen.")
+		secLog.Error("Get key length of an unsupported algorithm. This may imply an unsupported transform is chosen.")
 		return nil, errors.New("Get key length failed")
 	}
 
@@ -949,7 +969,7 @@ func EncryptProcedure(ikeSecurityAssociation *context.IKESecurityAssociation,
 		transformIntegrityAlgorithm.TransformID, transformIntegrityAlgorithm.AttributePresent,
 		transformIntegrityAlgorithm.AttributeValue)
 	if !ok {
-		secLog.Error("Get key length of an unsupported algorithm. This may imply an unsupported tranform is chosen.")
+		secLog.Error("Get key length of an unsupported algorithm. This may imply an unsupported transform is chosen.")
 		return errors.New("Get key length failed")
 	}
 

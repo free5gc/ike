@@ -4,18 +4,22 @@ import (
 	"errors"
 	"hash"
 
-	"ike/internal/logger"
-	"ike/message"
-	"ike/types"
-
 	"github.com/sirupsen/logrus"
+
+	"github.com/free5gc/ike/internal/logger"
+	"github.com/free5gc/ike/message"
+	"github.com/free5gc/ike/types"
 )
 
-var integLog *logrus.Entry
-var integString map[uint16]func(uint16, uint16, []byte) string
+var (
+	integLog    *logrus.Entry
+	integString map[uint16]func(uint16, uint16, []byte) string
+)
 
-var integTypes map[string]INTEGType
-var integKTypes map[string]INTEGKType
+var (
+	integTypes  map[string]INTEGType
+	integKTypes map[string]INTEGKType
+)
 
 func init() {
 	// Log
@@ -76,7 +80,6 @@ func init() {
 			panic("IKE INTEG failed to init.")
 		}
 	}
-
 }
 
 func SetPriority(algolist map[string]uint32) error {
@@ -88,7 +91,7 @@ func SetPriority(algolist map[string]uint32) error {
 	}
 	// set priority
 	for algo, priority := range algolist {
-		integTypes[algo].setPriority(uint32(priority))
+		integTypes[algo].setPriority(priority)
 	}
 	return nil
 }

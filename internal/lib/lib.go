@@ -18,7 +18,9 @@ func PrfPlus(prf hash.Hash, s []byte, streamLen int) []byte {
 	var stream, block []byte
 	for i := 1; len(stream) < streamLen; i++ {
 		prf.Reset()
-		_, _ = prf.Write(append(append(block, s...), byte(i))) // hash.Hash.Write() never return an error
+		if _, err := prf.Write(append(append(block, s...), byte(i))); err != nil {
+			return nil
+		}
 		stream = prf.Sum(stream)
 		block = stream[len(stream)-prf.Size():]
 	}

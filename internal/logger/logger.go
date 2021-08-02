@@ -13,13 +13,15 @@ import (
 
 var log *logrus.Logger
 
-var MsgLog *logrus.Entry
-var SecLog *logrus.Entry
-var DHLog *logrus.Entry
-var ENCRLog *logrus.Entry
-var ESNLog *logrus.Entry
-var INTEGLog *logrus.Entry
-var PRFLog *logrus.Entry
+var (
+	MsgLog   *logrus.Entry
+	SecLog   *logrus.Entry
+	DHLog    *logrus.Entry
+	ENCRLog  *logrus.Entry
+	ESNLog   *logrus.Entry
+	INTEGLog *logrus.Entry
+	PRFLog   *logrus.Entry
+)
 
 func init() {
 	log = logrus.New()
@@ -33,12 +35,12 @@ func init() {
 		FieldsOrder:     []string{"component", "category"},
 	}
 
-	free5gcLogHook, err := logger_util.NewFileHook(logger_conf.Free5gcLogFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	free5gcLogHook, err := logger_util.NewFileHook(logger_conf.Free5gcLogFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
 	if err == nil {
 		log.Hooks.Add(free5gcLogHook)
 	}
 
-	selfLogHook, err := logger_util.NewFileHook(logger_conf.NfLogDir+"n3iwf.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	selfLogHook, err := logger_util.NewFileHook(logger_conf.NfLogDir+"n3iwf.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
 	if err == nil {
 		log.Hooks.Add(selfLogHook)
 	}
@@ -56,6 +58,6 @@ func SetLogLevel(level logrus.Level) {
 	log.SetLevel(level)
 }
 
-func SetReportCaller(bool bool) {
-	log.SetReportCaller(bool)
+func SetReportCaller(set bool) {
+	log.SetReportCaller(set)
 }

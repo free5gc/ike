@@ -2,16 +2,19 @@ package esn
 
 import (
 	"errors"
-	"ike/internal/logger"
-	"ike/message"
-	"ike/types"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/free5gc/ike/internal/logger"
+	"github.com/free5gc/ike/message"
+	"github.com/free5gc/ike/types"
 )
 
-var esnLog *logrus.Entry
-var esnString map[uint16]func(uint16, uint16, []byte) string
-var esnTypes map[string]ESNType
+var (
+	esnLog    *logrus.Entry
+	esnString map[uint16]func(uint16, uint16, []byte) string
+	esnTypes  map[string]ESNType
+)
 
 func init() {
 	// Log
@@ -54,7 +57,7 @@ func SetPriority(algolist map[string]uint32) error {
 	}
 	// set priority
 	for algo, priority := range algolist {
-		esnTypes[algo].setPriority(uint32(priority))
+		esnTypes[algo].setPriority(priority)
 	}
 	return nil
 }

@@ -4,7 +4,8 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"hash"
-	"ike/types"
+
+	"github.com/free5gc/ike/types"
 )
 
 const string_AUTH_HMAC_SHA1_96 string = "AUTH_HMAC_SHA1_96"
@@ -13,8 +14,10 @@ func toString_AUTH_HMAC_SHA1_96(attrType uint16, intValue uint16, bytesValue []b
 	return string_AUTH_HMAC_SHA1_96
 }
 
-var _ INTEGType = &AUTH_HMAC_SHA1_96{}
-var _ INTEGKType = &AUTH_HMAC_SHA1_96{}
+var (
+	_ INTEGType  = &AUTH_HMAC_SHA1_96{}
+	_ INTEGKType = &AUTH_HMAC_SHA1_96{}
+)
 
 type AUTH_HMAC_SHA1_96 struct {
 	priority     uint32

@@ -4,16 +4,18 @@ import (
 	"fmt"
 	"math/big"
 
-	"ike/internal/logger"
-	"ike/message"
-	"ike/types"
-
 	"github.com/sirupsen/logrus"
+
+	"github.com/free5gc/ike/internal/logger"
+	"github.com/free5gc/ike/message"
+	"github.com/free5gc/ike/types"
 )
 
-var dhLog *logrus.Entry
-var dhString map[uint16]func(uint16, uint16, []byte) string
-var dhTypes map[string]DHType
+var (
+	dhLog    *logrus.Entry
+	dhString map[uint16]func(uint16, uint16, []byte) string
+	dhTypes  map[string]DHType
+)
 
 func init() {
 	// Log
@@ -81,7 +83,7 @@ func SetPriority(algolist map[string]uint32) error {
 	}
 	// set priority
 	for algo, priority := range algolist {
-		dhTypes[algo].setPriority(uint32(priority))
+		dhTypes[algo].setPriority(priority)
 	}
 	return nil
 }

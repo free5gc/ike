@@ -4,16 +4,18 @@ import (
 	"errors"
 	"hash"
 
-	"ike/internal/logger"
-	"ike/message"
-	"ike/types"
-
 	"github.com/sirupsen/logrus"
+
+	"github.com/free5gc/ike/internal/logger"
+	"github.com/free5gc/ike/message"
+	"github.com/free5gc/ike/types"
 )
 
-var prfLog *logrus.Entry
-var prfString map[uint16]func(uint16, uint16, []byte) string
-var prfTypes map[string]PRFType
+var (
+	prfLog    *logrus.Entry
+	prfString map[uint16]func(uint16, uint16, []byte) string
+	prfTypes  map[string]PRFType
+)
 
 func init() {
 	// Log
@@ -62,7 +64,7 @@ func SetPriority(algolist map[string]uint32) error {
 	}
 	// set priority
 	for algo, priority := range algolist {
-		prfTypes[algo].setPriority(uint32(priority))
+		prfTypes[algo].setPriority(priority)
 	}
 	return nil
 }
