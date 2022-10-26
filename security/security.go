@@ -593,20 +593,24 @@ func (childsa *ChildSA) GenerateKey(prf hash.Hash, dhSharedKey, concatenatedNonc
 		return errors.New("Error happened in PrfPlus")
 	}
 
-	childsa.initiatorToResponderEncrKey =
-		append(childsa.initiatorToResponderEncrKey, keyStream[:lengthEncrKeyIPSec]...)
+	childsa.initiatorToResponderEncrKey = append(
+		childsa.initiatorToResponderEncrKey,
+		keyStream[:lengthEncrKeyIPSec]...)
 	keyStream = keyStream[lengthEncrKeyIPSec:]
 	if childsa.integKInfo != nil {
-		childsa.initiatorToResponderIntegKey =
-			append(childsa.initiatorToResponderIntegKey, keyStream[:lengthIntegKeyIPSec]...)
+		childsa.initiatorToResponderIntegKey = append(
+			childsa.initiatorToResponderIntegKey,
+			keyStream[:lengthIntegKeyIPSec]...)
 		keyStream = keyStream[lengthIntegKeyIPSec:]
 	}
-	childsa.responderToInitiatorEncrKey =
-		append(childsa.responderToInitiatorEncrKey, keyStream[:lengthEncrKeyIPSec]...)
+	childsa.responderToInitiatorEncrKey = append(
+		childsa.responderToInitiatorEncrKey,
+		keyStream[:lengthEncrKeyIPSec]...)
 	keyStream = keyStream[lengthEncrKeyIPSec:]
 	if childsa.integKInfo != nil {
-		childsa.responderToInitiatorIntegKey =
-			append(childsa.responderToInitiatorIntegKey, keyStream[:lengthIntegKeyIPSec]...)
+		childsa.responderToInitiatorIntegKey = append(
+			childsa.responderToInitiatorIntegKey,
+			keyStream[:lengthIntegKeyIPSec]...)
 	}
 
 	return nil

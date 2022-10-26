@@ -1261,8 +1261,9 @@ func (configuration *Configuration) unmarshal(rawData []byte) error {
 
 			individualConfigurationAttribute.Type = binary.BigEndian.Uint16(configurationAttributeData[0:2])
 			configurationAttributeData = configurationAttributeData[4:]
-			individualConfigurationAttribute.Value =
-				append(individualConfigurationAttribute.Value, configurationAttributeData[:length]...)
+			individualConfigurationAttribute.Value = append(
+				individualConfigurationAttribute.Value,
+				configurationAttributeData[:length]...)
 			configurationAttributeData = configurationAttributeData[length:]
 
 			configuration.ConfigurationAttribute = append(configuration.ConfigurationAttribute, individualConfigurationAttribute)
