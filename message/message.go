@@ -799,7 +799,9 @@ func (d *Delete) marshal() ([]byte, error) {
 	deleteData[1] = d.SPISize
 	binary.BigEndian.PutUint16(deleteData[2:4], d.NumberOfSPI)
 
-	deleteData = append(deleteData, d.SPIs...)
+	if int(d.NumberOfSPI) > 0 {
+		deleteData = append(deleteData, d.SPIs...)
+	}
 
 	return deleteData, nil
 }
@@ -811,7 +813,7 @@ func (d *Delete) unmarshal(rawData []byte) error {
 	if len(rawData) > 0 {
 		msgLog.Trace("[Delete] unmarshal(): Unmarshal 1 delete")
 		// bounds checking
-		if len(rawData) <= 4 {
+		if len(rawData) <= 3 {
 			return errors.New("Delete: No sufficient bytes to decode next delete")
 		}
 		spiSize := rawData[1]

@@ -80,6 +80,7 @@ const (
 	PRF_HMAC_MD5 = iota + 1
 	PRF_HMAC_SHA1
 	PRF_HMAC_TIGER
+	PRF_HMAC_SHA2_256 = 5
 )
 
 const (
@@ -89,6 +90,7 @@ const (
 	AUTH_DES_MAC
 	AUTH_KPDK_MD5
 	AUTH_AES_XCBC_96
+	AUTH_HMAC_SHA2_256_128 = 12
 )
 
 const (
@@ -139,6 +141,8 @@ const (
 	FAILED_CP_REQUIRED            = 37
 	TS_UNACCEPTABLE               = 38
 	INVALID_SELECTORS             = 39
+	UNACCEPTABLE_ADDRESSES        = 40
+	UNEXPECTED_NAT_DETECTED       = 41
 	TEMPORARY_FAILURE             = 43
 	CHILD_SA_NOT_FOUND            = 44
 	INITIAL_CONTACT               = 16384
@@ -153,6 +157,13 @@ const (
 	REKEY_SA                      = 16393
 	ESP_TFC_PADDING_NOT_SUPPORTED = 16394
 	NON_FIRST_FRAGMENTS_ALSO      = 16395
+	MOBIKE_SUPPORTED              = 16396
+	ADDITIONAL_IP4_ADDRESS        = 16397
+	ADDITIONAL_IP6_ADDRESS        = 16398
+	NO_ADDITIONAL_ADDRESSES       = 16399
+	UPDATE_SA_ADDRESSES           = 16400
+	COOKIE2                       = 16401
+	NO_NATS_ALLOWED               = 16402
 )
 
 // Protocol ID
@@ -256,6 +267,13 @@ const (
 	ANParametersTypeSelectedPLMNID     = 2
 	ANParametersTypeRequestedNSSAI     = 3
 	ANParametersTypeEstablishmentCause = 4
+)
+
+// Used for checking if AN-Parameter length field is legal
+const (
+	ANParametersLenGUAMI    = 6
+	ANParametersLenPLMNID   = 3
+	ANParametersLenEstCause = 1
 )
 
 // Used in IE Establishment Cause field for cause types
