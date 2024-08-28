@@ -13,6 +13,7 @@ import (
 	"github.com/free5gc/ike/internal/prf"
 	"github.com/free5gc/ike/message"
 	"github.com/free5gc/ike/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGenerateRandomNumber(t *testing.T) {
@@ -176,10 +177,10 @@ func TestIKESelectProposal(t *testing.T) {
 	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, t9)
 	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t13)
 
-	ikesa := new(IKESA)
-	if ikesa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
+	var Propsoals message.ProposalContainer
+	Propsoals = append(Propsoals, proposal)
+	chooseProposal := SelectProposal(Propsoals)
+	require.False(t, len(chooseProposal) > 0)
 
 	// Proposal 2
 	proposal = new(message.Proposal)
@@ -194,10 +195,14 @@ func TestIKESelectProposal(t *testing.T) {
 	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t13)
 	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t14)
 
-	ikesa = new(IKESA)
-	if !ikesa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
+	Propsoals = nil
+	Propsoals = append(Propsoals, proposal)
+	chooseProposal = SelectProposal(Propsoals)
+	require.False(t, len(chooseProposal) == 0)
+
+	ikesa := new(IKESA)
+	err := ikesa.SetProposal(chooseProposal[0])
+	require.NoError(t, err)
 
 	if ikesa.dhInfo != dhType2 || ikesa.encrInfo != encrType3 ||
 		ikesa.integInfo != integType2 || ikesa.prfInfo != prfType2 {
@@ -212,10 +217,14 @@ func TestIKESelectProposal(t *testing.T) {
 		t.Fatalf("Set priority failed: %v", err)
 	}
 
+	Propsoals = nil
+	Propsoals = append(Propsoals, proposal)
+	chooseProposal = SelectProposal(Propsoals)
+	require.False(t, len(chooseProposal) == 0)
+
 	ikesa = new(IKESA)
-	if !ikesa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
+	err = ikesa.SetProposal(chooseProposal[0])
+	require.NoError(t, err)
 
 	if ikesa.dhInfo != dhType1 || ikesa.encrInfo != encrType3 ||
 		ikesa.integInfo != integType2 || ikesa.prfInfo != prfType2 {
@@ -234,10 +243,10 @@ func TestIKESelectProposal(t *testing.T) {
 	// Proposal 3
 	proposal = new(message.Proposal)
 
-	ikesa = new(IKESA)
-	if ikesa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
+	Propsoals = nil
+	Propsoals = append(Propsoals, proposal)
+	chooseProposal = SelectProposal(Propsoals)
+	require.False(t, len(chooseProposal) > 0)
 
 	// Proposal 4
 	proposal = new(message.Proposal)
@@ -248,10 +257,10 @@ func TestIKESelectProposal(t *testing.T) {
 	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t13)
 	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, t15)
 
-	ikesa = new(IKESA)
-	if ikesa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
+	Propsoals = nil
+	Propsoals = append(Propsoals, proposal)
+	chooseProposal = SelectProposal(Propsoals)
+	require.False(t, len(chooseProposal) > 0)
 }
 
 func TestIKEToProposal(t *testing.T) {

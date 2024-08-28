@@ -5,8 +5,9 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
 	"io"
+
+	"github.com/pkg/errors"
 
 	"github.com/free5gc/ike/internal/lib"
 	itypes "github.com/free5gc/ike/internal/types"
@@ -46,7 +47,7 @@ type ENCR_AES_CBC struct {
 	keyLength int
 }
 
-func (t *ENCR_AES_CBC) transformID() uint16 {
+func (t *ENCR_AES_CBC) TransformID() uint16 {
 	return types.ENCR_AES_CBC
 }
 
@@ -66,17 +67,17 @@ func (t *ENCR_AES_CBC) GetKeyLength() int {
 	return t.keyLength
 }
 
-func (t *ENCR_AES_CBC) Init(key []byte) itypes.IKECrypto {
+func (t *ENCR_AES_CBC) Init(key []byte) (itypes.IKECrypto, error) {
 	var err error
 	encr := new(ENCR_AES_CBC_Crypto)
 	if len(key) != t.keyLength {
-		return nil
+		return nil, errors.Errorf("ENCR_AES_CBC init error: Get unexpected key length")
 	}
 	if encr.block, err = aes.NewCipher(key); err != nil {
 		encrLog.Errorf("Error occur when create new cipher: %+v", err)
-		return nil
+		return nil, errors.Wrapf(err, "ENCR_AES_CBC init: Error occur when create new cipher: ")
 	} else {
-		return encr
+		return encr, nil
 	}
 }
 

@@ -148,7 +148,7 @@ func DecodeTransform(transform *message.Transform) ENCRType {
 func ToTransform(encrType ENCRType) *message.Transform {
 	t := new(message.Transform)
 	t.TransformType = types.TypeEncryptionAlgorithm
-	t.TransformID = encrType.transformID()
+	t.TransformID = encrType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = encrType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
 		t.AttributeFormat = types.AttributeFormatUseTV
@@ -176,7 +176,7 @@ func DecodeTransformChildSA(transform *message.Transform) ENCRKType {
 func ToTransformChildSA(encrKType ENCRKType) *message.Transform {
 	t := new(message.Transform)
 	t.TransformType = types.TypeEncryptionAlgorithm
-	t.TransformID = encrKType.transformID()
+	t.TransformID = encrKType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = encrKType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
 		t.AttributeFormat = 1 // TV
@@ -185,16 +185,16 @@ func ToTransformChildSA(encrKType ENCRKType) *message.Transform {
 }
 
 type ENCRType interface {
-	transformID() uint16
+	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
 	setPriority(uint32)
 	Priority() uint32
 	GetKeyLength() int
-	Init(key []byte) itypes.IKECrypto
+	Init(key []byte) (itypes.IKECrypto, error)
 }
 
 type ENCRKType interface {
-	transformID() uint16
+	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
 	setPriority(uint32)
 	Priority() uint32

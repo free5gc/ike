@@ -25,7 +25,7 @@ type AUTH_HMAC_SHA1_96 struct {
 	outputLength int
 }
 
-func (t *AUTH_HMAC_SHA1_96) transformID() uint16 {
+func (t *AUTH_HMAC_SHA1_96) TransformID() uint16 {
 	return types.AUTH_HMAC_SHA1_96
 }
 

@@ -1,8 +1,9 @@
 package prf
 
 import (
-	"errors"
 	"hash"
+
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 

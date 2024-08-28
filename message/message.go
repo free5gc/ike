@@ -3,8 +3,9 @@ package message
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 

@@ -1,7 +1,7 @@
 package esn
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 

@@ -1,8 +1,9 @@
 package integ
 
 import (
-	"errors"
 	"hash"
+
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 
@@ -146,7 +147,7 @@ func DecodeTransform(transform *message.Transform) INTEGType {
 func ToTransform(integType INTEGType) *message.Transform {
 	t := new(message.Transform)
 	t.TransformType = types.TypeIntegrityAlgorithm
-	t.TransformID = integType.transformID()
+	t.TransformID = integType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = integType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
 		t.AttributeFormat = 1 // TV
@@ -174,7 +175,7 @@ func DecodeTransformChildSA(transform *message.Transform) INTEGKType {
 func ToTransformChildSA(integKType INTEGKType) *message.Transform {
 	t := new(message.Transform)
 	t.TransformType = types.TypeIntegrityAlgorithm
-	t.TransformID = integKType.transformID()
+	t.TransformID = integKType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = integKType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
 		t.AttributeFormat = types.AttributeFormatUseTV
@@ -183,7 +184,7 @@ func ToTransformChildSA(integKType INTEGKType) *message.Transform {
 }
 
 type INTEGType interface {
-	transformID() uint16
+	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
 	setPriority(uint32)
 	Priority() uint32
@@ -193,7 +194,7 @@ type INTEGType interface {
 }
 
 type INTEGKType interface {
-	transformID() uint16
+	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
 	setPriority(uint32)
 	Priority() uint32
