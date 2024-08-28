@@ -373,17 +373,17 @@ func (ikesa *IKESA) calculateIntegrity(role int, originData []byte) ([]byte, err
 
 	var calculatedChecksum []byte
 	if role == types.Role_Initiator {
-		ikesa.Integ_i.Reset()
-		if _, err := ikesa.Integ_i.Write(originData); err != nil {
-			return nil, errors.Wrapf(err, "CalcIKEChecksum(%d)", role)
-		}
-		calculatedChecksum = ikesa.Integ_i.Sum(nil)
-	} else {
 		ikesa.Integ_r.Reset()
 		if _, err := ikesa.Integ_r.Write(originData); err != nil {
 			return nil, errors.Wrapf(err, "CalcIKEChecksum(%d)", role)
 		}
 		calculatedChecksum = ikesa.Integ_r.Sum(nil)
+	} else {
+		ikesa.Integ_i.Reset()
+		if _, err := ikesa.Integ_i.Write(originData); err != nil {
+			return nil, errors.Wrapf(err, "CalcIKEChecksum(%d)", role)
+		}
+		calculatedChecksum = ikesa.Integ_i.Sum(nil)
 	}
 
 	return calculatedChecksum[:outputLen], nil
@@ -416,13 +416,13 @@ func (ikesa *IKESA) DecryptMessage(role int, cipherText []byte) ([]byte, error) 
 	var plainText []byte
 	if role == types.Role_Initiator {
 		var err error
-		if plainText, err = ikesa.Encr_i.Decrypt(cipherText); err != nil {
+		if plainText, err = ikesa.Encr_r.Decrypt(cipherText); err != nil {
 			secLog.Errorf("Decrypt() failed: %+v", err)
 			return nil, errors.New("Failed to decrypt SK")
 		}
 	} else {
 		var err error
-		if plainText, err = ikesa.Encr_r.Decrypt(cipherText); err != nil {
+		if plainText, err = ikesa.Encr_i.Decrypt(cipherText); err != nil {
 			secLog.Errorf("Decrypt() failed: %+v", err)
 			return nil, errors.New("Failed to decrypt SK")
 		}
@@ -435,6 +435,10 @@ func (ikesa *IKESA) DecryptMessage(role int, cipherText []byte) ([]byte, error) 
 func (ikesa *IKESA) DecryptProcedure(role int, ikeMessage *message.IKEMessage,
 	encryptedPayload *message.Encrypted,
 ) (message.IKEPayloadContainer, error) {
+	if ikesa == nil {
+		return nil, errors.New("IKE SA is nil")
+	}
+
 	// Check parameters
 	if ikeMessage == nil {
 		return nil, errors.New("IKE message is nil")
@@ -503,6 +507,9 @@ func (ikesa *IKESA) EncryptProcedure(role int,
 	ikePayload message.IKEPayloadContainer,
 	responseIKEMessage *message.IKEMessage,
 ) error {
+	if ikesa == nil {
+		return errors.New("IKE SA is nil")
+	}
 	// Check parameters
 	if len(ikePayload) == 0 {
 		return errors.New("No IKE payload to be encrypted")
@@ -725,8 +732,8 @@ func (childsa *ChildSA) GenerateKeyForChildSA(ikeSA *IKESA) error {
 	if childsa.encrKInfo == nil {
 		return errors.New("No encryption algorithm specified")
 	}
-	if childsa.esnInfo == nil {
-		return errors.New("No ESN present specified")
+	if ikeSA.Prf_d == nil {
+		return errors.New("No key deriving key")
 	}
 
 	// Get key length for encryption and integrity key for IPSec
