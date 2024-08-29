@@ -5,7 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/free5gc/ike/internal/logger"
+	"github.com/free5gc/ike/logger"
 	"github.com/free5gc/ike/message"
 )
 
@@ -197,35 +197,9 @@ type ENCRKType interface {
 	setPriority(uint32)
 	Priority() uint32
 	GetKeyLength() int
-	XFRMString() string
 }
 
 type IKECrypto interface {
 	Encrypt(plainText []byte) ([]byte, error)
 	Decrypt(cipherText []byte) ([]byte, error)
 }
-
-/* Archive for future use
-type XFRMEncryptionAlgorithmType uint16
-
-func (xfrmEncryptionAlgorithmType XFRMEncryptionAlgorithmType) String() string {
-	switch xfrmEncryptionAlgorithmType {
-	case message.ENCR_DES:
-		return "cbc(des)"
-	case message.ENCR_3DES:
-		return "cbc(des3_ede)"
-	case message.ENCR_CAST:
-		return "cbc(cast5)"
-	case message.ENCR_BLOWFISH:
-		return "cbc(blowfish)"
-	case message.ENCR_NULL:
-		return "ecb(cipher_null)"
-	case message.ENCR_AES_CBC:
-		return "cbc(aes)"
-	case message.ENCR_AES_CTR:
-		return "rfc3686(ctr(aes))"
-	default:
-		return ""
-	}
-}
-*/

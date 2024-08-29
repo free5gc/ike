@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/free5gc/ike/internal/logger"
+	"github.com/free5gc/ike/logger"
 	"github.com/free5gc/ike/message"
 )
 

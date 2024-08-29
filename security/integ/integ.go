@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/free5gc/ike/internal/logger"
+	"github.com/free5gc/ike/logger"
 	"github.com/free5gc/ike/message"
 )
 
@@ -207,22 +207,4 @@ type INTEGKType interface {
 	setPriority(uint32)
 	Priority() uint32
 	GetKeyLength() int
-	XFRMString() string
 }
-
-/* Archive for future use
-type XFRMIntegrityAlgorithmType uint16
-
-func (xfrmIntegrityAlgorithmType XFRMIntegrityAlgorithmType) String() string {
-	switch xfrmIntegrityAlgorithmType {
-	case message.AUTH_HMAC_MD5_96:
-		return "hmac(md5)"
-	case message.AUTH_HMAC_SHA1_96:
-		return "hmac(sha1)"
-	case message.AUTH_AES_XCBC_96:
-		return "xcbc(aes)"
-	default:
-		return ""
-	}
-}
-*/

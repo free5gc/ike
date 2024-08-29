@@ -80,10 +80,6 @@ func (t *ENCR_AES_CBC) Init(key []byte) (IKECrypto, error) {
 	}
 }
 
-func (t *ENCR_AES_CBC) XFRMString() string {
-	return "cbc(aes)"
-}
-
 var _ IKECrypto = &ENCR_AES_CBC_Crypto{}
 
 type ENCR_AES_CBC_Crypto struct {

@@ -439,7 +439,7 @@ func TestVerifyIntegrity(t *testing.T) {
 				tt.ikeSA.Integ_i = integ
 			}
 
-			valid, err := tt.ikeSA.verifyIntegrity(tt.role, tt.originData, checksum)
+			valid, err := verifyIntegrity(tt.ikeSA, tt.role, tt.originData, checksum)
 			if tt.expectedValid {
 				require.NoError(t, err, "verifyIntegrity returned an error")
 			}
@@ -561,8 +561,8 @@ func TestGenerateKeyForChildSA(t *testing.T) {
 	err = childSA.GenerateKeyForChildSA(ikeSA)
 	require.Error(t, err)
 
-	childSA.encrKInfo = encr.StrToKType("ENCR_AES_CBC_256")
-	childSA.integKInfo = integ.StrToKType("AUTH_HMAC_SHA1_96")
+	childSA.EncrKInfo = encr.StrToKType("ENCR_AES_CBC_256")
+	childSA.IntegKInfo = integ.StrToKType("AUTH_HMAC_SHA1_96")
 
 	// Deriving key is nil
 	err = childSA.GenerateKeyForChildSA(ikeSA)
@@ -659,7 +659,7 @@ func TestDecryptProcedure(t *testing.T) {
 	require.NoError(t, err)
 
 	// Successful decryption
-	decryptedPayload, err := ikeSA.DecryptProcedure(message.Role_Responder, ikeMessage, encryptedPayload)
+	decryptedPayload, err := DecryptProcedure(ikeSA, message.Role_Responder, ikeMessage, encryptedPayload)
 	require.NoError(t, err)
 
 	ecpectedDecryptData := message.IKEPayloadContainer{
@@ -683,34 +683,33 @@ func TestDecryptProcedure(t *testing.T) {
 	require.Equal(t, ecpectedDecryptData, decryptedPayload)
 
 	// IKE Security Association is nil
-	var ikesa *IKESA
-	_, err = ikesa.DecryptProcedure(message.Role_Responder, ikeMessage, encryptedPayload)
+	_, err = DecryptProcedure(nil, message.Role_Responder, ikeMessage, encryptedPayload)
 	require.Error(t, err)
 
 	// IKE Message is nil
-	_, err = ikesa.DecryptProcedure(message.Role_Responder, nil, encryptedPayload)
+	_, err = DecryptProcedure(ikeSA, message.Role_Responder, nil, encryptedPayload)
 	require.Error(t, err)
 
 	// Encrypted Payload is nil
-	_, err = ikesa.DecryptProcedure(message.Role_Responder, ikeMessage, nil)
+	_, err = DecryptProcedure(ikeSA, message.Role_Responder, ikeMessage, nil)
 	require.Error(t, err)
 
 	// No integrity algorithm specified
 	ikeSA.IntegInfo = nil
-	_, err = ikeSA.DecryptProcedure(message.Role_Responder, ikeMessage, encryptedPayload)
+	_, err = DecryptProcedure(ikeSA, message.Role_Responder, ikeMessage, encryptedPayload)
 	require.Error(t, err)
 
 	ikeSA.IntegInfo = integrityAlgorithm
 
 	// No initiator's integrity key
 	ikeSA.Integ_i = nil
-	_, err = ikeSA.DecryptProcedure(message.Role_Responder, ikeMessage, encryptedPayload)
+	_, err = DecryptProcedure(ikeSA, message.Role_Responder, ikeMessage, encryptedPayload)
 	require.Error(t, err)
 
 	ikeSA.Integ_i = integ_i
 	// No initiator's encryption key
 	ikeSA.Encr_i = nil
-	_, err = ikeSA.DecryptProcedure(message.Role_Responder, ikeMessage, encryptedPayload)
+	_, err = DecryptProcedure(ikeSA, message.Role_Responder, ikeMessage, encryptedPayload)
 	require.Error(t, err, "Expected an error when no initiator's encryption key is provided")
 
 	// Checksum verification fails
@@ -719,7 +718,7 @@ func TestDecryptProcedure(t *testing.T) {
 		NextPayload:   message.TypeIDi,
 		EncryptedData: []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13},
 	}
-	_, err = ikeSA.DecryptProcedure(message.Role_Responder, ikeMessage, invalidEncryptPayload)
+	_, err = DecryptProcedure(ikeSA, message.Role_Responder, ikeMessage, invalidEncryptPayload)
 	require.Error(t, err)
 }
 
@@ -790,46 +789,45 @@ func TestEncryptProcedure(t *testing.T) {
 	}
 
 	// Successful encryption
-	err = ikeSA.EncryptProcedure(message.Role_Responder, ikePayload, ikeMessage)
+	err = EncryptProcedure(ikeSA, message.Role_Responder, ikePayload, ikeMessage)
 	require.NoError(t, err)
 
 	// IKE Security Association is nil
-	var ikesa *IKESA
-	err = ikesa.EncryptProcedure(message.Role_Responder, ikePayload, ikeMessage)
+	err = EncryptProcedure(nil, message.Role_Responder, ikePayload, ikeMessage)
 	require.Error(t, err)
 
 	// No IKE payload to be encrypted
-	err = ikeSA.EncryptProcedure(message.Role_Responder, message.IKEPayloadContainer{}, ikeMessage)
+	err = EncryptProcedure(ikeSA, message.Role_Responder, message.IKEPayloadContainer{}, ikeMessage)
 	require.Error(t, err)
 
 	// Response IKE Message is nil
-	err = ikeSA.EncryptProcedure(message.Role_Responder, ikePayload, nil)
+	err = EncryptProcedure(ikeSA, message.Role_Responder, ikePayload, nil)
 	require.Error(t, err)
 
 	// No integrity algorithm specified
 	ikeSA.IntegInfo = nil
-	err = ikeSA.EncryptProcedure(message.Role_Responder, ikePayload, ikeMessage)
+	err = EncryptProcedure(ikeSA, message.Role_Responder, ikePayload, ikeMessage)
 	require.Error(t, err)
 
 	ikeSA.IntegInfo = integrityAlgorithm
 
 	// No encryption algorithm specified
 	ikeSA.EncrInfo = nil
-	err = ikeSA.EncryptProcedure(message.Role_Responder, ikePayload, ikeMessage)
+	err = EncryptProcedure(ikeSA, message.Role_Responder, ikePayload, ikeMessage)
 	require.Error(t, err)
 
 	ikeSA.EncrInfo = encryptionAlgorithm
 
 	// No responder's integrity key
 	ikeSA.Integ_r = nil
-	err = ikeSA.EncryptProcedure(message.Role_Responder, ikePayload, ikeMessage)
+	err = EncryptProcedure(ikeSA, message.Role_Responder, ikePayload, ikeMessage)
 	require.Error(t, err)
 
 	ikeSA.Integ_r = integ_r
 
 	// No responder's encryption key
 	ikeSA.Encr_r = nil
-	err = ikeSA.EncryptProcedure(message.Role_Responder, ikePayload, ikeMessage)
+	err = EncryptProcedure(ikeSA, message.Role_Responder, ikePayload, ikeMessage)
 	t.Logf("err : %v", err)
 	require.Error(t, err)
 }
@@ -953,8 +951,11 @@ func TestChildSelectProposal(t *testing.T) {
 	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, t9)
 	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t13)
 
+	var Propsoals message.ProposalContainer
+	Propsoals = append(Propsoals, proposal)
+
 	childsa := new(ChildSA)
-	if childsa.SelectProposal(proposal) {
+	if childsa.SelectProposal(Propsoals) {
 		t.Fatal("SelectProposal returned a false result")
 	}
 
@@ -970,13 +971,16 @@ func TestChildSelectProposal(t *testing.T) {
 	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, t15)
 	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, t16)
 
+	Propsoals = nil
+	Propsoals = append(Propsoals, proposal)
+
 	childsa = new(ChildSA)
-	if !childsa.SelectProposal(proposal) {
+	if !childsa.SelectProposal(Propsoals) {
 		t.Fatal("SelectProposal returned a false result")
 	}
 
-	if childsa.DhInfo != dhType2 || childsa.encrKInfo != encrKType3 ||
-		childsa.integKInfo != integKType2 || childsa.esnInfo != esnType2 {
+	if childsa.DhInfo != dhType2 || childsa.EncrKInfo != encrKType3 ||
+		childsa.IntegKInfo != integKType2 || childsa.EsnInfo != esnType2 {
 		t.Fatal("SelectProposal selected a false result")
 	}
 
@@ -989,12 +993,12 @@ func TestChildSelectProposal(t *testing.T) {
 	}
 
 	childsa = new(ChildSA)
-	if !childsa.SelectProposal(proposal) {
+	if !childsa.SelectProposal(Propsoals) {
 		t.Fatal("SelectProposal returned a false result")
 	}
 
-	if childsa.DhInfo != dhType1 || childsa.encrKInfo != encrKType3 ||
-		childsa.integKInfo != integKType2 || childsa.esnInfo != esnType2 {
+	if childsa.DhInfo != dhType1 || childsa.EncrKInfo != encrKType3 ||
+		childsa.IntegKInfo != integKType2 || childsa.EsnInfo != esnType2 {
 		t.Fatal("SelectProposal selected a false result")
 	}
 
@@ -1009,9 +1013,11 @@ func TestChildSelectProposal(t *testing.T) {
 
 	// Proposal 3
 	proposal = new(message.Proposal)
+	Propsoals = nil
+	Propsoals = append(Propsoals, proposal)
 
 	childsa = new(ChildSA)
-	if childsa.SelectProposal(proposal) {
+	if childsa.SelectProposal(Propsoals) {
 		t.Fatal("SelectProposal returned a false result")
 	}
 
@@ -1026,8 +1032,11 @@ func TestChildSelectProposal(t *testing.T) {
 	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t14)
 	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, t15)
 
+	Propsoals = nil
+	Propsoals = append(Propsoals, proposal)
+
 	childsa = new(ChildSA)
-	if childsa.SelectProposal(proposal) {
+	if childsa.SelectProposal(Propsoals) {
 		t.Fatal("SelectProposal returned a false result")
 	}
 
@@ -1038,13 +1047,16 @@ func TestChildSelectProposal(t *testing.T) {
 	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, t15)
 	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, t16)
 
+	Propsoals = nil
+	Propsoals = append(Propsoals, proposal)
+
 	childsa = new(ChildSA)
-	if !childsa.SelectProposal(proposal) {
+	if !childsa.SelectProposal(Propsoals) {
 		t.Fatal("SelectProposal returned a false result")
 	}
 
-	if childsa.DhInfo != nil || childsa.encrKInfo != encrKType3 ||
-		childsa.integKInfo != nil || childsa.esnInfo != esnType2 {
+	if childsa.DhInfo != nil || childsa.EncrKInfo != encrKType3 ||
+		childsa.IntegKInfo != nil || childsa.EsnInfo != esnType2 {
 		t.Fatal("SelectProposal selected a false result")
 	}
 }
@@ -1057,9 +1069,9 @@ func TestChildToProposal(t *testing.T) {
 
 	childsa := ChildSA{
 		DhInfo:     dhType,
-		encrKInfo:  encrKType,
-		integKInfo: integKType,
-		esnInfo:    esnType,
+		EncrKInfo:  encrKType,
+		IntegKInfo: integKType,
+		EsnInfo:    esnType,
 	}
 
 	proposal := childsa.ToProposal()
@@ -1091,9 +1103,9 @@ func TestChildSetProposal(t *testing.T) {
 	childsa.SetProposal(proposal)
 
 	if childsa.DhInfo == nil ||
-		childsa.encrKInfo == nil ||
-		childsa.integKInfo == nil ||
-		childsa.esnInfo == nil {
+		childsa.EncrKInfo == nil ||
+		childsa.IntegKInfo == nil ||
+		childsa.EsnInfo == nil {
 		t.FailNow()
 	}
 }

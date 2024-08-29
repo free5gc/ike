@@ -56,7 +56,3 @@ func (t *AUTH_HMAC_SHA1_96) Init(key []byte) hash.Hash {
 		return nil
 	}
 }
-
-func (t *AUTH_HMAC_SHA1_96) XFRMString() string {
-	return "hmac(sha1)"
-}
