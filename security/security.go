@@ -23,7 +23,6 @@ import (
 	"github.com/free5gc/ike/security/integ"
 	"github.com/free5gc/ike/security/lib"
 	"github.com/free5gc/ike/security/prf"
-	types "github.com/free5gc/ike/types"
 )
 
 // Log
@@ -193,7 +192,7 @@ func SelectProposal(proposals message.ProposalContainer) message.ProposalContain
 
 func (ikesa *IKESA) ToProposal() *message.Proposal {
 	p := new(message.Proposal)
-	p.ProtocolID = types.TypeIKE
+	p.ProtocolID = message.TypeIKE
 	p.DiffieHellmanGroup = append(p.DiffieHellmanGroup, dh.ToTransform(ikesa.DhInfo))
 	p.PseudorandomFunction = append(p.PseudorandomFunction, prf.ToTransform(ikesa.PrfInfo))
 	p.EncryptionAlgorithm = append(p.EncryptionAlgorithm, encr.ToTransform(ikesa.EncrInfo))
@@ -373,7 +372,7 @@ func (ikesa *IKESA) calculateIntegrity(role int, originData []byte) ([]byte, err
 	outputLen := ikesa.IntegInfo.GetOutputLength()
 
 	var calculatedChecksum []byte
-	if role == types.Role_Initiator {
+	if role == message.Role_Initiator {
 		if ikesa.Integ_r == nil {
 			return nil, errors.Errorf("CalcIKEChecksum(%d) : IKE SA have nil Integ_r", role)
 		}
@@ -398,7 +397,7 @@ func (ikesa *IKESA) calculateIntegrity(role int, originData []byte) ([]byte, err
 
 func (ikesa *IKESA) EncryptMessage(role int, originData []byte) ([]byte, error) {
 	var cipherText []byte
-	if role == types.Role_Initiator {
+	if role == message.Role_Initiator {
 		var err error
 		if cipherText, err = ikesa.Encr_i.Encrypt(originData); err != nil {
 			secLog.Errorf("Encrypt() failed: %+v", err)
@@ -421,7 +420,7 @@ func (ikesa *IKESA) EncryptMessage(role int, originData []byte) ([]byte, error) 
 
 func (ikesa *IKESA) DecryptMessage(role int, cipherText []byte) ([]byte, error) {
 	var plainText []byte
-	if role == types.Role_Initiator {
+	if role == message.Role_Initiator {
 		var err error
 		if plainText, err = ikesa.Encr_r.Decrypt(cipherText); err != nil {
 			secLog.Errorf("Decrypt() failed: %+v", err)
@@ -681,7 +680,7 @@ func (childsa *ChildSA) SelectProposal(proposal *message.Proposal) bool {
 
 func (childsa *ChildSA) ToProposal() *message.Proposal {
 	p := new(message.Proposal)
-	p.ProtocolID = types.TypeESP
+	p.ProtocolID = message.TypeESP
 	if childsa.DhInfo != nil {
 		p.DiffieHellmanGroup = append(p.DiffieHellmanGroup, dh.ToTransform(childsa.DhInfo))
 	}
@@ -788,7 +787,7 @@ func (childsa *ChildSA) GenerateXFRMContext(role int) {
 	// Initiator to responder state and policy
 	// State
 	s := new(netlink.XfrmState)
-	if role == types.Role_Initiator {
+	if role == message.Role_Initiator {
 		s.Src = childsa.LocalPublicIPAddr
 		s.Dst = childsa.RemotePublicIPAddr
 	} else {
@@ -811,7 +810,7 @@ func (childsa *ChildSA) GenerateXFRMContext(role int) {
 	}
 	s.ESN = childsa.esnInfo.Init()
 	if childsa.EnableEncap {
-		if role == types.Role_Initiator {
+		if role == message.Role_Initiator {
 			s.Encap = &netlink.XfrmStateEncap{
 				Type:    netlink.XFRM_ENCAP_ESPINUDP,
 				SrcPort: childsa.LocalPort,
@@ -828,7 +827,7 @@ func (childsa *ChildSA) GenerateXFRMContext(role int) {
 
 	// Policy
 	p := new(netlink.XfrmPolicy)
-	if role == types.Role_Initiator {
+	if role == message.Role_Initiator {
 		p.Src = childsa.TSLocal
 		p.Dst = childsa.TSRemote
 		p.Dir = netlink.XFRM_DIR_OUT
@@ -855,7 +854,7 @@ func (childsa *ChildSA) GenerateXFRMContext(role int) {
 	// Responder to initiator state and policy
 	// State
 	s = new(netlink.XfrmState)
-	if role == types.Role_Initiator {
+	if role == message.Role_Initiator {
 		s.Src = childsa.RemotePublicIPAddr
 		s.Dst = childsa.LocalPublicIPAddr
 	} else {
@@ -878,7 +877,7 @@ func (childsa *ChildSA) GenerateXFRMContext(role int) {
 	}
 	s.ESN = childsa.esnInfo.Init()
 	if childsa.EnableEncap {
-		if role == types.Role_Initiator {
+		if role == message.Role_Initiator {
 			s.Encap = &netlink.XfrmStateEncap{
 				Type:    netlink.XFRM_ENCAP_ESPINUDP,
 				SrcPort: childsa.RemotePort,
@@ -895,7 +894,7 @@ func (childsa *ChildSA) GenerateXFRMContext(role int) {
 
 	// Policy
 	p = new(netlink.XfrmPolicy)
-	if role == types.Role_Initiator {
+	if role == message.Role_Initiator {
 		p.Src = childsa.TSRemote
 		p.Dst = childsa.TSLocal
 		p.Dir = netlink.XFRM_DIR_IN

@@ -1,4 +1,4 @@
-package types
+package message
 
 // IKE types
 type IKEPayloadType uint8

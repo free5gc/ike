@@ -8,7 +8,6 @@ import (
 
 	"github.com/free5gc/ike/internal/logger"
 	"github.com/free5gc/ike/message"
-	"github.com/free5gc/ike/types"
 )
 
 var (
@@ -23,8 +22,8 @@ func init() {
 
 	// DH String
 	dhString = make(map[uint16]func(uint16, uint16, []byte) string)
-	dhString[types.DH_1024_BIT_MODP] = toString_DH_1024_BIT_MODP
-	dhString[types.DH_2048_BIT_MODP] = toString_DH_2048_BIT_MODP
+	dhString[message.DH_1024_BIT_MODP] = toString_DH_1024_BIT_MODP
+	dhString[message.DH_2048_BIT_MODP] = toString_DH_2048_BIT_MODP
 
 	// DH Types
 	dhTypes = make(map[string]DHType)
@@ -115,11 +114,11 @@ func DecodeTransform(transform *message.Transform) DHType {
 
 func ToTransform(dhType DHType) *message.Transform {
 	t := new(message.Transform)
-	t.TransformType = types.TypeDiffieHellmanGroup
+	t.TransformType = message.TypeDiffieHellmanGroup
 	t.TransformID = dhType.transformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = dhType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
-		t.AttributeFormat = types.AttributeFormatUseTV
+		t.AttributeFormat = message.AttributeFormatUseTV
 	}
 	return t
 }

@@ -11,8 +11,6 @@ import (
 	Mrand "math/rand"
 	"net"
 	"testing"
-
-	"github.com/free5gc/ike/types"
 )
 
 // TestEncodeDecode tests the Encode() and Decode() function using the data
@@ -294,7 +292,7 @@ func TestEncodeDecode(t *testing.T) {
 
 	testSK := new(Encrypted)
 
-	testSK.NextPayload = types.TypeSA
+	testSK.NextPayload = TypeSA
 
 	ikePayload := IKEPayloadContainer{
 		testSA,

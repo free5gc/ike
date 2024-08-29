@@ -9,7 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/free5gc/ike/internal/logger"
-	"github.com/free5gc/ike/types"
 )
 
 // Log
@@ -44,7 +43,7 @@ func (ikeMessage *IKEMessage) Encode() ([]byte, error) {
 	if len(ikeMessage.Payloads) > 0 {
 		ikeMessageData[16] = byte(ikeMessage.Payloads[0].Type())
 	} else {
-		ikeMessageData[16] = types.NoNext
+		ikeMessageData[16] = NoNext
 	}
 
 	ikeMessagePayloadData, err := ikeMessage.Payloads.Encode()
@@ -111,10 +110,10 @@ func (container *IKEPayloadContainer) Encode() ([]byte, error) {
 		if (index + 1) < len(*container) { // if it has next payload
 			payloadData[0] = uint8((*container)[index+1].Type())
 		} else {
-			if payload.Type() == types.TypeSK {
+			if payload.Type() == TypeSK {
 				payloadData[0] = payload.(*Encrypted).NextPayload
 			} else {
-				payloadData[0] = types.NoNext
+				payloadData[0] = NoNext
 			}
 		}
 
@@ -154,39 +153,39 @@ func (container *IKEPayloadContainer) Decode(nextPayload uint8, rawData []byte) 
 		var payload IKEPayload
 
 		switch nextPayload {
-		case types.TypeSA:
+		case TypeSA:
 			payload = new(SecurityAssociation)
-		case types.TypeKE:
+		case TypeKE:
 			payload = new(KeyExchange)
-		case types.TypeIDi:
+		case TypeIDi:
 			payload = new(IdentificationInitiator)
-		case types.TypeIDr:
+		case TypeIDr:
 			payload = new(IdentificationResponder)
-		case types.TypeCERT:
+		case TypeCERT:
 			payload = new(Certificate)
-		case types.TypeCERTreq:
+		case TypeCERTreq:
 			payload = new(CertificateRequest)
-		case types.TypeAUTH:
+		case TypeAUTH:
 			payload = new(Authentication)
-		case types.TypeNiNr:
+		case TypeNiNr:
 			payload = new(Nonce)
-		case types.TypeN:
+		case TypeN:
 			payload = new(Notification)
-		case types.TypeD:
+		case TypeD:
 			payload = new(Delete)
-		case types.TypeV:
+		case TypeV:
 			payload = new(VendorID)
-		case types.TypeTSi:
+		case TypeTSi:
 			payload = new(TrafficSelectorInitiator)
-		case types.TypeTSr:
+		case TypeTSr:
 			payload = new(TrafficSelectorResponder)
-		case types.TypeSK:
+		case TypeSK:
 			encryptedPayload := new(Encrypted)
 			encryptedPayload.NextPayload = rawData[0]
 			payload = encryptedPayload
-		case types.TypeCP:
+		case TypeCP:
 			payload = new(Configuration)
-		case types.TypeEAP:
+		case TypeEAP:
 			payload = new(EAP)
 		default:
 			if criticalBit == 0 {
@@ -215,7 +214,7 @@ func (container *IKEPayloadContainer) Decode(nextPayload uint8, rawData []byte) 
 
 type IKEPayload interface {
 	// Type specifies the IKE payload types
-	Type() types.IKEPayloadType
+	Type() IKEPayloadType
 
 	// Called by Encode() or Decode()
 	marshal() ([]byte, error)
@@ -255,7 +254,7 @@ type Transform struct {
 	VariableLengthAttributeValue []byte
 }
 
-func (securityAssociation *SecurityAssociation) Type() types.IKEPayloadType { return types.TypeSA }
+func (securityAssociation *SecurityAssociation) Type() IKEPayloadType { return TypeSA }
 
 func (securityAssociation *SecurityAssociation) marshal() ([]byte, error) {
 	msgLog.Info("[SecurityAssociation] marshal(): Start marshalling")
@@ -426,15 +425,15 @@ func (securityAssociation *SecurityAssociation) unmarshal(rawData []byte) error 
 			}
 
 			switch transform.TransformType {
-			case types.TypeEncryptionAlgorithm:
+			case TypeEncryptionAlgorithm:
 				proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, transform)
-			case types.TypePseudorandomFunction:
+			case TypePseudorandomFunction:
 				proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, transform)
-			case types.TypeIntegrityAlgorithm:
+			case TypeIntegrityAlgorithm:
 				proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, transform)
-			case types.TypeDiffieHellmanGroup:
+			case TypeDiffieHellmanGroup:
 				proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, transform)
-			case types.TypeExtendedSequenceNumbers:
+			case TypeExtendedSequenceNumbers:
 				proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, transform)
 			}
 
@@ -458,7 +457,7 @@ type KeyExchange struct {
 	KeyExchangeData    []byte
 }
 
-func (keyExchange *KeyExchange) Type() types.IKEPayloadType { return types.TypeKE }
+func (keyExchange *KeyExchange) Type() IKEPayloadType { return TypeKE }
 
 func (keyExchange *KeyExchange) marshal() ([]byte, error) {
 	msgLog.Info("[KeyExchange] marshal(): Start marshalling")
@@ -498,7 +497,7 @@ type IdentificationInitiator struct {
 	IDData []byte
 }
 
-func (identification *IdentificationInitiator) Type() types.IKEPayloadType { return types.TypeIDi }
+func (identification *IdentificationInitiator) Type() IKEPayloadType { return TypeIDi }
 
 func (identification *IdentificationInitiator) marshal() ([]byte, error) {
 	msgLog.Info("[Identification] marshal(): Start marshalling")
@@ -538,7 +537,7 @@ type IdentificationResponder struct {
 	IDData []byte
 }
 
-func (identification *IdentificationResponder) Type() types.IKEPayloadType { return types.TypeIDr }
+func (identification *IdentificationResponder) Type() IKEPayloadType { return TypeIDr }
 
 func (identification *IdentificationResponder) marshal() ([]byte, error) {
 	msgLog.Info("[Identification] marshal(): Start marshalling")
@@ -578,7 +577,7 @@ type Certificate struct {
 	CertificateData     []byte
 }
 
-func (certificate *Certificate) Type() types.IKEPayloadType { return types.TypeCERT }
+func (certificate *Certificate) Type() IKEPayloadType { return TypeCERT }
 
 func (certificate *Certificate) marshal() ([]byte, error) {
 	msgLog.Info("[Certificate] marshal(): Start marshalling")
@@ -618,7 +617,7 @@ type CertificateRequest struct {
 	CertificationAuthority []byte
 }
 
-func (certificateRequest *CertificateRequest) Type() types.IKEPayloadType { return types.TypeCERTreq }
+func (certificateRequest *CertificateRequest) Type() IKEPayloadType { return TypeCERTreq }
 
 func (certificateRequest *CertificateRequest) marshal() ([]byte, error) {
 	msgLog.Info("[CertificateRequest] marshal(): Start marshalling")
@@ -658,7 +657,7 @@ type Authentication struct {
 	AuthenticationData   []byte
 }
 
-func (authentication *Authentication) Type() types.IKEPayloadType { return types.TypeAUTH }
+func (authentication *Authentication) Type() IKEPayloadType { return TypeAUTH }
 
 func (authentication *Authentication) marshal() ([]byte, error) {
 	msgLog.Info("[Authentication] marshal(): Start marshalling")
@@ -697,7 +696,7 @@ type Nonce struct {
 	NonceData []byte
 }
 
-func (nonce *Nonce) Type() types.IKEPayloadType { return types.TypeNiNr }
+func (nonce *Nonce) Type() IKEPayloadType { return TypeNiNr }
 
 func (nonce *Nonce) marshal() ([]byte, error) {
 	msgLog.Info("[Nonce] marshal(): Start marshalling")
@@ -731,7 +730,7 @@ type Notification struct {
 	NotificationData  []byte
 }
 
-func (notification *Notification) Type() types.IKEPayloadType { return types.TypeN }
+func (notification *Notification) Type() IKEPayloadType { return TypeN }
 
 func (notification *Notification) marshal() ([]byte, error) {
 	msgLog.Info("[Notification] marshal(): Start marshalling")
@@ -784,7 +783,7 @@ type Delete struct {
 	SPIs        []byte
 }
 
-func (d *Delete) Type() types.IKEPayloadType { return types.TypeD }
+func (d *Delete) Type() IKEPayloadType { return TypeD }
 
 func (d *Delete) marshal() ([]byte, error) {
 	msgLog.Info("[Delete] marshal(): Start marshalling")
@@ -840,7 +839,7 @@ type VendorID struct {
 	VendorIDData []byte
 }
 
-func (vendorID *VendorID) Type() types.IKEPayloadType { return types.TypeV }
+func (vendorID *VendorID) Type() IKEPayloadType { return TypeV }
 
 func (vendorID *VendorID) marshal() ([]byte, error) {
 	msgLog.Info("[VendorID] marshal(): Start marshalling")
@@ -878,7 +877,7 @@ type IndividualTrafficSelector struct {
 	EndAddress   []byte
 }
 
-func (trafficSelector *TrafficSelectorInitiator) Type() types.IKEPayloadType { return types.TypeTSi }
+func (trafficSelector *TrafficSelectorInitiator) Type() IKEPayloadType { return TypeTSi }
 
 func (trafficSelector *TrafficSelectorInitiator) marshal() ([]byte, error) {
 	msgLog.Info("[TrafficSelector] marshal(): Start marshalling")
@@ -888,7 +887,7 @@ func (trafficSelector *TrafficSelectorInitiator) marshal() ([]byte, error) {
 		trafficSelectorData[0] = uint8(len(trafficSelector.TrafficSelectors))
 
 		for _, individualTrafficSelector := range trafficSelector.TrafficSelectors {
-			if individualTrafficSelector.TSType == types.TS_IPV4_ADDR_RANGE {
+			if individualTrafficSelector.TSType == TS_IPV4_ADDR_RANGE {
 				// Address length checking
 				if len(individualTrafficSelector.StartAddress) != 4 {
 					msgLog.Errorf("Address length %d", len(individualTrafficSelector.StartAddress))
@@ -911,7 +910,7 @@ func (trafficSelector *TrafficSelectorInitiator) marshal() ([]byte, error) {
 				binary.BigEndian.PutUint16(individualTrafficSelectorData[2:4], uint16(len(individualTrafficSelectorData)))
 
 				trafficSelectorData = append(trafficSelectorData, individualTrafficSelectorData...)
-			} else if individualTrafficSelector.TSType == types.TS_IPV6_ADDR_RANGE {
+			} else if individualTrafficSelector.TSType == TS_IPV6_ADDR_RANGE {
 				// Address length checking
 				if len(individualTrafficSelector.StartAddress) != 16 {
 					return nil, errors.New("TrafficSelector: Start IPv6 address length is not correct")
@@ -966,7 +965,7 @@ func (trafficSelector *TrafficSelectorInitiator) unmarshal(rawData []byte) error
 					"TrafficSelector: No sufficient bytes to decode next individual traffic selector length in header")
 			}
 			trafficSelectorType := rawData[0]
-			if trafficSelectorType == types.TS_IPV4_ADDR_RANGE {
+			if trafficSelectorType == TS_IPV4_ADDR_RANGE {
 				selectorLength := binary.BigEndian.Uint16(rawData[2:4])
 				if selectorLength != 16 {
 					return errors.New("TrafficSelector: A TS_IPV4_ADDR_RANGE type traffic selector should has length 16 bytes")
@@ -988,7 +987,7 @@ func (trafficSelector *TrafficSelectorInitiator) unmarshal(rawData []byte) error
 				trafficSelector.TrafficSelectors = append(trafficSelector.TrafficSelectors, individualTrafficSelector)
 
 				rawData = rawData[16:]
-			} else if trafficSelectorType == types.TS_IPV6_ADDR_RANGE {
+			} else if trafficSelectorType == TS_IPV6_ADDR_RANGE {
 				selectorLength := binary.BigEndian.Uint16(rawData[2:4])
 				if selectorLength != 40 {
 					return errors.New("TrafficSelector: A TS_IPV6_ADDR_RANGE type traffic selector should has length 40 bytes")
@@ -1027,7 +1026,7 @@ type TrafficSelectorResponder struct {
 	TrafficSelectors IndividualTrafficSelectorContainer
 }
 
-func (trafficSelector *TrafficSelectorResponder) Type() types.IKEPayloadType { return types.TypeTSr }
+func (trafficSelector *TrafficSelectorResponder) Type() IKEPayloadType { return TypeTSr }
 
 func (trafficSelector *TrafficSelectorResponder) marshal() ([]byte, error) {
 	msgLog.Info("[TrafficSelector] marshal(): Start marshalling")
@@ -1037,7 +1036,7 @@ func (trafficSelector *TrafficSelectorResponder) marshal() ([]byte, error) {
 		trafficSelectorData[0] = uint8(len(trafficSelector.TrafficSelectors))
 
 		for _, individualTrafficSelector := range trafficSelector.TrafficSelectors {
-			if individualTrafficSelector.TSType == types.TS_IPV4_ADDR_RANGE {
+			if individualTrafficSelector.TSType == TS_IPV4_ADDR_RANGE {
 				// Address length checking
 				if len(individualTrafficSelector.StartAddress) != 4 {
 					return nil, errors.New("TrafficSelector: Start IPv4 address length is not correct")
@@ -1059,7 +1058,7 @@ func (trafficSelector *TrafficSelectorResponder) marshal() ([]byte, error) {
 				binary.BigEndian.PutUint16(individualTrafficSelectorData[2:4], uint16(len(individualTrafficSelectorData)))
 
 				trafficSelectorData = append(trafficSelectorData, individualTrafficSelectorData...)
-			} else if individualTrafficSelector.TSType == types.TS_IPV6_ADDR_RANGE {
+			} else if individualTrafficSelector.TSType == TS_IPV6_ADDR_RANGE {
 				// Address length checking
 				if len(individualTrafficSelector.StartAddress) != 16 {
 					return nil, errors.New("TrafficSelector: Start IPv6 address length is not correct")
@@ -1114,7 +1113,7 @@ func (trafficSelector *TrafficSelectorResponder) unmarshal(rawData []byte) error
 					"TrafficSelector: No sufficient bytes to decode next individual traffic selector length in header")
 			}
 			trafficSelectorType := rawData[0]
-			if trafficSelectorType == types.TS_IPV4_ADDR_RANGE {
+			if trafficSelectorType == TS_IPV4_ADDR_RANGE {
 				selectorLength := binary.BigEndian.Uint16(rawData[2:4])
 				if selectorLength != 16 {
 					return errors.New("TrafficSelector: A TS_IPV4_ADDR_RANGE type traffic selector should has length 16 bytes")
@@ -1136,7 +1135,7 @@ func (trafficSelector *TrafficSelectorResponder) unmarshal(rawData []byte) error
 				trafficSelector.TrafficSelectors = append(trafficSelector.TrafficSelectors, individualTrafficSelector)
 
 				rawData = rawData[16:]
-			} else if trafficSelectorType == types.TS_IPV6_ADDR_RANGE {
+			} else if trafficSelectorType == TS_IPV6_ADDR_RANGE {
 				selectorLength := binary.BigEndian.Uint16(rawData[2:4])
 				if selectorLength != 40 {
 					return errors.New("TrafficSelector: A TS_IPV6_ADDR_RANGE type traffic selector should has length 40 bytes")
@@ -1176,7 +1175,7 @@ type Encrypted struct {
 	EncryptedData []byte
 }
 
-func (encrypted *Encrypted) Type() types.IKEPayloadType { return types.TypeSK }
+func (encrypted *Encrypted) Type() IKEPayloadType { return TypeSK }
 
 func (encrypted *Encrypted) marshal() ([]byte, error) {
 	msgLog.Info("[Encrypted] marshal(): Start marshalling")
@@ -1211,7 +1210,7 @@ type IndividualConfigurationAttribute struct {
 	Value []byte
 }
 
-func (configuration *Configuration) Type() types.IKEPayloadType { return types.TypeCP }
+func (configuration *Configuration) Type() IKEPayloadType { return TypeCP }
 
 func (configuration *Configuration) marshal() ([]byte, error) {
 	msgLog.Info("[Configuration] marshal(): Start marshalling")
@@ -1285,7 +1284,7 @@ type EAP struct {
 	EAPTypeData EAPTypeDataContainer
 }
 
-func (eap *EAP) Type() types.IKEPayloadType { return types.TypeEAP }
+func (eap *EAP) Type() IKEPayloadType { return TypeEAP }
 
 func (eap *EAP) marshal() ([]byte, error) {
 	msgLog.Info("[EAP] marshal(): Start marshalling")
@@ -1339,13 +1338,13 @@ func (eap *EAP) unmarshal(rawData []byte) error {
 		var eapTypeData EAPTypeFormat
 
 		switch eapType {
-		case types.EAPTypeIdentity:
+		case EAPTypeIdentity:
 			eapTypeData = new(EAPIdentity)
-		case types.EAPTypeNotification:
+		case EAPTypeNotification:
 			eapTypeData = new(EAPNotification)
-		case types.EAPTypeNak:
+		case EAPTypeNak:
 			eapTypeData = new(EAPNak)
-		case types.EAPTypeExpanded:
+		case EAPTypeExpanded:
 			eapTypeData = new(EAPExpanded)
 		default:
 			// TODO: Create unsupprted type to handle it
@@ -1366,7 +1365,7 @@ type EAPTypeDataContainer []EAPTypeFormat
 
 type EAPTypeFormat interface {
 	// Type specifies EAP types
-	Type() types.EAPType
+	Type() EAPType
 
 	// Called by EAP.marshal() or EAP.unmarshal()
 	marshal() ([]byte, error)
@@ -1381,7 +1380,7 @@ type EAPIdentity struct {
 	IdentityData []byte
 }
 
-func (eapIdentity *EAPIdentity) Type() types.EAPType { return types.EAPTypeIdentity }
+func (eapIdentity *EAPIdentity) Type() EAPType { return EAPTypeIdentity }
 
 func (eapIdentity *EAPIdentity) marshal() ([]byte, error) {
 	msgLog.Info("[EAP][Identity] marshal(): Start marshalling")
@@ -1390,7 +1389,7 @@ func (eapIdentity *EAPIdentity) marshal() ([]byte, error) {
 		return nil, errors.New("EAPIdentity: EAP identity is empty")
 	}
 
-	eapIdentityData := []byte{types.EAPTypeIdentity}
+	eapIdentityData := []byte{EAPTypeIdentity}
 	eapIdentityData = append(eapIdentityData, eapIdentity.IdentityData...)
 
 	return eapIdentityData, nil
@@ -1415,7 +1414,7 @@ type EAPNotification struct {
 	NotificationData []byte
 }
 
-func (eapNotification *EAPNotification) Type() types.EAPType { return types.EAPTypeNotification }
+func (eapNotification *EAPNotification) Type() EAPType { return EAPTypeNotification }
 
 func (eapNotification *EAPNotification) marshal() ([]byte, error) {
 	msgLog.Info("[EAP][Notification] marshal(): Start marshalling")
@@ -1424,7 +1423,7 @@ func (eapNotification *EAPNotification) marshal() ([]byte, error) {
 		return nil, errors.New("EAPNotification: EAP notification is empty")
 	}
 
-	eapNotificationData := []byte{types.EAPTypeNotification}
+	eapNotificationData := []byte{EAPTypeNotification}
 	eapNotificationData = append(eapNotificationData, eapNotification.NotificationData...)
 
 	return eapNotificationData, nil
@@ -1449,7 +1448,7 @@ type EAPNak struct {
 	NakData []byte
 }
 
-func (eapNak *EAPNak) Type() types.EAPType { return types.EAPTypeNak }
+func (eapNak *EAPNak) Type() EAPType { return EAPTypeNak }
 
 func (eapNak *EAPNak) marshal() ([]byte, error) {
 	msgLog.Info("[EAP][Nak] marshal(): Start marshalling")
@@ -1458,7 +1457,7 @@ func (eapNak *EAPNak) marshal() ([]byte, error) {
 		return nil, errors.New("EAPNak: EAP nak is empty")
 	}
 
-	eapNakData := []byte{types.EAPTypeNak}
+	eapNakData := []byte{EAPTypeNak}
 	eapNakData = append(eapNakData, eapNak.NakData...)
 
 	return eapNakData, nil
@@ -1485,7 +1484,7 @@ type EAPExpanded struct {
 	VendorData []byte
 }
 
-func (eapExpanded *EAPExpanded) Type() types.EAPType { return types.EAPTypeExpanded }
+func (eapExpanded *EAPExpanded) Type() EAPType { return EAPTypeExpanded }
 
 func (eapExpanded *EAPExpanded) marshal() ([]byte, error) {
 	msgLog.Info("[EAP][Expanded] marshal(): Start marshalling")
@@ -1493,7 +1492,7 @@ func (eapExpanded *EAPExpanded) marshal() ([]byte, error) {
 	eapExpandedData := make([]byte, 8)
 
 	vendorID := eapExpanded.VendorID & 0x00ffffff
-	typeAndVendorID := (uint32(types.EAPTypeExpanded)<<24 | vendorID)
+	typeAndVendorID := (uint32(EAPTypeExpanded)<<24 | vendorID)
 
 	binary.BigEndian.PutUint32(eapExpandedData[0:4], typeAndVendorID)
 	binary.BigEndian.PutUint32(eapExpandedData[4:8], eapExpanded.VendorType)

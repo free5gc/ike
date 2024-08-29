@@ -6,7 +6,6 @@ import (
 
 	"github.com/free5gc/ike/internal/logger"
 	"github.com/free5gc/ike/message"
-	"github.com/free5gc/ike/types"
 )
 
 var (
@@ -21,8 +20,8 @@ func init() {
 
 	// ESN String
 	esnString = make(map[uint16]func(uint16, uint16, []byte) string)
-	esnString[types.ESN_ENABLE] = toString_ESN_ENABLE
-	esnString[types.ESN_DISABLE] = toString_ESN_DISABLE
+	esnString[message.ESN_ENABLE] = toString_ESN_ENABLE
+	esnString[message.ESN_DISABLE] = toString_ESN_DISABLE
 
 	// ESN Types
 	esnTypes = make(map[string]ESNType)
@@ -88,11 +87,11 @@ func DecodeTransform(transform *message.Transform) ESNType {
 
 func ToTransform(esnType ESNType) *message.Transform {
 	t := new(message.Transform)
-	t.TransformType = types.TypeExtendedSequenceNumbers
+	t.TransformType = message.TypeExtendedSequenceNumbers
 	t.TransformID = esnType.transformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = esnType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
-		t.AttributeFormat = types.AttributeFormatUseTV
+		t.AttributeFormat = message.AttributeFormatUseTV
 	}
 	return t
 }

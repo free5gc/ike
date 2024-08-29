@@ -1,8 +1,6 @@
 package esn
 
-import (
-	"github.com/free5gc/ike/types"
-)
+import "github.com/free5gc/ike/message"
 
 const string_ESN_DISABLE string = "ESN_DISABLE"
 
@@ -17,7 +15,7 @@ type ESN_DISABLE struct {
 }
 
 func (t *ESN_DISABLE) transformID() uint16 {
-	return types.ESN_DISABLE
+	return message.ESN_DISABLE
 }
 
 func (t *ESN_DISABLE) getAttribute() (bool, uint16, uint16, []byte) {

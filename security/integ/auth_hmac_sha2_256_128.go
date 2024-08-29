@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"hash"
 
-	"github.com/free5gc/ike/types"
+	"github.com/free5gc/ike/message"
 )
 
 const string_AUTH_HMAC_SHA2_256_128 string = "AUTH_HMAC_SHA2_256_128"
@@ -26,7 +26,7 @@ type AUTH_HMAC_SHA2_256_128 struct {
 }
 
 func (t *AUTH_HMAC_SHA2_256_128) TransformID() uint16 {
-	return types.AUTH_HMAC_SHA2_256_128
+	return message.AUTH_HMAC_SHA2_256_128
 }
 
 func (t *AUTH_HMAC_SHA2_256_128) getAttribute() (bool, uint16, uint16, []byte) {

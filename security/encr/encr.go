@@ -7,7 +7,6 @@ import (
 
 	"github.com/free5gc/ike/internal/logger"
 	"github.com/free5gc/ike/message"
-	types "github.com/free5gc/ike/types"
 )
 
 var (
@@ -26,7 +25,7 @@ func init() {
 
 	// ENCR String
 	encrString = make(map[uint16]func(uint16, uint16, []byte) string)
-	encrString[types.ENCR_AES_CBC] = toString_ENCR_AES_CBC
+	encrString[message.ENCR_AES_CBC] = toString_ENCR_AES_CBC
 
 	// ENCR Types
 	encrTypes = make(map[string]ENCRType)
@@ -146,11 +145,11 @@ func DecodeTransform(transform *message.Transform) ENCRType {
 
 func ToTransform(encrType ENCRType) *message.Transform {
 	t := new(message.Transform)
-	t.TransformType = types.TypeEncryptionAlgorithm
+	t.TransformType = message.TypeEncryptionAlgorithm
 	t.TransformID = encrType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = encrType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
-		t.AttributeFormat = types.AttributeFormatUseTV
+		t.AttributeFormat = message.AttributeFormatUseTV
 	}
 	return t
 }
@@ -174,7 +173,7 @@ func DecodeTransformChildSA(transform *message.Transform) ENCRKType {
 
 func ToTransformChildSA(encrKType ENCRKType) *message.Transform {
 	t := new(message.Transform)
-	t.TransformType = types.TypeEncryptionAlgorithm
+	t.TransformType = message.TypeEncryptionAlgorithm
 	t.TransformID = encrKType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = encrKType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {

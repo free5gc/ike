@@ -9,8 +9,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/free5gc/ike/message"
 	"github.com/free5gc/ike/security/lib"
-	types "github.com/free5gc/ike/types"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 )
 
 func toString_ENCR_AES_CBC(attrType uint16, intValue uint16, bytesValue []byte) string {
-	if attrType == types.AttributeTypeKeyLength {
+	if attrType == message.AttributeTypeKeyLength {
 		switch intValue {
 		case 128:
 			return string_ENCR_AES_CBC_128
@@ -47,11 +47,11 @@ type ENCR_AES_CBC struct {
 }
 
 func (t *ENCR_AES_CBC) TransformID() uint16 {
-	return types.ENCR_AES_CBC
+	return message.ENCR_AES_CBC
 }
 
 func (t *ENCR_AES_CBC) getAttribute() (bool, uint16, uint16, []byte) {
-	return true, types.AttributeTypeKeyLength, uint16(t.keyLength * 8), nil
+	return true, message.AttributeTypeKeyLength, uint16(t.keyLength * 8), nil
 }
 
 func (t *ENCR_AES_CBC) setPriority(priority uint32) {

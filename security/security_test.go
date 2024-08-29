@@ -15,7 +15,6 @@ import (
 	"github.com/free5gc/ike/security/esn"
 	"github.com/free5gc/ike/security/integ"
 	"github.com/free5gc/ike/security/prf"
-	"github.com/free5gc/ike/types"
 )
 
 func TestGenerateRandomNumber(t *testing.T) {
@@ -81,93 +80,93 @@ func TestIKESelectProposal(t *testing.T) {
 
 	// Transforms
 	t1 := &message.Transform{
-		TransformType:    types.TypeDiffieHellmanGroup,
-		TransformID:      types.DH_1024_BIT_MODP,
+		TransformType:    message.TypeDiffieHellmanGroup,
+		TransformID:      message.DH_1024_BIT_MODP,
 		AttributePresent: false,
 	}
 	t2 := &message.Transform{
-		TransformType:    types.TypeDiffieHellmanGroup,
-		TransformID:      types.DH_2048_BIT_MODP,
+		TransformType:    message.TypeDiffieHellmanGroup,
+		TransformID:      message.DH_2048_BIT_MODP,
 		AttributePresent: false,
 	}
 	t3 := &message.Transform{
-		TransformType:    types.TypeDiffieHellmanGroup,
-		TransformID:      types.DH_1536_BIT_MODP,
+		TransformType:    message.TypeDiffieHellmanGroup,
+		TransformID:      message.DH_1536_BIT_MODP,
 		AttributePresent: false,
 	}
 	t4 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
+		TransformType:    message.TypeEncryptionAlgorithm,
+		TransformID:      message.ENCR_AES_CBC,
 		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
+		AttributeFormat:  message.AttributeFormatUseTV,
+		AttributeType:    message.AttributeTypeKeyLength,
 		AttributeValue:   128,
 	}
 	t5 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
+		TransformType:    message.TypeEncryptionAlgorithm,
+		TransformID:      message.ENCR_AES_CBC,
 		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
+		AttributeFormat:  message.AttributeFormatUseTV,
+		AttributeType:    message.AttributeTypeKeyLength,
 		AttributeValue:   192,
 	}
 	t6 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
+		TransformType:    message.TypeEncryptionAlgorithm,
+		TransformID:      message.ENCR_AES_CBC,
 		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
+		AttributeFormat:  message.AttributeFormatUseTV,
+		AttributeType:    message.AttributeTypeKeyLength,
 		AttributeValue:   256,
 	}
 	t7 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
+		TransformType:    message.TypeEncryptionAlgorithm,
+		TransformID:      message.ENCR_AES_CBC,
 		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
+		AttributeFormat:  message.AttributeFormatUseTV,
+		AttributeType:    message.AttributeTypeKeyLength,
 		AttributeValue:   384,
 	}
 	t8 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_3DES,
+		TransformType:    message.TypeEncryptionAlgorithm,
+		TransformID:      message.ENCR_3DES,
 		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
+		AttributeFormat:  message.AttributeFormatUseTV,
+		AttributeType:    message.AttributeTypeKeyLength,
 		AttributeValue:   128,
 	}
 	t9 := &message.Transform{
-		TransformType:    types.TypeIntegrityAlgorithm,
-		TransformID:      types.AUTH_HMAC_MD5_96,
+		TransformType:    message.TypeIntegrityAlgorithm,
+		TransformID:      message.AUTH_HMAC_MD5_96,
 		AttributePresent: false,
 	}
 	t10 := &message.Transform{
-		TransformType:    types.TypeIntegrityAlgorithm,
-		TransformID:      types.AUTH_HMAC_SHA1_96,
+		TransformType:    message.TypeIntegrityAlgorithm,
+		TransformID:      message.AUTH_HMAC_SHA1_96,
 		AttributePresent: false,
 	}
 	t11 := &message.Transform{
-		TransformType:    types.TypeIntegrityAlgorithm,
-		TransformID:      types.AUTH_DES_MAC,
+		TransformType:    message.TypeIntegrityAlgorithm,
+		TransformID:      message.AUTH_DES_MAC,
 		AttributePresent: false,
 	}
 	t12 := &message.Transform{
-		TransformType:    types.TypePseudorandomFunction,
-		TransformID:      types.PRF_HMAC_MD5,
+		TransformType:    message.TypePseudorandomFunction,
+		TransformID:      message.PRF_HMAC_MD5,
 		AttributePresent: false,
 	}
 	t13 := &message.Transform{
-		TransformType:    types.TypePseudorandomFunction,
-		TransformID:      types.PRF_HMAC_SHA1,
+		TransformType:    message.TypePseudorandomFunction,
+		TransformID:      message.PRF_HMAC_SHA1,
 		AttributePresent: false,
 	}
 	t14 := &message.Transform{
-		TransformType:    types.TypePseudorandomFunction,
-		TransformID:      types.PRF_HMAC_TIGER,
+		TransformType:    message.TypePseudorandomFunction,
+		TransformID:      message.PRF_HMAC_TIGER,
 		AttributePresent: false,
 	}
 	t15 := &message.Transform{
-		TransformType:    types.TypeExtendedSequenceNumbers,
-		TransformID:      types.ESN_ENABLE,
+		TransformType:    message.TypeExtendedSequenceNumbers,
+		TransformID:      message.ESN_ENABLE,
 		AttributePresent: false,
 	}
 
@@ -333,7 +332,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSA: &IKESA{
 				IntegInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
 			},
-			role:          types.Role_Responder,
+			role:          message.Role_Responder,
 			expectedValid: true,
 		},
 		{
@@ -344,7 +343,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSA: &IKESA{
 				IntegInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
 			},
-			role:          types.Role_Responder,
+			role:          message.Role_Responder,
 			expectedValid: false,
 		},
 		{
@@ -354,7 +353,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSA: &IKESA{
 				IntegInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
 			},
-			role:          types.Role_Responder,
+			role:          message.Role_Responder,
 			expectedValid: false,
 		},
 		{
@@ -365,7 +364,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSA: &IKESA{
 				IntegInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
 			},
-			role:          types.Role_Initiator,
+			role:          message.Role_Initiator,
 			expectedValid: true,
 		},
 		{
@@ -376,7 +375,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSA: &IKESA{
 				IntegInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
 			},
-			role:          types.Role_Initiator,
+			role:          message.Role_Initiator,
 			expectedValid: false,
 		},
 		{
@@ -386,7 +385,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSA: &IKESA{
 				IntegInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
 			},
-			role:          types.Role_Initiator,
+			role:          message.Role_Initiator,
 			expectedValid: false,
 		},
 		{
@@ -397,7 +396,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSA: &IKESA{
 				IntegInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
 			},
-			role:          types.Role_Initiator,
+			role:          message.Role_Initiator,
 			expectedValid: true,
 		},
 		{
@@ -408,7 +407,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSA: &IKESA{
 				IntegInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
 			},
-			role:          types.Role_Initiator,
+			role:          message.Role_Initiator,
 			expectedValid: false,
 		},
 		{
@@ -418,7 +417,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSA: &IKESA{
 				IntegInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
 			},
-			role:          types.Role_Initiator,
+			role:          message.Role_Initiator,
 			expectedValid: false,
 		},
 	}
@@ -434,7 +433,7 @@ func TestVerifyIntegrity(t *testing.T) {
 
 			integ := tt.ikeSA.IntegInfo.Init(key)
 
-			if tt.role == types.Role_Initiator {
+			if tt.role == message.Role_Initiator {
 				tt.ikeSA.Integ_r = integ
 			} else {
 				tt.ikeSA.Integ_i = integ
@@ -651,7 +650,7 @@ func TestDecryptProcedure(t *testing.T) {
 	require.NoError(t, err)
 
 	encryptedPayload := &message.Encrypted{
-		NextPayload:   types.TypeEAP,
+		NextPayload:   message.TypeEAP,
 		EncryptedData: []byte{},
 	}
 	encryptedPayload.EncryptedData, err = hex.DecodeString("ec5031162c692fbbfc4d20640c9121ebe9475ef9" +
@@ -660,7 +659,7 @@ func TestDecryptProcedure(t *testing.T) {
 	require.NoError(t, err)
 
 	// Successful decryption
-	decryptedPayload, err := ikeSA.DecryptProcedure(types.Role_Responder, ikeMessage, encryptedPayload)
+	decryptedPayload, err := ikeSA.DecryptProcedure(message.Role_Responder, ikeMessage, encryptedPayload)
 	require.NoError(t, err)
 
 	ecpectedDecryptData := message.IKEPayloadContainer{
@@ -685,42 +684,42 @@ func TestDecryptProcedure(t *testing.T) {
 
 	// IKE Security Association is nil
 	var ikesa *IKESA
-	_, err = ikesa.DecryptProcedure(types.Role_Responder, ikeMessage, encryptedPayload)
+	_, err = ikesa.DecryptProcedure(message.Role_Responder, ikeMessage, encryptedPayload)
 	require.Error(t, err)
 
 	// IKE Message is nil
-	_, err = ikesa.DecryptProcedure(types.Role_Responder, nil, encryptedPayload)
+	_, err = ikesa.DecryptProcedure(message.Role_Responder, nil, encryptedPayload)
 	require.Error(t, err)
 
 	// Encrypted Payload is nil
-	_, err = ikesa.DecryptProcedure(types.Role_Responder, ikeMessage, nil)
+	_, err = ikesa.DecryptProcedure(message.Role_Responder, ikeMessage, nil)
 	require.Error(t, err)
 
 	// No integrity algorithm specified
 	ikeSA.IntegInfo = nil
-	_, err = ikeSA.DecryptProcedure(types.Role_Responder, ikeMessage, encryptedPayload)
+	_, err = ikeSA.DecryptProcedure(message.Role_Responder, ikeMessage, encryptedPayload)
 	require.Error(t, err)
 
 	ikeSA.IntegInfo = integrityAlgorithm
 
 	// No initiator's integrity key
 	ikeSA.Integ_i = nil
-	_, err = ikeSA.DecryptProcedure(types.Role_Responder, ikeMessage, encryptedPayload)
+	_, err = ikeSA.DecryptProcedure(message.Role_Responder, ikeMessage, encryptedPayload)
 	require.Error(t, err)
 
 	ikeSA.Integ_i = integ_i
 	// No initiator's encryption key
 	ikeSA.Encr_i = nil
-	_, err = ikeSA.DecryptProcedure(types.Role_Responder, ikeMessage, encryptedPayload)
+	_, err = ikeSA.DecryptProcedure(message.Role_Responder, ikeMessage, encryptedPayload)
 	require.Error(t, err, "Expected an error when no initiator's encryption key is provided")
 
 	// Checksum verification fails
 	ikeSA.Encr_i = encr_i
 	invalidEncryptPayload := &message.Encrypted{ // Invalid checksum data
-		NextPayload:   types.TypeIDi,
+		NextPayload:   message.TypeIDi,
 		EncryptedData: []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13},
 	}
-	_, err = ikeSA.DecryptProcedure(types.Role_Responder, ikeMessage, invalidEncryptPayload)
+	_, err = ikeSA.DecryptProcedure(message.Role_Responder, ikeMessage, invalidEncryptPayload)
 	require.Error(t, err)
 }
 
@@ -767,7 +766,7 @@ func TestEncryptProcedure(t *testing.T) {
 		ResponderSPI: 0xc9e2e31f8b64053d,
 		InitiatorSPI: 0x000000000006f708,
 		Version:      0x02,
-		ExchangeType: types.IKE_AUTH,
+		ExchangeType: message.IKE_AUTH,
 		Flags:        0x08,
 		MessageID:    0x03,
 	}
@@ -791,46 +790,46 @@ func TestEncryptProcedure(t *testing.T) {
 	}
 
 	// Successful encryption
-	err = ikeSA.EncryptProcedure(types.Role_Responder, ikePayload, ikeMessage)
+	err = ikeSA.EncryptProcedure(message.Role_Responder, ikePayload, ikeMessage)
 	require.NoError(t, err)
 
 	// IKE Security Association is nil
 	var ikesa *IKESA
-	err = ikesa.EncryptProcedure(types.Role_Responder, ikePayload, ikeMessage)
+	err = ikesa.EncryptProcedure(message.Role_Responder, ikePayload, ikeMessage)
 	require.Error(t, err)
 
 	// No IKE payload to be encrypted
-	err = ikeSA.EncryptProcedure(types.Role_Responder, message.IKEPayloadContainer{}, ikeMessage)
+	err = ikeSA.EncryptProcedure(message.Role_Responder, message.IKEPayloadContainer{}, ikeMessage)
 	require.Error(t, err)
 
 	// Response IKE Message is nil
-	err = ikeSA.EncryptProcedure(types.Role_Responder, ikePayload, nil)
+	err = ikeSA.EncryptProcedure(message.Role_Responder, ikePayload, nil)
 	require.Error(t, err)
 
 	// No integrity algorithm specified
 	ikeSA.IntegInfo = nil
-	err = ikeSA.EncryptProcedure(types.Role_Responder, ikePayload, ikeMessage)
+	err = ikeSA.EncryptProcedure(message.Role_Responder, ikePayload, ikeMessage)
 	require.Error(t, err)
 
 	ikeSA.IntegInfo = integrityAlgorithm
 
 	// No encryption algorithm specified
 	ikeSA.EncrInfo = nil
-	err = ikeSA.EncryptProcedure(types.Role_Responder, ikePayload, ikeMessage)
+	err = ikeSA.EncryptProcedure(message.Role_Responder, ikePayload, ikeMessage)
 	require.Error(t, err)
 
 	ikeSA.EncrInfo = encryptionAlgorithm
 
 	// No responder's integrity key
 	ikeSA.Integ_r = nil
-	err = ikeSA.EncryptProcedure(types.Role_Responder, ikePayload, ikeMessage)
+	err = ikeSA.EncryptProcedure(message.Role_Responder, ikePayload, ikeMessage)
 	require.Error(t, err)
 
 	ikeSA.Integ_r = integ_r
 
 	// No responder's encryption key
 	ikeSA.Encr_r = nil
-	err = ikeSA.EncryptProcedure(types.Role_Responder, ikePayload, ikeMessage)
+	err = ikeSA.EncryptProcedure(message.Role_Responder, ikePayload, ikeMessage)
 	t.Logf("err : %v", err)
 	require.Error(t, err)
 }
@@ -851,98 +850,98 @@ func TestChildSelectProposal(t *testing.T) {
 
 	// Transforms
 	t1 := &message.Transform{
-		TransformType:    types.TypeDiffieHellmanGroup,
-		TransformID:      types.DH_1024_BIT_MODP,
+		TransformType:    message.TypeDiffieHellmanGroup,
+		TransformID:      message.DH_1024_BIT_MODP,
 		AttributePresent: false,
 	}
 	t2 := &message.Transform{
-		TransformType:    types.TypeDiffieHellmanGroup,
-		TransformID:      types.DH_2048_BIT_MODP,
+		TransformType:    message.TypeDiffieHellmanGroup,
+		TransformID:      message.DH_2048_BIT_MODP,
 		AttributePresent: false,
 	}
 	t3 := &message.Transform{
-		TransformType:    types.TypeDiffieHellmanGroup,
-		TransformID:      types.DH_1536_BIT_MODP,
+		TransformType:    message.TypeDiffieHellmanGroup,
+		TransformID:      message.DH_1536_BIT_MODP,
 		AttributePresent: false,
 	}
 	t4 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
+		TransformType:    message.TypeEncryptionAlgorithm,
+		TransformID:      message.ENCR_AES_CBC,
 		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
+		AttributeFormat:  message.AttributeFormatUseTV,
+		AttributeType:    message.AttributeTypeKeyLength,
 		AttributeValue:   128,
 	}
 	t5 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
+		TransformType:    message.TypeEncryptionAlgorithm,
+		TransformID:      message.ENCR_AES_CBC,
 		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
+		AttributeFormat:  message.AttributeFormatUseTV,
+		AttributeType:    message.AttributeTypeKeyLength,
 		AttributeValue:   192,
 	}
 	t6 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
+		TransformType:    message.TypeEncryptionAlgorithm,
+		TransformID:      message.ENCR_AES_CBC,
 		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
+		AttributeFormat:  message.AttributeFormatUseTV,
+		AttributeType:    message.AttributeTypeKeyLength,
 		AttributeValue:   256,
 	}
 	t7 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
+		TransformType:    message.TypeEncryptionAlgorithm,
+		TransformID:      message.ENCR_AES_CBC,
 		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
+		AttributeFormat:  message.AttributeFormatUseTV,
+		AttributeType:    message.AttributeTypeKeyLength,
 		AttributeValue:   384,
 	}
 	t8 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_3DES,
+		TransformType:    message.TypeEncryptionAlgorithm,
+		TransformID:      message.ENCR_3DES,
 		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
+		AttributeFormat:  message.AttributeFormatUseTV,
+		AttributeType:    message.AttributeTypeKeyLength,
 		AttributeValue:   128,
 	}
 	t9 := &message.Transform{
-		TransformType:    types.TypeIntegrityAlgorithm,
-		TransformID:      types.AUTH_HMAC_MD5_96,
+		TransformType:    message.TypeIntegrityAlgorithm,
+		TransformID:      message.AUTH_HMAC_MD5_96,
 		AttributePresent: false,
 	}
 	t10 := &message.Transform{
-		TransformType:    types.TypeIntegrityAlgorithm,
-		TransformID:      types.AUTH_HMAC_SHA1_96,
+		TransformType:    message.TypeIntegrityAlgorithm,
+		TransformID:      message.AUTH_HMAC_SHA1_96,
 		AttributePresent: false,
 	}
 	t11 := &message.Transform{
-		TransformType:    types.TypeIntegrityAlgorithm,
-		TransformID:      types.AUTH_DES_MAC,
+		TransformType:    message.TypeIntegrityAlgorithm,
+		TransformID:      message.AUTH_DES_MAC,
 		AttributePresent: false,
 	}
 	t12 := &message.Transform{
-		TransformType:    types.TypePseudorandomFunction,
-		TransformID:      types.PRF_HMAC_MD5,
+		TransformType:    message.TypePseudorandomFunction,
+		TransformID:      message.PRF_HMAC_MD5,
 		AttributePresent: false,
 	}
 	t13 := &message.Transform{
-		TransformType:    types.TypePseudorandomFunction,
-		TransformID:      types.PRF_HMAC_SHA1,
+		TransformType:    message.TypePseudorandomFunction,
+		TransformID:      message.PRF_HMAC_SHA1,
 		AttributePresent: false,
 	}
 	t14 := &message.Transform{
-		TransformType:    types.TypePseudorandomFunction,
-		TransformID:      types.PRF_HMAC_TIGER,
+		TransformType:    message.TypePseudorandomFunction,
+		TransformID:      message.PRF_HMAC_TIGER,
 		AttributePresent: false,
 	}
 	t15 := &message.Transform{
-		TransformType:    types.TypeExtendedSequenceNumbers,
-		TransformID:      types.ESN_ENABLE,
+		TransformType:    message.TypeExtendedSequenceNumbers,
+		TransformID:      message.ESN_ENABLE,
 		AttributePresent: false,
 	}
 	t16 := &message.Transform{
-		TransformType:    types.TypeExtendedSequenceNumbers,
-		TransformID:      types.ESN_DISABLE,
+		TransformType:    message.TypeExtendedSequenceNumbers,
+		TransformID:      message.ESN_DISABLE,
 		AttributePresent: false,
 	}
 

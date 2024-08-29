@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"hash"
 
-	"github.com/free5gc/ike/types"
+	"github.com/free5gc/ike/message"
 )
 
 const string_PRF_HMAC_SHA2_256 string = "PRF_HMAC_SHA2_256"
@@ -23,7 +23,7 @@ type PRF_HMAC_SHA2_256 struct {
 }
 
 func (t *PRF_HMAC_SHA2_256) transformID() uint16 {
-	return types.PRF_HMAC_SHA2_256
+	return message.PRF_HMAC_SHA2_256
 }
 
 func (t *PRF_HMAC_SHA2_256) getAttribute() (bool, uint16, uint16, []byte) {
