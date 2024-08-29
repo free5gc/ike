@@ -206,8 +206,8 @@ func TestIKESelectProposal(t *testing.T) {
 	err := ikesa.SetProposal(chooseProposal[0])
 	require.NoError(t, err)
 
-	if ikesa.dhInfo != dhType2 || ikesa.encrInfo != encrType3 ||
-		ikesa.integInfo != integType2 || ikesa.prfInfo != prfType2 {
+	if ikesa.DhInfo != dhType2 || ikesa.EncrInfo != encrType3 ||
+		ikesa.IntegInfo != integType2 || ikesa.PrfInfo != prfType2 {
 		t.Fatal("SelectProposal selected a false result")
 	}
 
@@ -228,8 +228,8 @@ func TestIKESelectProposal(t *testing.T) {
 	err = ikesa.SetProposal(chooseProposal[0])
 	require.NoError(t, err)
 
-	if ikesa.dhInfo != dhType1 || ikesa.encrInfo != encrType3 ||
-		ikesa.integInfo != integType2 || ikesa.prfInfo != prfType2 {
+	if ikesa.DhInfo != dhType1 || ikesa.EncrInfo != encrType3 ||
+		ikesa.IntegInfo != integType2 || ikesa.PrfInfo != prfType2 {
 		t.Fatal("SelectProposal selected a false result")
 	}
 
@@ -272,10 +272,10 @@ func TestIKEToProposal(t *testing.T) {
 	prfType := prf.StrToType("PRF_HMAC_SHA1")
 
 	ikesa := IKESA{
-		dhInfo:    dhType,
-		encrInfo:  encrType,
-		integInfo: integType,
-		prfInfo:   prfType,
+		DhInfo:    dhType,
+		EncrInfo:  encrType,
+		IntegInfo: integType,
+		PrfInfo:   prfType,
 	}
 
 	proposal := ikesa.ToProposal()
@@ -307,10 +307,10 @@ func TestIKESetProposal(t *testing.T) {
 	err := ikesa.SetProposal(proposal)
 	require.NoError(t, err)
 
-	if ikesa.dhInfo == nil ||
-		ikesa.encrInfo == nil ||
-		ikesa.integInfo == nil ||
-		ikesa.prfInfo == nil {
+	if ikesa.DhInfo == nil ||
+		ikesa.EncrInfo == nil ||
+		ikesa.IntegInfo == nil ||
+		ikesa.PrfInfo == nil {
 		t.FailNow()
 	}
 }
@@ -331,7 +331,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			originData: []byte("hello world"),
 			checksum:   "c30f366e411540f68221d04a",
 			ikeSA: &IKESA{
-				integInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
 			},
 			role:          types.Role_Responder,
 			expectedValid: true,
@@ -342,7 +342,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			originData: []byte("hello world"),
 			checksum:   "01231875aa",
 			ikeSA: &IKESA{
-				integInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
 			},
 			role:          types.Role_Responder,
 			expectedValid: false,
@@ -352,7 +352,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			key:        "0123",
 			originData: []byte("hello world"),
 			ikeSA: &IKESA{
-				integInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
 			},
 			role:          types.Role_Responder,
 			expectedValid: false,
@@ -363,7 +363,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			originData: []byte("hello world"),
 			checksum:   "5089f6a86e4dafb89e3fcd23",
 			ikeSA: &IKESA{
-				integInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
 			},
 			role:          types.Role_Initiator,
 			expectedValid: true,
@@ -374,7 +374,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			originData: []byte("hello world"),
 			checksum:   "01231875aa",
 			ikeSA: &IKESA{
-				integInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
 			},
 			role:          types.Role_Initiator,
 			expectedValid: false,
@@ -384,7 +384,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			key:        "0123",
 			originData: []byte("hello world"),
 			ikeSA: &IKESA{
-				integInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
 			},
 			role:          types.Role_Initiator,
 			expectedValid: false,
@@ -395,7 +395,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			originData: []byte("hello world"),
 			checksum:   "a64166565bc1f48eb3edd4109fcaeb72",
 			ikeSA: &IKESA{
-				integInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
 			},
 			role:          types.Role_Initiator,
 			expectedValid: true,
@@ -406,7 +406,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			originData: []byte("hello world"),
 			checksum:   "01231875aa",
 			ikeSA: &IKESA{
-				integInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
 			},
 			role:          types.Role_Initiator,
 			expectedValid: false,
@@ -416,7 +416,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			key:        "0123",
 			originData: []byte("hello world"),
 			ikeSA: &IKESA{
-				integInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
 			},
 			role:          types.Role_Initiator,
 			expectedValid: false,
@@ -432,7 +432,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			key, err = hex.DecodeString(tt.key)
 			require.NoError(t, err, "failed to decode key hex string")
 
-			integ := tt.ikeSA.integInfo.Init(key)
+			integ := tt.ikeSA.IntegInfo.Init(key)
 
 			if tt.role == types.Role_Initiator {
 				tt.ikeSA.Integ_r = integ
@@ -464,23 +464,23 @@ func TestGenerateKeyForIKESA(t *testing.T) {
 	err = ikesa.GenerateKeyForIKESA()
 	require.Error(t, err)
 
-	ikesa.encrInfo = encr.StrToType("ENCR_AES_CBC_256")
+	ikesa.EncrInfo = encr.StrToType("ENCR_AES_CBC_256")
 
 	// Integrity algorithm is nil
 	err = ikesa.GenerateKeyForIKESA()
 	require.Error(t, err)
 
-	ikesa.integInfo = integ.StrToType("AUTH_HMAC_SHA1_96")
+	ikesa.IntegInfo = integ.StrToType("AUTH_HMAC_SHA1_96")
 	// Pseudorandom function is nil
 	err = ikesa.GenerateKeyForIKESA()
 	require.Error(t, err)
 
-	ikesa.prfInfo = prf.StrToType("PRF_HMAC_SHA1")
+	ikesa.PrfInfo = prf.StrToType("PRF_HMAC_SHA1")
 	// Diffie-Hellman group is nil
 	err = ikesa.GenerateKeyForIKESA()
 	require.Error(t, err)
 
-	ikesa.dhInfo = dh.StrToType("DH_2048_BIT_MODP")
+	ikesa.DhInfo = dh.StrToType("DH_2048_BIT_MODP")
 	// Concatenated nonce is nil
 	err = ikesa.GenerateKeyForIKESA()
 	require.Error(t, err)
@@ -499,33 +499,33 @@ func TestGenerateKeyForIKESA(t *testing.T) {
 
 	expectedSK_ai, err := hex.DecodeString("58a17edd463b4b5062359c1c98b1736d80219691")
 	require.NoError(t, err)
-	expectedInteg_i := ikesa.integInfo.Init(expectedSK_ai)
+	expectedInteg_i := ikesa.IntegInfo.Init(expectedSK_ai)
 
 	expectedSK_ar, err := hex.DecodeString("eb2e18e9a8f9643ea0d0107a28cf5947ecd1597e")
 	require.NoError(t, err)
-	ecpectedInteg_r := ikesa.integInfo.Init(expectedSK_ar)
+	ecpectedInteg_r := ikesa.IntegInfo.Init(expectedSK_ar)
 
 	expectedSK_ei, err := hex.DecodeString("3dcbcbb2d71d1806d5e5356a5600727eb482101de1868ae9cf71c4117d22cddb")
 	require.NoError(t, err)
-	ecpectedEncr_i, err := ikesa.encrInfo.Init(expectedSK_ei)
+	ecpectedEncr_i, err := ikesa.EncrInfo.Init(expectedSK_ei)
 	require.NoError(t, err)
 
 	expectedSK_er, err := hex.DecodeString("ba3b43cf173435c449f3098c01944f2d9a66c2ca1d967f06a69f36e945a4754b")
 	require.NoError(t, err)
-	ecpectedEncr_r, err := ikesa.encrInfo.Init(expectedSK_er)
+	ecpectedEncr_r, err := ikesa.EncrInfo.Init(expectedSK_er)
 	require.NoError(t, err)
 
 	expectedSK_pi, err := hex.DecodeString("aff4def6c9113c6942f31fa2d8b74f6c054e0e73")
 	require.NoError(t, err)
-	ecpectedPrf_i := ikesa.prfInfo.Init(expectedSK_pi)
+	ecpectedPrf_i := ikesa.PrfInfo.Init(expectedSK_pi)
 
 	expectedSK_pr, err := hex.DecodeString("c06bd0c0dd3e0b3f9c5b4cbe35c88fdd3948430f")
 	require.NoError(t, err)
-	ecpectedPrf_r := ikesa.prfInfo.Init(expectedSK_pr)
+	ecpectedPrf_r := ikesa.PrfInfo.Init(expectedSK_pr)
 
 	expectedSK_d, err := hex.DecodeString("276e1a8f0d65dae5309da66277ff7c82d39a8956")
 	require.NoError(t, err)
-	expectedPrf_d := ikesa.prfInfo.Init(expectedSK_d)
+	expectedPrf_d := ikesa.PrfInfo.Init(expectedSK_d)
 
 	require.Equal(t, expectedPrf_d, ikesa.Prf_d, "SK_d does not match expected value")
 	require.Equal(t, expectedInteg_i, ikesa.Integ_i, "SK_ai does not match expected value")
@@ -556,7 +556,7 @@ func TestGenerateKeyForChildSA(t *testing.T) {
 	err = childSA.GenerateKeyForChildSA(ikeSA)
 	require.Error(t, err)
 
-	ikeSA.prfInfo = prf.StrToType("PRF_HMAC_SHA1")
+	ikeSA.PrfInfo = prf.StrToType("PRF_HMAC_SHA1")
 
 	// Encryption algorithm is nil
 	err = childSA.GenerateKeyForChildSA(ikeSA)
@@ -571,7 +571,7 @@ func TestGenerateKeyForChildSA(t *testing.T) {
 
 	sk_d, err := hex.DecodeString("276e1a8f0d65dae5309da66277ff7c82d39a8956")
 	require.NoError(t, err)
-	ikeSA.Prf_d = ikeSA.prfInfo.Init(sk_d)
+	ikeSA.Prf_d = ikeSA.PrfInfo.Init(sk_d)
 
 	err = childSA.GenerateKeyForChildSA(ikeSA)
 	require.NoError(t, err)
@@ -607,8 +607,8 @@ func TestDecryptProcedure(t *testing.T) {
 	ikeSA := &IKESA{
 		ResponderSPI: 0xc9e2e31f8b64053d,
 		InitiatorSPI: 0x000000000006f708,
-		encrInfo:     encryptionAlgorithm,
-		integInfo:    integrityAlgorithm,
+		EncrInfo:     encryptionAlgorithm,
+		IntegInfo:    integrityAlgorithm,
 	}
 
 	var err error
@@ -628,16 +628,16 @@ func TestDecryptProcedure(t *testing.T) {
 		"16d5ae6f2859a73a8c7db60bed07e24538b19bb0")
 	require.NoError(t, err)
 
-	integ_i := ikeSA.integInfo.Init(sk_ai)
+	integ_i := ikeSA.IntegInfo.Init(sk_ai)
 	ikeSA.Integ_i = integ_i
 
-	ikeSA.Integ_r = ikeSA.integInfo.Init(sk_ar)
+	ikeSA.Integ_r = ikeSA.IntegInfo.Init(sk_ar)
 
-	encr_i, err := ikeSA.encrInfo.Init(sk_ei)
+	encr_i, err := ikeSA.EncrInfo.Init(sk_ei)
 	require.NoError(t, err)
 	ikeSA.Encr_i = encr_i
 
-	ikeSA.Encr_r, err = ikeSA.encrInfo.Init(sk_er)
+	ikeSA.Encr_r, err = ikeSA.EncrInfo.Init(sk_er)
 	require.NoError(t, err)
 
 	msg, err := hex.DecodeString("000000000006f708c9e2e31f8b64053d2e202308000000" +
@@ -697,11 +697,11 @@ func TestDecryptProcedure(t *testing.T) {
 	require.Error(t, err)
 
 	// No integrity algorithm specified
-	ikeSA.integInfo = nil
+	ikeSA.IntegInfo = nil
 	_, err = ikeSA.DecryptProcedure(types.Role_Responder, ikeMessage, encryptedPayload)
 	require.Error(t, err)
 
-	ikeSA.integInfo = integrityAlgorithm
+	ikeSA.IntegInfo = integrityAlgorithm
 
 	// No initiator's integrity key
 	ikeSA.Integ_i = nil
@@ -732,32 +732,32 @@ func TestEncryptProcedure(t *testing.T) {
 	ikeSA := &IKESA{
 		ResponderSPI: 0xc9e2e31f8b64053d,
 		InitiatorSPI: 0x000000000006f708,
-		encrInfo:     encryptionAlgorithm,
-		integInfo:    integrityAlgorithm,
+		EncrInfo:     encryptionAlgorithm,
+		IntegInfo:    integrityAlgorithm,
 	}
 
 	var err error
 	sk_ei, err := hex.DecodeString(
 		"3d7a26417122cee9c77c59f375b024cdb9f0b5777ea18b50f8a671fd3b2daa99")
 	require.NoError(t, err)
-	ikeSA.Encr_i, err = ikeSA.encrInfo.Init(sk_ei)
+	ikeSA.Encr_i, err = ikeSA.EncrInfo.Init(sk_ei)
 	require.NoError(t, err)
 
 	sk_er, err := hex.DecodeString(
 		"3ea57e7ddfb30756a04619a9873333b08e94deef05b6a05d7eb3dba075d81c6f")
 	require.NoError(t, err)
-	ikeSA.Encr_r, err = ikeSA.encrInfo.Init(sk_er)
+	ikeSA.Encr_r, err = ikeSA.EncrInfo.Init(sk_er)
 	require.NoError(t, err)
 
 	sk_ai, err := hex.DecodeString(
 		"ab8047415535cf53e19a69e2c86feadfebfff1e9")
 	require.NoError(t, err)
-	ikeSA.Integ_i = ikeSA.integInfo.Init(sk_ai)
+	ikeSA.Integ_i = ikeSA.IntegInfo.Init(sk_ai)
 
 	sk_ar, err := hex.DecodeString(
 		"16d5ae6f2859a73a8c7db60bed07e24538b19bb0")
 	require.NoError(t, err)
-	integ_r := ikeSA.integInfo.Init(sk_ar)
+	integ_r := ikeSA.IntegInfo.Init(sk_ar)
 	ikeSA.Integ_r = integ_r
 
 	// ikeSA.SK_er = sk_er
@@ -808,18 +808,18 @@ func TestEncryptProcedure(t *testing.T) {
 	require.Error(t, err)
 
 	// No integrity algorithm specified
-	ikeSA.integInfo = nil
+	ikeSA.IntegInfo = nil
 	err = ikeSA.EncryptProcedure(types.Role_Responder, ikePayload, ikeMessage)
 	require.Error(t, err)
 
-	ikeSA.integInfo = integrityAlgorithm
+	ikeSA.IntegInfo = integrityAlgorithm
 
 	// No encryption algorithm specified
-	ikeSA.encrInfo = nil
+	ikeSA.EncrInfo = nil
 	err = ikeSA.EncryptProcedure(types.Role_Responder, ikePayload, ikeMessage)
 	require.Error(t, err)
 
-	ikeSA.encrInfo = encryptionAlgorithm
+	ikeSA.EncrInfo = encryptionAlgorithm
 
 	// No responder's integrity key
 	ikeSA.Integ_r = nil
@@ -976,7 +976,7 @@ func TestChildSelectProposal(t *testing.T) {
 		t.Fatal("SelectProposal returned a false result")
 	}
 
-	if childsa.dhInfo != dhType2 || childsa.encrKInfo != encrKType3 ||
+	if childsa.DhInfo != dhType2 || childsa.encrKInfo != encrKType3 ||
 		childsa.integKInfo != integKType2 || childsa.esnInfo != esnType2 {
 		t.Fatal("SelectProposal selected a false result")
 	}
@@ -994,7 +994,7 @@ func TestChildSelectProposal(t *testing.T) {
 		t.Fatal("SelectProposal returned a false result")
 	}
 
-	if childsa.dhInfo != dhType1 || childsa.encrKInfo != encrKType3 ||
+	if childsa.DhInfo != dhType1 || childsa.encrKInfo != encrKType3 ||
 		childsa.integKInfo != integKType2 || childsa.esnInfo != esnType2 {
 		t.Fatal("SelectProposal selected a false result")
 	}
@@ -1044,7 +1044,7 @@ func TestChildSelectProposal(t *testing.T) {
 		t.Fatal("SelectProposal returned a false result")
 	}
 
-	if childsa.dhInfo != nil || childsa.encrKInfo != encrKType3 ||
+	if childsa.DhInfo != nil || childsa.encrKInfo != encrKType3 ||
 		childsa.integKInfo != nil || childsa.esnInfo != esnType2 {
 		t.Fatal("SelectProposal selected a false result")
 	}
@@ -1057,7 +1057,7 @@ func TestChildToProposal(t *testing.T) {
 	esnType := esn.StrToType("ESN_ENABLE")
 
 	childsa := ChildSA{
-		dhInfo:     dhType,
+		DhInfo:     dhType,
 		encrKInfo:  encrKType,
 		integKInfo: integKType,
 		esnInfo:    esnType,
@@ -1091,7 +1091,7 @@ func TestChildSetProposal(t *testing.T) {
 
 	childsa.SetProposal(proposal)
 
-	if childsa.dhInfo == nil ||
+	if childsa.DhInfo == nil ||
 		childsa.encrKInfo == nil ||
 		childsa.integKInfo == nil ||
 		childsa.esnInfo == nil {
