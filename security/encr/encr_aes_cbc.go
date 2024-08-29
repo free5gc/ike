@@ -9,8 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/free5gc/ike/internal/lib"
-	itypes "github.com/free5gc/ike/internal/types"
+	"github.com/free5gc/ike/security/lib"
 	types "github.com/free5gc/ike/types"
 )
 
@@ -67,7 +66,7 @@ func (t *ENCR_AES_CBC) GetKeyLength() int {
 	return t.keyLength
 }
 
-func (t *ENCR_AES_CBC) Init(key []byte) (itypes.IKECrypto, error) {
+func (t *ENCR_AES_CBC) Init(key []byte) (IKECrypto, error) {
 	var err error
 	encr := new(ENCR_AES_CBC_Crypto)
 	if len(key) != t.keyLength {
@@ -85,7 +84,7 @@ func (t *ENCR_AES_CBC) XFRMString() string {
 	return "cbc(aes)"
 }
 
-var _ itypes.IKECrypto = &ENCR_AES_CBC_Crypto{}
+var _ IKECrypto = &ENCR_AES_CBC_Crypto{}
 
 type ENCR_AES_CBC_Crypto struct {
 	block cipher.Block

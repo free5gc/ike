@@ -7,14 +7,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/free5gc/ike/internal/dh"
-	"github.com/free5gc/ike/internal/encr"
-	"github.com/free5gc/ike/internal/esn"
-	"github.com/free5gc/ike/internal/integ"
-	"github.com/free5gc/ike/internal/prf"
-	"github.com/free5gc/ike/message"
-	"github.com/free5gc/ike/types"
 	"github.com/stretchr/testify/require"
+
+	"github.com/free5gc/ike/message"
+	"github.com/free5gc/ike/security/dh"
+	"github.com/free5gc/ike/security/encr"
+	"github.com/free5gc/ike/security/esn"
+	"github.com/free5gc/ike/security/integ"
+	"github.com/free5gc/ike/security/prf"
+	"github.com/free5gc/ike/types"
 )
 
 func TestGenerateRandomNumber(t *testing.T) {
@@ -214,7 +215,7 @@ func TestIKESelectProposal(t *testing.T) {
 		"DH_1024_BIT_MODP": 1,
 		"DH_2048_BIT_MODP": 0,
 	}
-	if err := dh.SetPriority(newPriority); err != nil {
+	if err = dh.SetPriority(newPriority); err != nil {
 		t.Fatalf("Set priority failed: %v", err)
 	}
 
@@ -237,7 +238,7 @@ func TestIKESelectProposal(t *testing.T) {
 		"DH_1024_BIT_MODP": 0,
 		"DH_2048_BIT_MODP": 1,
 	}
-	if err := dh.SetPriority(newPriority); err != nil {
+	if err = dh.SetPriority(newPriority); err != nil {
 		t.Fatalf("Set priority failed: %v", err)
 	}
 
@@ -303,7 +304,8 @@ func TestIKESetProposal(t *testing.T) {
 
 	ikesa := new(IKESA)
 
-	ikesa.SetProposal(proposal)
+	err := ikesa.SetProposal(proposal)
+	require.NoError(t, err)
 
 	if ikesa.dhInfo == nil ||
 		ikesa.encrInfo == nil ||

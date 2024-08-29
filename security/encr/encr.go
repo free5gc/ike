@@ -6,7 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/free5gc/ike/internal/logger"
-	itypes "github.com/free5gc/ike/internal/types"
 	"github.com/free5gc/ike/message"
 	types "github.com/free5gc/ike/types"
 )
@@ -190,7 +189,7 @@ type ENCRType interface {
 	setPriority(uint32)
 	Priority() uint32
 	GetKeyLength() int
-	Init(key []byte) (itypes.IKECrypto, error)
+	Init(key []byte) (IKECrypto, error)
 }
 
 type ENCRKType interface {
@@ -200,6 +199,11 @@ type ENCRKType interface {
 	Priority() uint32
 	GetKeyLength() int
 	XFRMString() string
+}
+
+type IKECrypto interface {
+	Encrypt(plainText []byte) ([]byte, error)
+	Decrypt(cipherText []byte) ([]byte, error)
 }
 
 /* Archive for future use

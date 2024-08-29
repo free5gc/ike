@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/free5gc/logger_conf"
-	"github.com/free5gc/logger_util"
+	logger_util "github.com/free5gc/util/logger"
 )
 
 var log *logrus.Logger

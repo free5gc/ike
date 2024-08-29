@@ -12,19 +12,17 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 
-	"github.com/free5gc/ike/internal/dh"
-	"github.com/free5gc/ike/internal/encr"
-	"github.com/free5gc/ike/internal/esn"
-	"github.com/free5gc/ike/internal/integ"
-	"github.com/free5gc/ike/internal/lib"
 	"github.com/free5gc/ike/internal/logger"
-	"github.com/free5gc/ike/internal/prf"
-	itypes "github.com/free5gc/ike/internal/types"
 	"github.com/free5gc/ike/message"
+	"github.com/free5gc/ike/security/dh"
+	"github.com/free5gc/ike/security/encr"
+	"github.com/free5gc/ike/security/esn"
+	"github.com/free5gc/ike/security/integ"
+	"github.com/free5gc/ike/security/lib"
+	"github.com/free5gc/ike/security/prf"
 	types "github.com/free5gc/ike/types"
 )
 
@@ -95,13 +93,13 @@ type IKESA struct {
 	prfInfo   prf.PRFType
 
 	// Security objects
-	Prf_d   hash.Hash        // used to derive key for child sa
-	Integ_i hash.Hash        // used by initiator for integrity checking
-	Integ_r hash.Hash        // used by responder for integrity checking
-	Encr_i  itypes.IKECrypto // used by initiator for encrypting
-	Encr_r  itypes.IKECrypto // used by responder for encrypting
-	Prf_i   hash.Hash        // used by initiator for IKE authentication
-	Prf_r   hash.Hash        // used by responder for IKE authentication
+	Prf_d   hash.Hash      // used to derive key for child sa
+	Integ_i hash.Hash      // used by initiator for integrity checking
+	Integ_r hash.Hash      // used by responder for integrity checking
+	Encr_i  encr.IKECrypto // used by initiator for encrypting
+	Encr_r  encr.IKECrypto // used by responder for encrypting
+	Prf_i   hash.Hash      // used by initiator for IKE authentication
+	Prf_r   hash.Hash      // used by responder for IKE authentication
 
 	// Used for key generating
 	ConcatenatedNonce      []byte
