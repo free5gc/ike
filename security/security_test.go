@@ -313,6 +313,140 @@ func TestIKESetProposal(t *testing.T) {
 	}
 }
 
+func TestVerifyIntegrity(t *testing.T) {
+	tests := []struct {
+		name          string
+		key           string
+		originData    []byte
+		checksum      string
+		ikeSA         *IKESA
+		role          int
+		expectedValid bool
+	}{
+		{
+			name:       "HMAC MD5 96 - valid",
+			key:        "0123456789abcdef0123456789abcdef",
+			originData: []byte("hello world"),
+			checksum:   "c30f366e411540f68221d04a",
+			ikeSA: &IKESA{
+				integInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
+			},
+			role:          types.Role_Responder,
+			expectedValid: true,
+		},
+		{
+			name:       "HMAC MD5 96 - invalid checksum",
+			key:        "0123456789abcdef0123456789abcdef",
+			originData: []byte("hello world"),
+			checksum:   "01231875aa",
+			ikeSA: &IKESA{
+				integInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
+			},
+			role:          types.Role_Responder,
+			expectedValid: false,
+		},
+		{
+			name:       "HMAC MD5 96 - invalid key length",
+			key:        "0123",
+			originData: []byte("hello world"),
+			ikeSA: &IKESA{
+				integInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
+			},
+			role:          types.Role_Responder,
+			expectedValid: false,
+		},
+		{
+			name:       "HMAC SHA1 96 - valid",
+			key:        "0123456789abcdef0123456789abcdef01234567",
+			originData: []byte("hello world"),
+			checksum:   "5089f6a86e4dafb89e3fcd23",
+			ikeSA: &IKESA{
+				integInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
+			},
+			role:          types.Role_Initiator,
+			expectedValid: true,
+		},
+		{
+			name:       "HMAC SHA1 96 - invalid checksum",
+			key:        "0123456789abcdef0123456789abcdef01234567",
+			originData: []byte("hello world"),
+			checksum:   "01231875aa",
+			ikeSA: &IKESA{
+				integInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
+			},
+			role:          types.Role_Initiator,
+			expectedValid: false,
+		},
+		{
+			name:       "HMAC SHA1 96 - invalid key length",
+			key:        "0123",
+			originData: []byte("hello world"),
+			ikeSA: &IKESA{
+				integInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
+			},
+			role:          types.Role_Initiator,
+			expectedValid: false,
+		},
+		{
+			name:       "HMAC SHA256 128 - valid",
+			key:        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			originData: []byte("hello world"),
+			checksum:   "a64166565bc1f48eb3edd4109fcaeb72",
+			ikeSA: &IKESA{
+				integInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
+			},
+			role:          types.Role_Initiator,
+			expectedValid: true,
+		},
+		{
+			name:       "HMAC SHA256 128 - invalid checksum",
+			key:        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			originData: []byte("hello world"),
+			checksum:   "01231875aa",
+			ikeSA: &IKESA{
+				integInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
+			},
+			role:          types.Role_Initiator,
+			expectedValid: false,
+		},
+		{
+			name:       "HMAC SHA256 128 - invalid key length",
+			key:        "0123",
+			originData: []byte("hello world"),
+			ikeSA: &IKESA{
+				integInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
+			},
+			role:          types.Role_Initiator,
+			expectedValid: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var key, checksum []byte
+			var err error
+			checksum, err = hex.DecodeString(tt.checksum)
+			require.NoError(t, err, "failed to decode checksum hex string")
+
+			key, err = hex.DecodeString(tt.key)
+			require.NoError(t, err, "failed to decode key hex string")
+
+			integ := tt.ikeSA.integInfo.Init(key)
+
+			if tt.role == types.Role_Initiator {
+				tt.ikeSA.Integ_r = integ
+			} else {
+				tt.ikeSA.Integ_i = integ
+			}
+
+			valid, err := tt.ikeSA.verifyIntegrity(tt.role, tt.originData, checksum)
+			if tt.expectedValid {
+				require.NoError(t, err, "verifyIntegrity returned an error")
+			}
+			require.Equal(t, tt.expectedValid, valid)
+		})
+	}
+}
+
 func TestGenerateKeyForIKESA(t *testing.T) {
 	// IKE Security Association is nil
 	var ikesa *IKESA

@@ -30,6 +30,7 @@ func init() {
 	integString = make(map[uint16]func(uint16, uint16, []byte) string)
 	integString[types.AUTH_HMAC_MD5_96] = toString_AUTH_HMAC_MD5_96
 	integString[types.AUTH_HMAC_SHA1_96] = toString_AUTH_HMAC_SHA1_96
+	integString[types.AUTH_HMAC_SHA2_256_128] = toString_AUTH_HMAC_SHA2_256_128
 
 	// INTEG Types
 	integTypes = make(map[string]INTEGType)
@@ -42,11 +43,16 @@ func init() {
 		keyLength:    20,
 		outputLength: 12,
 	}
+	integTypes[string_AUTH_HMAC_SHA2_256_128] = &AUTH_HMAC_SHA2_256_128{
+		keyLength:    32,
+		outputLength: 16,
+	}
 
 	// Default Priority
 	priority := []string{
 		string_AUTH_HMAC_MD5_96,
 		string_AUTH_HMAC_SHA1_96,
+		string_AUTH_HMAC_SHA2_256_128,
 	}
 
 	// Set Priority
@@ -69,6 +75,10 @@ func init() {
 	integKTypes[string_AUTH_HMAC_SHA1_96] = &AUTH_HMAC_SHA1_96{
 		keyLength:    20,
 		outputLength: 12,
+	}
+	integKTypes[string_AUTH_HMAC_SHA2_256_128] = &AUTH_HMAC_SHA2_256_128{
+		keyLength:    32,
+		outputLength: 16,
 	}
 
 	// INTEG Kernel Priority same as above

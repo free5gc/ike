@@ -373,12 +373,18 @@ func (ikesa *IKESA) calculateIntegrity(role int, originData []byte) ([]byte, err
 
 	var calculatedChecksum []byte
 	if role == types.Role_Initiator {
+		if ikesa.Integ_r == nil {
+			return nil, errors.Errorf("CalcIKEChecksum(%d) : IKE SA have nil Integ_r", role)
+		}
 		ikesa.Integ_r.Reset()
 		if _, err := ikesa.Integ_r.Write(originData); err != nil {
 			return nil, errors.Wrapf(err, "CalcIKEChecksum(%d)", role)
 		}
 		calculatedChecksum = ikesa.Integ_r.Sum(nil)
 	} else {
+		if ikesa.Integ_i == nil {
+			return nil, errors.Errorf("CalcIKEChecksum(%d) : IKE SA have nil Integ_i", role)
+		}
 		ikesa.Integ_i.Reset()
 		if _, err := ikesa.Integ_i.Write(originData); err != nil {
 			return nil, errors.Wrapf(err, "CalcIKEChecksum(%d)", role)

@@ -26,6 +26,7 @@ func init() {
 	prfString = make(map[uint16]func(uint16, uint16, []byte) string)
 	prfString[types.PRF_HMAC_MD5] = toString_PRF_HMAC_MD5
 	prfString[types.PRF_HMAC_SHA1] = toString_PRF_HMAC_SHA1
+	prfString[types.PRF_HMAC_SHA2_256] = toString_PRF_HMAC_SHA2_256
 
 	// PRF Types
 	prfTypes = make(map[string]PRFType)
@@ -38,11 +39,16 @@ func init() {
 		keyLength:    20,
 		outputLength: 20,
 	}
+	prfTypes[string_PRF_HMAC_SHA2_256] = &PRF_HMAC_SHA2_256{
+		keyLength:    32,
+		outputLength: 32,
+	}
 
 	// Default Priority
 	priority := []string{
 		string_PRF_HMAC_MD5,
 		string_PRF_HMAC_SHA1,
+		string_PRF_HMAC_SHA2_256,
 	}
 
 	// Set Priority
