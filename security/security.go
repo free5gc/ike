@@ -78,7 +78,7 @@ func concatenateNonceAndSPI(nonce []byte, SPI_initiator uint64, SPI_responder ui
 	return newSlice
 }
 
-type IKESA struct {
+type IKESAKey struct {
 	// SPI
 	InitiatorSPI uint64
 	ResponderSPI uint64
@@ -197,17 +197,17 @@ func SelectProposal(proposals message.ProposalContainer) message.ProposalContain
 	return chooseProposal
 }
 
-func (ikesa *IKESA) ToProposal() *message.Proposal {
+func (ikesaKey *IKESAKey) ToProposal() *message.Proposal {
 	p := new(message.Proposal)
 	p.ProtocolID = message.TypeIKE
-	p.DiffieHellmanGroup = append(p.DiffieHellmanGroup, dh.ToTransform(ikesa.DhInfo))
-	p.PseudorandomFunction = append(p.PseudorandomFunction, prf.ToTransform(ikesa.PrfInfo))
-	p.EncryptionAlgorithm = append(p.EncryptionAlgorithm, encr.ToTransform(ikesa.EncrInfo))
-	p.IntegrityAlgorithm = append(p.IntegrityAlgorithm, integ.ToTransform(ikesa.IntegInfo))
+	p.DiffieHellmanGroup = append(p.DiffieHellmanGroup, dh.ToTransform(ikesaKey.DhInfo))
+	p.PseudorandomFunction = append(p.PseudorandomFunction, prf.ToTransform(ikesaKey.PrfInfo))
+	p.EncryptionAlgorithm = append(p.EncryptionAlgorithm, encr.ToTransform(ikesaKey.EncrInfo))
+	p.IntegrityAlgorithm = append(p.IntegrityAlgorithm, integ.ToTransform(ikesaKey.IntegInfo))
 	return p
 }
 
-func (ikesa *IKESA) SetProposal(proposal *message.Proposal) error {
+func (ikesaKey *IKESAKey) SetProposal(proposal *message.Proposal) error {
 	if proposal == nil {
 		return errors.Errorf("SetProposal : proposal is nil")
 	}
@@ -227,19 +227,19 @@ func (ikesa *IKESA) SetProposal(proposal *message.Proposal) error {
 		return errors.Errorf("SetProposal : PseudorandomFunction is nil")
 	}
 
-	if ikesa.DhInfo = dh.DecodeTransform(proposal.DiffieHellmanGroup[0]); ikesa.DhInfo == nil {
+	if ikesaKey.DhInfo = dh.DecodeTransform(proposal.DiffieHellmanGroup[0]); ikesaKey.DhInfo == nil {
 		return errors.Errorf("SetProposal : Get unsupport DiffieHellmanGroup[%v]",
 			proposal.DiffieHellmanGroup[0].TransformID)
 	}
-	if ikesa.EncrInfo = encr.DecodeTransform(proposal.EncryptionAlgorithm[0]); ikesa.EncrInfo == nil {
+	if ikesaKey.EncrInfo = encr.DecodeTransform(proposal.EncryptionAlgorithm[0]); ikesaKey.EncrInfo == nil {
 		return errors.Errorf("SetProposal : Get unsupport EncryptionAlgorithm[%v]",
 			proposal.EncryptionAlgorithm[0].TransformID)
 	}
-	if ikesa.IntegInfo = integ.DecodeTransform(proposal.IntegrityAlgorithm[0]); ikesa.EncrInfo == nil {
+	if ikesaKey.IntegInfo = integ.DecodeTransform(proposal.IntegrityAlgorithm[0]); ikesaKey.EncrInfo == nil {
 		return errors.Errorf("SetProposal : Get unsupport IntegrityAlgorithm[%v]",
 			proposal.IntegrityAlgorithm[0].TransformID)
 	}
-	if ikesa.PrfInfo = prf.DecodeTransform(proposal.PseudorandomFunction[0]); ikesa.PrfInfo == nil {
+	if ikesaKey.PrfInfo = prf.DecodeTransform(proposal.PseudorandomFunction[0]); ikesaKey.PrfInfo == nil {
 		return errors.Errorf("SetProposal : Get unsupport PseudorandomFunction[%v]",
 			proposal.PseudorandomFunction[0].TransformID)
 	}
@@ -249,125 +249,125 @@ func (ikesa *IKESA) SetProposal(proposal *message.Proposal) error {
 // CalculateDiffieHellmanMaterials generates secret and calculate Diffie-Hellman public key
 // exchange material.
 // Peer public value as parameter, return local public value and shared key.
-func CalculateDiffieHellmanMaterials(ikesa *IKESA, peerPublicValue []byte) ([]byte, []byte) {
+func CalculateDiffieHellmanMaterials(ikesaKey *IKESAKey, peerPublicValue []byte) ([]byte, []byte) {
 	secret := GenerateRandomNumber()
 	peerPublicValueBig := new(big.Int).SetBytes(peerPublicValue)
-	return ikesa.DhInfo.GetPublicValue(secret), ikesa.DhInfo.GetSharedKey(secret, peerPublicValueBig)
+	return ikesaKey.DhInfo.GetPublicValue(secret), ikesaKey.DhInfo.GetSharedKey(secret, peerPublicValueBig)
 }
 
-func (ikesa *IKESA) GenerateKeyForIKESA() error {
+func (ikesaKey *IKESAKey) GenerateKeyForIKESA() error {
 	// Check parameters
-	if ikesa == nil {
+	if ikesaKey == nil {
 		return errors.New("IKE SA is nil")
 	}
 
 	// Check if the context contain needed data
-	if ikesa.EncrInfo == nil {
+	if ikesaKey.EncrInfo == nil {
 		return errors.New("No encryption algorithm specified")
 	}
-	if ikesa.IntegInfo == nil {
+	if ikesaKey.IntegInfo == nil {
 		return errors.New("No integrity algorithm specified")
 	}
-	if ikesa.PrfInfo == nil {
+	if ikesaKey.PrfInfo == nil {
 		return errors.New("No pseudorandom function specified")
 	}
-	if ikesa.DhInfo == nil {
+	if ikesaKey.DhInfo == nil {
 		return errors.New("No Diffie-hellman group algorithm specified")
 	}
 
-	if len(ikesa.ConcatenatedNonce) == 0 {
+	if len(ikesaKey.ConcatenatedNonce) == 0 {
 		return errors.New("No concatenated nonce data")
 	}
-	if len(ikesa.DiffieHellmanSharedKey) == 0 {
+	if len(ikesaKey.DiffieHellmanSharedKey) == 0 {
 		return errors.New("No Diffie-Hellman shared key")
 	}
 
 	// Get key length of SK_d, SK_ai, SK_ar, SK_ei, SK_er, SK_pi, SK_pr
 	var length_SK_d, length_SK_ai, length_SK_ar, length_SK_ei, length_SK_er, length_SK_pi, length_SK_pr, totalKeyLength int
 
-	length_SK_d = ikesa.PrfInfo.GetKeyLength()
-	length_SK_ai = ikesa.IntegInfo.GetKeyLength()
+	length_SK_d = ikesaKey.PrfInfo.GetKeyLength()
+	length_SK_ai = ikesaKey.IntegInfo.GetKeyLength()
 	length_SK_ar = length_SK_ai
-	length_SK_ei = ikesa.EncrInfo.GetKeyLength()
+	length_SK_ei = ikesaKey.EncrInfo.GetKeyLength()
 	length_SK_er = length_SK_ei
 	length_SK_pi, length_SK_pr = length_SK_d, length_SK_d
 
 	totalKeyLength = length_SK_d + length_SK_ai + length_SK_ar + length_SK_ei + length_SK_er + length_SK_pi + length_SK_pr
 
 	// Generate IKE SA key as defined in RFC7296 Section 1.3 and Section 1.4
-	secLog.Tracef("Concatenated nonce:\n%s", hex.Dump(ikesa.ConcatenatedNonce))
-	secLog.Tracef("DH shared key:\n%s", hex.Dump(ikesa.DiffieHellmanSharedKey))
+	secLog.Tracef("Concatenated nonce:\n%s", hex.Dump(ikesaKey.ConcatenatedNonce))
+	secLog.Tracef("DH shared key:\n%s", hex.Dump(ikesaKey.DiffieHellmanSharedKey))
 
-	prf := ikesa.PrfInfo.Init(ikesa.ConcatenatedNonce)
-	if _, err := prf.Write(ikesa.DiffieHellmanSharedKey); err != nil {
+	prf := ikesaKey.PrfInfo.Init(ikesaKey.ConcatenatedNonce)
+	if _, err := prf.Write(ikesaKey.DiffieHellmanSharedKey); err != nil {
 		return err
 	}
 
 	skeyseed := prf.Sum(nil)
-	seed := concatenateNonceAndSPI(ikesa.ConcatenatedNonce, ikesa.InitiatorSPI, ikesa.ResponderSPI)
+	seed := concatenateNonceAndSPI(ikesaKey.ConcatenatedNonce, ikesaKey.InitiatorSPI, ikesaKey.ResponderSPI)
 
 	secLog.Tracef("SKEYSEED:\n%s", hex.Dump(skeyseed))
 
-	keyStream := lib.PrfPlus(ikesa.PrfInfo.Init(skeyseed), seed, totalKeyLength)
+	keyStream := lib.PrfPlus(ikesaKey.PrfInfo.Init(skeyseed), seed, totalKeyLength)
 	if keyStream == nil {
 		return errors.New("Error happened in PrfPlus")
 	}
 
 	// Assign keys into context
-	ikesa.SK_d = keyStream[:length_SK_d]
+	ikesaKey.SK_d = keyStream[:length_SK_d]
 	keyStream = keyStream[length_SK_d:]
-	ikesa.SK_ai = keyStream[:length_SK_ai]
+	ikesaKey.SK_ai = keyStream[:length_SK_ai]
 	keyStream = keyStream[length_SK_ai:]
-	ikesa.SK_ar = keyStream[:length_SK_ar]
+	ikesaKey.SK_ar = keyStream[:length_SK_ar]
 	keyStream = keyStream[length_SK_ar:]
-	ikesa.SK_ei = keyStream[:length_SK_ei]
+	ikesaKey.SK_ei = keyStream[:length_SK_ei]
 	keyStream = keyStream[length_SK_ei:]
-	ikesa.SK_er = keyStream[:length_SK_er]
+	ikesaKey.SK_er = keyStream[:length_SK_er]
 	keyStream = keyStream[length_SK_er:]
-	ikesa.SK_pi = keyStream[:length_SK_pi]
+	ikesaKey.SK_pi = keyStream[:length_SK_pi]
 	keyStream = keyStream[length_SK_pi:]
-	ikesa.SK_pr = keyStream[:length_SK_pr]
+	ikesaKey.SK_pr = keyStream[:length_SK_pr]
 
 	secLog.Debugln("====== IKE Security Association Info =====")
-	secLog.Debugf("Initiator's SPI: %016x", ikesa.InitiatorSPI)
-	secLog.Debugf("Responder's  SPI: %016x", ikesa.ResponderSPI)
-	secLog.Debugf("Encryption Algorithm: %d", ikesa.EncrInfo.TransformID())
-	secLog.Debugf("SK_ei:\n%s", hex.Dump(ikesa.SK_ei))
-	secLog.Debugf("SK_er:\n%s", hex.Dump(ikesa.SK_er))
-	secLog.Debugf("Integrity Algorithm: %d", ikesa.IntegInfo.TransformID())
-	secLog.Debugf("SK_ai:\n%s", hex.Dump(ikesa.SK_ai))
-	secLog.Debugf("SK_ar:\n%s", hex.Dump(ikesa.SK_ar))
-	secLog.Debugf("SK_pi:\n%s", hex.Dump(ikesa.SK_pi))
-	secLog.Debugf("SK_pr:\n%s", hex.Dump(ikesa.SK_pr))
-	secLog.Debugf("SK_d:\n%s", hex.Dump(ikesa.SK_d))
+	secLog.Debugf("Initiator's SPI: %016x", ikesaKey.InitiatorSPI)
+	secLog.Debugf("Responder's  SPI: %016x", ikesaKey.ResponderSPI)
+	secLog.Debugf("Encryption Algorithm: %d", ikesaKey.EncrInfo.TransformID())
+	secLog.Debugf("SK_ei:\n%s", hex.Dump(ikesaKey.SK_ei))
+	secLog.Debugf("SK_er:\n%s", hex.Dump(ikesaKey.SK_er))
+	secLog.Debugf("Integrity Algorithm: %d", ikesaKey.IntegInfo.TransformID())
+	secLog.Debugf("SK_ai:\n%s", hex.Dump(ikesaKey.SK_ai))
+	secLog.Debugf("SK_ar:\n%s", hex.Dump(ikesaKey.SK_ar))
+	secLog.Debugf("SK_pi:\n%s", hex.Dump(ikesaKey.SK_pi))
+	secLog.Debugf("SK_pr:\n%s", hex.Dump(ikesaKey.SK_pr))
+	secLog.Debugf("SK_d:\n%s", hex.Dump(ikesaKey.SK_d))
 
 	// Set security objects
-	ikesa.Prf_d = ikesa.PrfInfo.Init(ikesa.SK_d)
-	ikesa.Integ_i = ikesa.IntegInfo.Init(ikesa.SK_ai)
-	ikesa.Integ_r = ikesa.IntegInfo.Init(ikesa.SK_ar)
+	ikesaKey.Prf_d = ikesaKey.PrfInfo.Init(ikesaKey.SK_d)
+	ikesaKey.Integ_i = ikesaKey.IntegInfo.Init(ikesaKey.SK_ai)
+	ikesaKey.Integ_r = ikesaKey.IntegInfo.Init(ikesaKey.SK_ar)
 
 	var err error
-	ikesa.Encr_i, err = ikesa.EncrInfo.Init(ikesa.SK_ei)
+	ikesaKey.Encr_i, err = ikesaKey.EncrInfo.Init(ikesaKey.SK_ei)
 	if err != nil {
 		return err
 	}
 
-	ikesa.Encr_r, err = ikesa.EncrInfo.Init(ikesa.SK_er)
+	ikesaKey.Encr_r, err = ikesaKey.EncrInfo.Init(ikesaKey.SK_er)
 	if err != nil {
 		return err
 	}
 
-	ikesa.Prf_i = ikesa.PrfInfo.Init(ikesa.SK_pi)
-	ikesa.Prf_r = ikesa.PrfInfo.Init(ikesa.SK_pr)
+	ikesaKey.Prf_i = ikesaKey.PrfInfo.Init(ikesaKey.SK_pi)
+	ikesaKey.Prf_r = ikesaKey.PrfInfo.Init(ikesaKey.SK_pr)
 
 	return nil
 }
 
-func verifyIntegrity(ikesa *IKESA, role int, originData []byte, checksum []byte) (bool, error) {
-	expectChecksum, err := calculateIntegrity(ikesa, role, originData)
+func verifyIntegrity(ikesaKey *IKESAKey, role int, originData []byte, checksum []byte) (bool, error) {
+	expectChecksum, err := calculateIntegrity(ikesaKey, role, originData)
 	if err != nil {
 		secLog.Errorf("VerifyIKEChecksum(%d): %+v", role, err)
-		return false, errors.Wrapf(err, "verifyIntegrity[%d]", ikesa.IntegInfo.TransformID())
+		return false, errors.Wrapf(err, "verifyIntegrity[%d]", ikesaKey.IntegInfo.TransformID())
 	}
 
 	secLog.Tracef("Calculated checksum:\n%s\nReceived checksum:\n%s",
@@ -375,67 +375,67 @@ func verifyIntegrity(ikesa *IKESA, role int, originData []byte, checksum []byte)
 	return hmac.Equal(checksum, expectChecksum), nil
 }
 
-func calculateIntegrity(ikesa *IKESA, role int, originData []byte) ([]byte, error) {
-	outputLen := ikesa.IntegInfo.GetOutputLength()
+func calculateIntegrity(ikesaKey *IKESAKey, role int, originData []byte) ([]byte, error) {
+	outputLen := ikesaKey.IntegInfo.GetOutputLength()
 
 	var calculatedChecksum []byte
 	if role == message.Role_Initiator {
-		if ikesa.Integ_r == nil {
+		if ikesaKey.Integ_r == nil {
 			return nil, errors.Errorf("CalcIKEChecksum(%d) : IKE SA have nil Integ_r", role)
 		}
-		ikesa.Integ_r.Reset()
-		if _, err := ikesa.Integ_r.Write(originData); err != nil {
+		ikesaKey.Integ_r.Reset()
+		if _, err := ikesaKey.Integ_r.Write(originData); err != nil {
 			return nil, errors.Wrapf(err, "CalcIKEChecksum(%d)", role)
 		}
-		calculatedChecksum = ikesa.Integ_r.Sum(nil)
+		calculatedChecksum = ikesaKey.Integ_r.Sum(nil)
 	} else {
-		if ikesa.Integ_i == nil {
+		if ikesaKey.Integ_i == nil {
 			return nil, errors.Errorf("CalcIKEChecksum(%d) : IKE SA have nil Integ_i", role)
 		}
-		ikesa.Integ_i.Reset()
-		if _, err := ikesa.Integ_i.Write(originData); err != nil {
+		ikesaKey.Integ_i.Reset()
+		if _, err := ikesaKey.Integ_i.Write(originData); err != nil {
 			return nil, errors.Wrapf(err, "CalcIKEChecksum(%d)", role)
 		}
-		calculatedChecksum = ikesa.Integ_i.Sum(nil)
+		calculatedChecksum = ikesaKey.Integ_i.Sum(nil)
 	}
 
 	return calculatedChecksum[:outputLen], nil
 }
 
-func EncryptMessage(ikesa *IKESA, role int, originData []byte) ([]byte, error) {
+func EncryptMessage(ikesaKey *IKESAKey, role int, originData []byte) ([]byte, error) {
 	var cipherText []byte
 	if role == message.Role_Initiator {
 		var err error
-		if cipherText, err = ikesa.Encr_i.Encrypt(originData); err != nil {
+		if cipherText, err = ikesaKey.Encr_i.Encrypt(originData); err != nil {
 			secLog.Errorf("Encrypt() failed: %+v", err)
 			return nil, errors.New("Encrypt() Failed to encrypt to SK")
 		}
 	} else {
 		var err error
-		if cipherText, err = ikesa.Encr_r.Encrypt(originData); err != nil {
+		if cipherText, err = ikesaKey.Encr_r.Encrypt(originData); err != nil {
 			secLog.Errorf("Encrypt() failed: %+v", err)
 			return nil, errors.New("Failed to encrypt to SK")
 		}
 	}
 
 	// Append checksum field
-	checksumField := make([]byte, ikesa.IntegInfo.GetOutputLength())
+	checksumField := make([]byte, ikesaKey.IntegInfo.GetOutputLength())
 	cipherText = append(cipherText, checksumField...)
 
 	return cipherText, nil
 }
 
-func DecryptMessage(ikesa *IKESA, role int, cipherText []byte) ([]byte, error) {
+func DecryptMessage(ikesaKey *IKESAKey, role int, cipherText []byte) ([]byte, error) {
 	var plainText []byte
 	if role == message.Role_Initiator {
 		var err error
-		if plainText, err = ikesa.Encr_r.Decrypt(cipherText); err != nil {
+		if plainText, err = ikesaKey.Encr_r.Decrypt(cipherText); err != nil {
 			secLog.Errorf("Decrypt() failed: %+v", err)
 			return nil, errors.New("Failed to decrypt SK")
 		}
 	} else {
 		var err error
-		if plainText, err = ikesa.Encr_i.Decrypt(cipherText); err != nil {
+		if plainText, err = ikesaKey.Encr_i.Decrypt(cipherText); err != nil {
 			secLog.Errorf("Decrypt() failed: %+v", err)
 			return nil, errors.New("Failed to decrypt SK")
 		}
@@ -445,10 +445,10 @@ func DecryptMessage(ikesa *IKESA, role int, cipherText []byte) ([]byte, error) {
 }
 
 // Decrypt
-func DecryptProcedure(ikesa *IKESA, role int, ikeMessage *message.IKEMessage,
+func DecryptProcedure(ikesaKey *IKESAKey, role int, ikeMessage *message.IKEMessage,
 	encryptedPayload *message.Encrypted,
 ) (message.IKEPayloadContainer, error) {
-	if ikesa == nil {
+	if ikesaKey == nil {
 		return nil, errors.New("IKE SA is nil")
 	}
 
@@ -461,21 +461,21 @@ func DecryptProcedure(ikesa *IKESA, role int, ikeMessage *message.IKEMessage,
 	}
 
 	// Check if the context contain needed data
-	if ikesa.IntegInfo == nil {
+	if ikesaKey.IntegInfo == nil {
 		return nil, errors.New("No integrity algorithm specified")
 	}
-	if ikesa.EncrInfo == nil {
+	if ikesaKey.EncrInfo == nil {
 		return nil, errors.New("No encryption algorithm specified")
 	}
 
-	if ikesa.Integ_i == nil {
+	if ikesaKey.Integ_i == nil {
 		return nil, errors.New("No initiator's integrity key")
 	}
-	if ikesa.Encr_i == nil {
+	if ikesaKey.Encr_i == nil {
 		return nil, errors.New("No initiator's encryption key")
 	}
 
-	checksumLength := ikesa.IntegInfo.GetOutputLength()
+	checksumLength := ikesaKey.IntegInfo.GetOutputLength()
 	// Checksum
 	checksum := encryptedPayload.EncryptedData[len(encryptedPayload.EncryptedData)-checksumLength:]
 
@@ -486,7 +486,7 @@ func DecryptProcedure(ikesa *IKESA, role int, ikeMessage *message.IKEMessage,
 		return nil, errors.New("Encoding IKE message failed")
 	}
 
-	ok, err := verifyIntegrity(ikesa, role,
+	ok, err := verifyIntegrity(ikesaKey, role,
 		ikeMessageData[:len(ikeMessageData)-checksumLength], checksum)
 	if err != nil {
 		secLog.Errorf("Error occur when verifying checksum: %+v", err)
@@ -499,7 +499,7 @@ func DecryptProcedure(ikesa *IKESA, role int, ikeMessage *message.IKEMessage,
 
 	// Decrypt
 	encryptedData := encryptedPayload.EncryptedData[:len(encryptedPayload.EncryptedData)-checksumLength]
-	plainText, err := DecryptMessage(ikesa, role, encryptedData)
+	plainText, err := DecryptMessage(ikesaKey, role, encryptedData)
 	if err != nil {
 		secLog.Errorf("Error occur when decrypting message: %+v", err)
 		return nil, errors.New("Error decrypting message")
@@ -516,11 +516,11 @@ func DecryptProcedure(ikesa *IKESA, role int, ikeMessage *message.IKEMessage,
 }
 
 // Encrypt
-func EncryptProcedure(ikesa *IKESA, role int,
+func EncryptProcedure(ikesaKey *IKESAKey, role int,
 	ikePayload message.IKEPayloadContainer,
 	responseIKEMessage *message.IKEMessage,
 ) error {
-	if ikesa == nil {
+	if ikesaKey == nil {
 		return errors.New("IKE SA is nil")
 	}
 	// Check parameters
@@ -532,21 +532,21 @@ func EncryptProcedure(ikesa *IKESA, role int,
 	}
 
 	// Check if the context contain needed data
-	if ikesa.IntegInfo == nil {
+	if ikesaKey.IntegInfo == nil {
 		return errors.New("No integrity algorithm specified")
 	}
-	if ikesa.EncrInfo == nil {
+	if ikesaKey.EncrInfo == nil {
 		return errors.New("No encryption algorithm specified")
 	}
 
-	if ikesa.Integ_r == nil {
+	if ikesaKey.Integ_r == nil {
 		return errors.New("No responder's integrity key")
 	}
-	if ikesa.Encr_r == nil {
+	if ikesaKey.Encr_r == nil {
 		return errors.New("No responder's encryption key")
 	}
 
-	checksumLength := ikesa.IntegInfo.GetOutputLength()
+	checksumLength := ikesaKey.IntegInfo.GetOutputLength()
 
 	// Encrypting
 	ikePayloadData, err := ikePayload.Encode()
@@ -555,7 +555,7 @@ func EncryptProcedure(ikesa *IKESA, role int,
 		return errors.New("Encoding IKE payload failed.")
 	}
 
-	encryptedData, err := EncryptMessage(ikesa, role, ikePayloadData)
+	encryptedData, err := EncryptMessage(ikesaKey, role, ikePayloadData)
 	if err != nil {
 		secLog.Errorf("Encrypting data error: %+v", err)
 		return errors.New("Error encrypting message")
@@ -570,7 +570,7 @@ func EncryptProcedure(ikesa *IKESA, role int,
 		secLog.Error(err)
 		return errors.New("Encoding IKE message error")
 	}
-	checksumOfMessage, err := calculateIntegrity(ikesa, role,
+	checksumOfMessage, err := calculateIntegrity(ikesaKey, role,
 		responseIKEMessageData[:len(responseIKEMessageData)-checksumLength])
 	if err != nil {
 		secLog.Errorf("Calculating checksum failed: %+v", err)
@@ -582,7 +582,7 @@ func EncryptProcedure(ikesa *IKESA, role int,
 	return nil
 }
 
-type ChildSA struct {
+type ChildSAKey struct {
 	// SPI
 	SPI uint32
 
@@ -599,7 +599,7 @@ type ChildSA struct {
 	ResponderToInitiatorIntegrityKey  []byte
 }
 
-func (childsa *ChildSA) SelectProposal(proposals message.ProposalContainer) bool {
+func (childsaKey *ChildSAKey) SelectProposal(proposals message.ProposalContainer) bool {
 	for _, proposal := range proposals {
 		var encryptionAlgorithmTransform, esnTransform *message.Transform
 		var integrityAlgorithmTransform, diffieHellmanGroupTransform *message.Transform
@@ -663,56 +663,56 @@ func (childsa *ChildSA) SelectProposal(proposals message.ProposalContainer) bool
 			return false // No PRF
 		}
 
-		childsa.DhInfo = chooseDH
-		childsa.EncrKInfo = chooseEncrK
-		childsa.IntegKInfo = chooseInteK
-		childsa.EsnInfo = chooseEsn
+		childsaKey.DhInfo = chooseDH
+		childsaKey.EncrKInfo = chooseEncrK
+		childsaKey.IntegKInfo = chooseInteK
+		childsaKey.EsnInfo = chooseEsn
 		break
 	}
 	return true
 }
 
-func (childsa *ChildSA) ToProposal() *message.Proposal {
+func (childsaKey *ChildSAKey) ToProposal() *message.Proposal {
 	p := new(message.Proposal)
 	p.ProtocolID = message.TypeESP
-	if childsa.DhInfo != nil {
-		p.DiffieHellmanGroup = append(p.DiffieHellmanGroup, dh.ToTransform(childsa.DhInfo))
+	if childsaKey.DhInfo != nil {
+		p.DiffieHellmanGroup = append(p.DiffieHellmanGroup, dh.ToTransform(childsaKey.DhInfo))
 	}
-	p.EncryptionAlgorithm = append(p.EncryptionAlgorithm, encr.ToTransformChildSA(childsa.EncrKInfo))
-	if childsa.IntegKInfo != nil {
-		p.IntegrityAlgorithm = append(p.IntegrityAlgorithm, integ.ToTransformChildSA(childsa.IntegKInfo))
+	p.EncryptionAlgorithm = append(p.EncryptionAlgorithm, encr.ToTransformChildSA(childsaKey.EncrKInfo))
+	if childsaKey.IntegKInfo != nil {
+		p.IntegrityAlgorithm = append(p.IntegrityAlgorithm, integ.ToTransformChildSA(childsaKey.IntegKInfo))
 	}
-	p.ExtendedSequenceNumbers = append(p.ExtendedSequenceNumbers, esn.ToTransform(childsa.EsnInfo))
+	p.ExtendedSequenceNumbers = append(p.ExtendedSequenceNumbers, esn.ToTransform(childsaKey.EsnInfo))
 	return p
 }
 
-func (childsa *ChildSA) SetProposal(proposal *message.Proposal) bool {
+func (childsaKey *ChildSAKey) SetProposal(proposal *message.Proposal) bool {
 	if len(proposal.DiffieHellmanGroup) == 1 {
-		if childsa.DhInfo = dh.DecodeTransform(proposal.DiffieHellmanGroup[0]); childsa.DhInfo == nil {
+		if childsaKey.DhInfo = dh.DecodeTransform(proposal.DiffieHellmanGroup[0]); childsaKey.DhInfo == nil {
 			return false
 		}
 	}
-	if childsa.EncrKInfo = encr.DecodeTransformChildSA(proposal.EncryptionAlgorithm[0]); childsa.EncrKInfo == nil {
+	if childsaKey.EncrKInfo = encr.DecodeTransformChildSA(proposal.EncryptionAlgorithm[0]); childsaKey.EncrKInfo == nil {
 		return false
 	}
 	if len(proposal.IntegrityAlgorithm) == 1 {
-		if childsa.IntegKInfo = integ.DecodeTransformChildSA(proposal.IntegrityAlgorithm[0]); childsa.EncrKInfo == nil {
+		if childsaKey.IntegKInfo = integ.DecodeTransformChildSA(proposal.IntegrityAlgorithm[0]); childsaKey.EncrKInfo == nil {
 			return false
 		}
 	}
-	if childsa.EsnInfo = esn.DecodeTransform(proposal.ExtendedSequenceNumbers[0]); childsa.EsnInfo == nil {
+	if childsaKey.EsnInfo = esn.DecodeTransform(proposal.ExtendedSequenceNumbers[0]); childsaKey.EsnInfo == nil {
 		return false
 	}
 	return true
 }
 
 // Key Gen for child SA
-func (childsa *ChildSA) GenerateKeyForChildSA(ikeSA *IKESA) error {
+func (childsaKey *ChildSAKey) GenerateKeyForChildSA(ikeSA *IKESAKey) error {
 	// Check parameters
 	if ikeSA == nil {
 		return errors.New("IKE SA is nil")
 	}
-	if childsa == nil {
+	if childsaKey == nil {
 		return errors.New("Child SA is nil")
 	}
 
@@ -720,7 +720,7 @@ func (childsa *ChildSA) GenerateKeyForChildSA(ikeSA *IKESA) error {
 	if ikeSA.PrfInfo == nil {
 		return errors.New("No pseudorandom function specified")
 	}
-	if childsa.EncrKInfo == nil {
+	if childsaKey.EncrKInfo == nil {
 		return errors.New("No encryption algorithm specified")
 	}
 	if ikeSA.Prf_d == nil {
@@ -730,9 +730,9 @@ func (childsa *ChildSA) GenerateKeyForChildSA(ikeSA *IKESA) error {
 	// Get key length for encryption and integrity key for IPSec
 	var lengthEncryptionKeyIPSec, lengthIntegrityKeyIPSec, totalKeyLength int
 
-	lengthEncryptionKeyIPSec = childsa.EncrKInfo.GetKeyLength()
-	if childsa.IntegKInfo != nil {
-		lengthIntegrityKeyIPSec = childsa.IntegKInfo.GetKeyLength()
+	lengthEncryptionKeyIPSec = childsaKey.EncrKInfo.GetKeyLength()
+	if childsaKey.IntegKInfo != nil {
+		lengthIntegrityKeyIPSec = childsaKey.IntegKInfo.GetKeyLength()
 	}
 	totalKeyLength = (lengthEncryptionKeyIPSec + lengthIntegrityKeyIPSec) * 2
 
@@ -744,20 +744,20 @@ func (childsa *ChildSA) GenerateKeyForChildSA(ikeSA *IKESA) error {
 		return errors.New("Error happened in PrfPlus")
 	}
 
-	childsa.InitiatorToResponderEncryptionKey = append(
-		childsa.InitiatorToResponderEncryptionKey,
+	childsaKey.InitiatorToResponderEncryptionKey = append(
+		childsaKey.InitiatorToResponderEncryptionKey,
 		keyStream[:lengthEncryptionKeyIPSec]...)
 	keyStream = keyStream[lengthEncryptionKeyIPSec:]
-	childsa.InitiatorToResponderIntegrityKey = append(
-		childsa.InitiatorToResponderIntegrityKey,
+	childsaKey.InitiatorToResponderIntegrityKey = append(
+		childsaKey.InitiatorToResponderIntegrityKey,
 		keyStream[:lengthIntegrityKeyIPSec]...)
 	keyStream = keyStream[lengthIntegrityKeyIPSec:]
-	childsa.ResponderToInitiatorEncryptionKey = append(
-		childsa.ResponderToInitiatorEncryptionKey,
+	childsaKey.ResponderToInitiatorEncryptionKey = append(
+		childsaKey.ResponderToInitiatorEncryptionKey,
 		keyStream[:lengthEncryptionKeyIPSec]...)
 	keyStream = keyStream[lengthEncryptionKeyIPSec:]
-	childsa.ResponderToInitiatorIntegrityKey = append(
-		childsa.ResponderToInitiatorIntegrityKey,
+	childsaKey.ResponderToInitiatorIntegrityKey = append(
+		childsaKey.ResponderToInitiatorIntegrityKey,
 		keyStream[:lengthIntegrityKeyIPSec]...)
 
 	return nil
