@@ -1,18 +1,12 @@
 package encr
 
 import (
-	"fmt"
-
 	"github.com/sirupsen/logrus"
 
-	"github.com/free5gc/ike/logger"
 	"github.com/free5gc/ike/message"
 )
 
-var (
-	encrLog    *logrus.Entry
-	encrString map[uint16]func(uint16, uint16, []byte) string
-)
+var encrString map[uint16]func(uint16, uint16, []byte) string
 
 var (
 	encrTypes  map[string]ENCRType
@@ -20,9 +14,6 @@ var (
 )
 
 func init() {
-	// Log
-	encrLog = logger.ENCRLog
-
 	// ENCR String
 	encrString = make(map[uint16]func(uint16, uint16, []byte) string)
 	encrString[message.ENCR_AES_CBC] = toString_ENCR_AES_CBC
@@ -40,23 +31,6 @@ func init() {
 		keyLength: 32,
 	}
 
-	// Default Priority
-	priority := []string{
-		string_ENCR_AES_CBC_128,
-		string_ENCR_AES_CBC_192,
-		string_ENCR_AES_CBC_256,
-	}
-
-	// Set Priority
-	for i, s := range priority {
-		if encrType, ok := encrTypes[s]; ok {
-			encrType.setPriority(uint32(i))
-		} else {
-			encrLog.Error("No such ENCR implementation")
-			panic("IKE ENCR failed to init.")
-		}
-	}
-
 	// ENCR Kernel Types
 	encrKTypes = make(map[string]ENCRKType)
 
@@ -69,45 +43,6 @@ func init() {
 	encrKTypes[string_ENCR_AES_CBC_256] = &ENCR_AES_CBC{
 		keyLength: 32,
 	}
-
-	// ENCR Kernel Priority same as above
-	// Set Priority
-	for i, s := range priority {
-		if encrKType, ok := encrKTypes[s]; ok {
-			encrKType.setPriority(uint32(i))
-		} else {
-			encrLog.Error("No such ENCR implementation")
-			panic("IKE ENCR failed to init.")
-		}
-	}
-}
-
-func SetPriority(algolist []string) error {
-	// check implemented
-	for _, algo := range algolist {
-		if _, ok := encrTypes[algo]; !ok {
-			return fmt.Errorf("No such implementation: %s", algo)
-		}
-	}
-	// set priority
-	for i, algo := range algolist {
-		encrTypes[algo].setPriority(uint32(i))
-	}
-	return nil
-}
-
-func SetKPriority(algolist map[string]uint32) error {
-	// check implemented
-	for algo := range algolist {
-		if _, ok := encrKTypes[algo]; !ok {
-			return fmt.Errorf("No such implementation: %s", algo)
-		}
-	}
-	// set priority
-	for algo, priority := range algolist {
-		encrKTypes[algo].setPriority(priority)
-	}
-	return nil
 }
 
 func StrToType(algo string) ENCRType {
@@ -185,8 +120,6 @@ func ToTransformChildSA(encrKType ENCRKType) *message.Transform {
 type ENCRType interface {
 	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
-	setPriority(uint32)
-	Priority() uint32
 	GetKeyLength() int
 	Init(key []byte) (IKECrypto, error)
 }
@@ -194,12 +127,10 @@ type ENCRType interface {
 type ENCRKType interface {
 	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
-	setPriority(uint32)
-	Priority() uint32
 	GetKeyLength() int
 }
 
 type IKECrypto interface {
 	Encrypt(plainText []byte) ([]byte, error)
-	Decrypt(cipherText []byte) ([]byte, error)
+	Decrypt(l *logrus.Entry, cipherText []byte) ([]byte, error)
 }

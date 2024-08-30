@@ -1,23 +1,15 @@
 package esn
 
 import (
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-
-	"github.com/free5gc/ike/logger"
 	"github.com/free5gc/ike/message"
 )
 
 var (
-	esnLog    *logrus.Entry
 	esnString map[uint16]func(uint16, uint16, []byte) string
 	esnTypes  map[string]ESNType
 )
 
 func init() {
-	// Log
-	esnLog = logger.ESNLog
-
 	// ESN String
 	esnString = make(map[uint16]func(uint16, uint16, []byte) string)
 	esnString[message.ESN_ENABLE] = toString_ESN_ENABLE
@@ -28,36 +20,6 @@ func init() {
 
 	esnTypes[string_ESN_ENABLE] = &ESN_ENABLE{}
 	esnTypes[string_ESN_DISABLE] = &ESN_DISABLE{}
-
-	// Default Priority
-	priority := []string{
-		string_ESN_ENABLE,
-		string_ESN_DISABLE,
-	}
-
-	// Set Priority
-	for i, s := range priority {
-		if esnType, ok := esnTypes[s]; ok {
-			esnType.setPriority(uint32(i))
-		} else {
-			esnLog.Error("No such ESN implementation")
-			panic("IKE ESN failed to init.")
-		}
-	}
-}
-
-func SetPriority(algolist map[string]uint32) error {
-	// check implemented
-	for algo := range algolist {
-		if _, ok := esnTypes[algo]; !ok {
-			return errors.New("No such implementation")
-		}
-	}
-	// set priority
-	for algo, priority := range algolist {
-		esnTypes[algo].setPriority(priority)
-	}
-	return nil
 }
 
 func StrToType(algo string) ESNType {
@@ -99,7 +61,5 @@ func ToTransform(esnType ESNType) *message.Transform {
 type ESNType interface {
 	transformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
-	setPriority(uint32)
-	Priority() uint32
 	Init() bool
 }

@@ -20,7 +20,6 @@ var (
 )
 
 type AUTH_HMAC_MD5_96 struct {
-	priority     uint32
 	keyLength    int
 	outputLength int
 }
@@ -31,14 +30,6 @@ func (t *AUTH_HMAC_MD5_96) TransformID() uint16 {
 
 func (t *AUTH_HMAC_MD5_96) getAttribute() (bool, uint16, uint16, []byte) {
 	return false, 0, 0, nil
-}
-
-func (t *AUTH_HMAC_MD5_96) setPriority(priority uint32) {
-	t.priority = priority
-}
-
-func (t *AUTH_HMAC_MD5_96) Priority() uint32 {
-	return t.priority
 }
 
 func (t *AUTH_HMAC_MD5_96) GetKeyLength() int {

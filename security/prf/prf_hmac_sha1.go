@@ -30,14 +30,6 @@ func (t *PRF_HMAC_SHA1) getAttribute() (bool, uint16, uint16, []byte) {
 	return false, 0, 0, nil
 }
 
-func (t *PRF_HMAC_SHA1) setPriority(priority uint32) {
-	t.priority = priority
-}
-
-func (t *PRF_HMAC_SHA1) Priority() uint32 {
-	return t.priority
-}
-
 func (t *PRF_HMAC_SHA1) GetKeyLength() int {
 	return t.keyLength
 }

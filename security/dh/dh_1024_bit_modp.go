@@ -27,7 +27,6 @@ func toString_DH_1024_BIT_MODP(attrType uint16, intValue uint16, bytesValue []by
 var _ DHType = &DH_1024_BIT_MODP{}
 
 type DH_1024_BIT_MODP struct {
-	priority          uint32
 	factor            *big.Int
 	generator         *big.Int
 	factorBytesLength int
@@ -39,14 +38,6 @@ func (t *DH_1024_BIT_MODP) transformID() uint16 {
 
 func (t *DH_1024_BIT_MODP) getAttribute() (bool, uint16, uint16, []byte) {
 	return false, 0, 0, nil
-}
-
-func (t *DH_1024_BIT_MODP) setPriority(priority uint32) {
-	t.priority = priority
-}
-
-func (t *DH_1024_BIT_MODP) Priority() uint32 {
-	return t.priority
 }
 
 func (t *DH_1024_BIT_MODP) GetSharedKey(secret, peerPublicValue *big.Int) []byte {

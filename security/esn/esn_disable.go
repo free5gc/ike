@@ -22,14 +22,6 @@ func (t *ESN_DISABLE) getAttribute() (bool, uint16, uint16, []byte) {
 	return false, 0, 0, nil
 }
 
-func (t *ESN_DISABLE) setPriority(priority uint32) {
-	t.priority = priority
-}
-
-func (t *ESN_DISABLE) Priority() uint32 {
-	return t.priority
-}
-
 func (t *ESN_DISABLE) Init() bool {
 	return false
 }

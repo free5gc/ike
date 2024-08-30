@@ -3,23 +3,15 @@ package prf
 import (
 	"hash"
 
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-
-	"github.com/free5gc/ike/logger"
 	"github.com/free5gc/ike/message"
 )
 
 var (
-	prfLog    *logrus.Entry
 	prfString map[uint16]func(uint16, uint16, []byte) string
 	prfTypes  map[string]PRFType
 )
 
 func init() {
-	// Log
-	prfLog = logger.PRFLog
-
 	// PRF String
 	prfString = make(map[uint16]func(uint16, uint16, []byte) string)
 	prfString[message.PRF_HMAC_MD5] = toString_PRF_HMAC_MD5
@@ -41,37 +33,6 @@ func init() {
 		keyLength:    32,
 		outputLength: 32,
 	}
-
-	// Default Priority
-	priority := []string{
-		string_PRF_HMAC_MD5,
-		string_PRF_HMAC_SHA1,
-		string_PRF_HMAC_SHA2_256,
-	}
-
-	// Set Priority
-	for i, s := range priority {
-		if prfType, ok := prfTypes[s]; ok {
-			prfType.setPriority(uint32(i))
-		} else {
-			prfLog.Error("No such PRF implementation")
-			panic("IKE PRF failed to init.")
-		}
-	}
-}
-
-func SetPriority(algolist map[string]uint32) error {
-	// check implemented
-	for algo := range algolist {
-		if _, ok := prfTypes[algo]; !ok {
-			return errors.New("No such implementation")
-		}
-	}
-	// set priority
-	for algo, priority := range algolist {
-		prfTypes[algo].setPriority(priority)
-	}
-	return nil
 }
 
 func StrToType(algo string) PRFType {
@@ -113,8 +74,6 @@ func ToTransform(prfType PRFType) *message.Transform {
 type PRFType interface {
 	transformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
-	setPriority(uint32)
-	Priority() uint32
 	GetKeyLength() int
 	GetOutputLength() int
 	Init(key []byte) hash.Hash

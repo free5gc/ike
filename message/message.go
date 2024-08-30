@@ -7,16 +7,10 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-
-	"github.com/free5gc/ike/logger"
 )
 
 // Log
 var msgLog *logrus.Entry
-
-func init() {
-	msgLog = logger.MsgLog
-}
 
 type IKEMessage struct {
 	InitiatorSPI uint64

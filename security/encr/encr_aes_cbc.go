@@ -8,6 +8,7 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/free5gc/ike/message"
 	"github.com/free5gc/ike/security/lib"
@@ -42,7 +43,6 @@ var (
 )
 
 type ENCR_AES_CBC struct {
-	priority  uint32
 	keyLength int
 }
 
@@ -52,14 +52,6 @@ func (t *ENCR_AES_CBC) TransformID() uint16 {
 
 func (t *ENCR_AES_CBC) getAttribute() (bool, uint16, uint16, []byte) {
 	return true, message.AttributeTypeKeyLength, uint16(t.keyLength * 8), nil
-}
-
-func (t *ENCR_AES_CBC) setPriority(priority uint32) {
-	t.priority = priority
-}
-
-func (t *ENCR_AES_CBC) Priority() uint32 {
-	return t.priority
 }
 
 func (t *ENCR_AES_CBC) GetKeyLength() int {
@@ -73,7 +65,6 @@ func (t *ENCR_AES_CBC) Init(key []byte) (IKECrypto, error) {
 		return nil, errors.Errorf("ENCR_AES_CBC init error: Get unexpected key length")
 	}
 	if encr.block, err = aes.NewCipher(key); err != nil {
-		encrLog.Errorf("Error occur when create new cipher: %+v", err)
 		return nil, errors.Wrapf(err, "ENCR_AES_CBC init: Error occur when create new cipher: ")
 	} else {
 		return encr, nil
@@ -98,7 +89,6 @@ func (encr *ENCR_AES_CBC_Crypto) Encrypt(plainText []byte) ([]byte, error) {
 	// IV
 	_, err := io.ReadFull(rand.Reader, initializationVector)
 	if err != nil {
-		encrLog.Errorf("Read random failed: %+v", err)
 		return nil, errors.New("Read random initialization vector failed")
 	}
 
@@ -109,19 +99,17 @@ func (encr *ENCR_AES_CBC_Crypto) Encrypt(plainText []byte) ([]byte, error) {
 	return cipherText, nil
 }
 
-func (encr *ENCR_AES_CBC_Crypto) Decrypt(cipherText []byte) ([]byte, error) {
+func (encr *ENCR_AES_CBC_Crypto) Decrypt(l *logrus.Entry, cipherText []byte) ([]byte, error) {
 	// Check
 	if len(cipherText) < aes.BlockSize {
-		encrLog.Error("Length of cipher text is too short to decrypt")
-		return nil, errors.New("Cipher text is too short")
+		return nil, errors.New("ENCR_AES_CBC_Crypto: Length of cipher text is too short to decrypt")
 	}
 
 	initializationVector := cipherText[:aes.BlockSize]
 	encryptedMessage := cipherText[aes.BlockSize:]
 
 	if len(encryptedMessage)%aes.BlockSize != 0 {
-		encrLog.Error("Cipher text is not a multiple of block size")
-		return nil, errors.New("Cipher text length error")
+		return nil, errors.New("ENCR_AES_CBC_Crypto: Cipher text is not a multiple of block size")
 	}
 
 	// Slice
@@ -131,13 +119,13 @@ func (encr *ENCR_AES_CBC_Crypto) Decrypt(cipherText []byte) ([]byte, error) {
 	cbcBlockMode := cipher.NewCBCDecrypter(encr.block, initializationVector)
 	cbcBlockMode.CryptBlocks(plainText, encryptedMessage)
 
-	encrLog.Tracef("Decrypted content:\n%s", hex.Dump(plainText))
+	l.Tracef("Decrypted content:\n%s", hex.Dump(plainText))
 
 	// Remove padding
 	padding := int(plainText[len(plainText)-1]) + 1
 	plainText = plainText[:len(plainText)-padding]
 
-	encrLog.Tracef("Decrypted content with out padding:\n%s", hex.Dump(plainText))
+	l.Tracef("Decrypted content with out padding:\n%s", hex.Dump(plainText))
 
 	return plainText, nil
 }

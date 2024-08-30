@@ -1,12 +1,10 @@
 package dh
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/free5gc/ike/logger"
 	"github.com/free5gc/ike/message"
 )
 
@@ -17,9 +15,6 @@ var (
 )
 
 func init() {
-	// Log
-	dhLog = logger.DHLog
-
 	// DH String
 	dhString = make(map[uint16]func(uint16, uint16, []byte) string)
 	dhString[message.DH_1024_BIT_MODP] = toString_DH_1024_BIT_MODP
@@ -55,36 +50,6 @@ func init() {
 		generator:         generator,
 		factorBytesLength: len(factor.Bytes()),
 	}
-
-	// Default Priority
-	priority := []string{
-		string_DH_1024_BIT_MODP,
-		string_DH_2048_BIT_MODP,
-	}
-
-	// Set Priority
-	for i, s := range priority {
-		if dhType, ok := dhTypes[s]; ok {
-			dhType.setPriority(uint32(i))
-		} else {
-			dhLog.Error("No such DH group implementation")
-			panic("IKE Diffie Hellman Group failed to init.")
-		}
-	}
-}
-
-func SetPriority(algolist map[string]uint32) error {
-	// check implemented
-	for algo := range algolist {
-		if _, ok := dhTypes[algo]; !ok {
-			return fmt.Errorf("No such implementation: %s", algo)
-		}
-	}
-	// set priority
-	for algo, priority := range algolist {
-		dhTypes[algo].setPriority(priority)
-	}
-	return nil
 }
 
 func StrToType(algo string) DHType {
@@ -126,8 +91,6 @@ func ToTransform(dhType DHType) *message.Transform {
 type DHType interface {
 	transformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
-	setPriority(uint32)
-	Priority() uint32
 	GetSharedKey(secret, peerPublicValue *big.Int) []byte
 	GetPublicValue(secret *big.Int) []byte
 }

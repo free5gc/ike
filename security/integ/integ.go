@@ -3,17 +3,10 @@ package integ
 import (
 	"hash"
 
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-
-	"github.com/free5gc/ike/logger"
 	"github.com/free5gc/ike/message"
 )
 
-var (
-	integLog    *logrus.Entry
-	integString map[uint16]func(uint16, uint16, []byte) string
-)
+var integString map[uint16]func(uint16, uint16, []byte) string
 
 var (
 	integTypes  map[string]INTEGType
@@ -21,9 +14,6 @@ var (
 )
 
 func init() {
-	// Log
-	integLog = logger.INTEGLog
-
 	// INTEG String
 	integString = make(map[uint16]func(uint16, uint16, []byte) string)
 	integString[message.AUTH_HMAC_MD5_96] = toString_AUTH_HMAC_MD5_96
@@ -46,23 +36,6 @@ func init() {
 		outputLength: 16,
 	}
 
-	// Default Priority
-	priority := []string{
-		string_AUTH_HMAC_MD5_96,
-		string_AUTH_HMAC_SHA1_96,
-		string_AUTH_HMAC_SHA2_256_128,
-	}
-
-	// Set Priority
-	for i, s := range priority {
-		if integType, ok := integTypes[s]; ok {
-			integType.setPriority(uint32(i))
-		} else {
-			integLog.Error("No such INTEG implementation")
-			panic("IKE INTEG failed to init.")
-		}
-	}
-
 	// INTEG Kernel Types
 	integKTypes = make(map[string]INTEGKType)
 
@@ -78,45 +51,6 @@ func init() {
 		keyLength:    32,
 		outputLength: 16,
 	}
-
-	// INTEG Kernel Priority same as above
-	// Set Priority
-	for i, s := range priority {
-		if integKType, ok := integKTypes[s]; ok {
-			integKType.setPriority(uint32(i))
-		} else {
-			integLog.Error("No such INTEG implementation")
-			panic("IKE INTEG failed to init.")
-		}
-	}
-}
-
-func SetPriority(algolist map[string]uint32) error {
-	// check implemented
-	for algo := range algolist {
-		if _, ok := integTypes[algo]; !ok {
-			return errors.New("No such implementation")
-		}
-	}
-	// set priority
-	for algo, priority := range algolist {
-		integTypes[algo].setPriority(priority)
-	}
-	return nil
-}
-
-func SetKPriority(algolist []string) error {
-	// check implemented
-	for _, algo := range algolist {
-		if _, ok := integKTypes[algo]; !ok {
-			return errors.New("No such implementation")
-		}
-	}
-	// set priority
-	for i, algo := range algolist {
-		integKTypes[algo].setPriority(uint32(i))
-	}
-	return nil
 }
 
 func StrToType(algo string) INTEGType {
@@ -194,8 +128,6 @@ func ToTransformChildSA(integKType INTEGKType) *message.Transform {
 type INTEGType interface {
 	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
-	setPriority(uint32)
-	Priority() uint32
 	GetKeyLength() int
 	GetOutputLength() int
 	Init(key []byte) hash.Hash
@@ -204,7 +136,5 @@ type INTEGType interface {
 type INTEGKType interface {
 	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
-	setPriority(uint32)
-	Priority() uint32
 	GetKeyLength() int
 }
