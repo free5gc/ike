@@ -112,9 +112,7 @@ func TestIKESetProposal(t *testing.T) {
 	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, integ.ToTransform(integType))
 	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, prf.ToTransform(prfType))
 
-	ikesaKey := new(IKESAKey)
-
-	err := ikesaKey.SetProposal(proposal)
+	ikesaKey, err := NewIKESAKeyByProposal(proposal)
 	require.NoError(t, err)
 
 	if ikesaKey.DhInfo == nil ||
@@ -686,9 +684,8 @@ func TestChildSetProposal(t *testing.T) {
 	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, integ.ToTransformChildSA(integKType))
 	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, esn.ToTransform(esnType))
 
-	childsaKey := new(ChildSAKey)
-
-	childsaKey.SetProposal(proposal)
+	childsaKey, err := NewChildSAKeyByProposal(proposal)
+	require.NoError(t, err)
 
 	if childsaKey.DhInfo == nil ||
 		childsaKey.EncrKInfo == nil ||

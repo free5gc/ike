@@ -117,43 +117,52 @@ func (ikesaKey *IKESAKey) ToProposal() *message.Proposal {
 	return p
 }
 
-func (ikesaKey *IKESAKey) SetProposal(proposal *message.Proposal) error {
+func NewIKESAKeyByProposal(proposal *message.Proposal) (*IKESAKey, error) {
 	if proposal == nil {
-		return errors.Errorf("SetProposal : proposal is nil")
+		return nil, errors.Errorf("NewIKESAKeyByProposal : proposal is nil")
 	}
 	if len(proposal.DiffieHellmanGroup) == 0 {
-		return errors.Errorf("SetProposal : DiffieHellmanGroup is nil")
+		return nil, errors.Errorf("NewIKESAKeyByProposal : DiffieHellmanGroup is nil")
 	}
 
 	if len(proposal.EncryptionAlgorithm) == 0 {
-		return errors.Errorf("SetProposal : EncryptionAlgorithm is nil")
+		return nil, errors.Errorf("NewIKESAKeyByProposal : EncryptionAlgorithm is nil")
 	}
 
 	if len(proposal.IntegrityAlgorithm) == 0 {
-		return errors.Errorf("SetProposal : IntegrityAlgorithm is nil")
+		return nil, errors.Errorf("NewIKESAKeyByProposal : IntegrityAlgorithm is nil")
 	}
 
 	if len(proposal.PseudorandomFunction) == 0 {
-		return errors.Errorf("SetProposal : PseudorandomFunction is nil")
+		return nil, errors.Errorf("NewIKESAKeyByProposal : PseudorandomFunction is nil")
 	}
 
-	if ikesaKey.DhInfo = dh.DecodeTransform(proposal.DiffieHellmanGroup[0]); ikesaKey.DhInfo == nil {
-		return errors.Errorf("SetProposal : Get unsupport DiffieHellmanGroup[%v]",
+	ikesaKey := new(IKESAKey)
+	ikesaKey.DhInfo = dh.DecodeTransform(proposal.DiffieHellmanGroup[0])
+	if ikesaKey.DhInfo == nil {
+		return nil, errors.Errorf("NewIKESAKeyByProposal : Get unsupport DiffieHellmanGroup[%v]",
 			proposal.DiffieHellmanGroup[0].TransformID)
 	}
-	if ikesaKey.EncrInfo = encr.DecodeTransform(proposal.EncryptionAlgorithm[0]); ikesaKey.EncrInfo == nil {
-		return errors.Errorf("SetProposal : Get unsupport EncryptionAlgorithm[%v]",
+
+	ikesaKey.EncrInfo = encr.DecodeTransform(proposal.EncryptionAlgorithm[0])
+	if ikesaKey.EncrInfo == nil {
+		return nil, errors.Errorf("NewIKESAKeyByProposal : Get unsupport EncryptionAlgorithm[%v]",
 			proposal.EncryptionAlgorithm[0].TransformID)
 	}
-	if ikesaKey.IntegInfo = integ.DecodeTransform(proposal.IntegrityAlgorithm[0]); ikesaKey.EncrInfo == nil {
-		return errors.Errorf("SetProposal : Get unsupport IntegrityAlgorithm[%v]",
+
+	ikesaKey.IntegInfo = integ.DecodeTransform(proposal.IntegrityAlgorithm[0])
+	if ikesaKey.EncrInfo == nil {
+		return nil, errors.Errorf("NewIKESAKeyByProposal : Get unsupport IntegrityAlgorithm[%v]",
 			proposal.IntegrityAlgorithm[0].TransformID)
 	}
-	if ikesaKey.PrfInfo = prf.DecodeTransform(proposal.PseudorandomFunction[0]); ikesaKey.PrfInfo == nil {
-		return errors.Errorf("SetProposal : Get unsupport PseudorandomFunction[%v]",
+
+	ikesaKey.PrfInfo = prf.DecodeTransform(proposal.PseudorandomFunction[0])
+	if ikesaKey.PrfInfo == nil {
+		return nil, errors.Errorf("NewIKESAKeyByProposal : Get unsupport PseudorandomFunction[%v]",
 			proposal.PseudorandomFunction[0].TransformID)
 	}
-	return nil
+
+	return ikesaKey, nil
 }
 
 // CalculateDiffieHellmanMaterials generates secret and calculate Diffie-Hellman public key
@@ -264,7 +273,10 @@ func (ikesaKey *IKESAKey) GenerateKeyForIKESA(log *logrus.Entry) error {
 	return nil
 }
 
-func verifyIntegrity(log *logrus.Entry, ikesaKey *IKESAKey, role int, originData []byte, checksum []byte) (bool, error) {
+func verifyIntegrity(log *logrus.Entry, ikesaKey *IKESAKey,
+	role int, originData []byte,
+	checksum []byte,
+) (bool, error) {
 	expectChecksum, err := calculateIntegrity(ikesaKey, role, originData)
 	if err != nil {
 		return false, errors.Wrapf(err, "verifyIntegrity[%d]", ikesaKey.IntegInfo.TransformID())
@@ -500,24 +512,56 @@ func (childsaKey *ChildSAKey) ToProposal() *message.Proposal {
 	return p
 }
 
-func (childsaKey *ChildSAKey) SetProposal(proposal *message.Proposal) bool {
+func NewChildSAKeyByProposal(proposal *message.Proposal) (*ChildSAKey, error) {
+	if proposal == nil {
+		return nil, errors.Errorf("NewChildSAKeyByProposal : proposal is nil")
+	}
+	if len(proposal.DiffieHellmanGroup) == 0 {
+		return nil, errors.Errorf("NewChildSAKeyByProposal : DiffieHellmanGroup is nil")
+	}
+
+	if len(proposal.EncryptionAlgorithm) == 0 {
+		return nil, errors.Errorf("NewChildSAKeyByProposal : EncryptionAlgorithm is nil")
+	}
+
+	if len(proposal.IntegrityAlgorithm) == 0 {
+		return nil, errors.Errorf("NewChildSAKeyByProposal : IntegrityAlgorithm is nil")
+	}
+
+	if len(proposal.ExtendedSequenceNumbers) == 0 {
+		return nil, errors.Errorf("NewChildSAKeyByProposal : ExtendedSequenceNumbers is nil")
+	}
+
+	childsaKey := new(ChildSAKey)
 	if len(proposal.DiffieHellmanGroup) == 1 {
-		if childsaKey.DhInfo = dh.DecodeTransform(proposal.DiffieHellmanGroup[0]); childsaKey.DhInfo == nil {
-			return false
+		childsaKey.DhInfo = dh.DecodeTransform(proposal.DiffieHellmanGroup[0])
+		if childsaKey.DhInfo == nil {
+			return nil, errors.Errorf("NewChildSAKeyByProposal : Get unsupport DiffieHellmanGroup[%v]",
+				proposal.DiffieHellmanGroup[0].TransformID)
 		}
 	}
-	if childsaKey.EncrKInfo = encr.DecodeTransformChildSA(proposal.EncryptionAlgorithm[0]); childsaKey.EncrKInfo == nil {
-		return false
+
+	childsaKey.EncrKInfo = encr.DecodeTransformChildSA(proposal.EncryptionAlgorithm[0])
+	if childsaKey.EncrKInfo == nil {
+		return nil, errors.Errorf("NewChildSAKeyByProposal : Get unsupport EncryptionAlgorithm[%v]",
+			proposal.EncryptionAlgorithm[0].TransformID)
 	}
+
 	if len(proposal.IntegrityAlgorithm) == 1 {
-		if childsaKey.IntegKInfo = integ.DecodeTransformChildSA(proposal.IntegrityAlgorithm[0]); childsaKey.EncrKInfo == nil {
-			return false
+		childsaKey.IntegKInfo = integ.DecodeTransformChildSA(proposal.IntegrityAlgorithm[0])
+		if childsaKey.IntegKInfo == nil {
+			return nil, errors.Errorf("NewChildSAKeyByProposal : Get unsupport IntegrityAlgorithm[%v]",
+				proposal.IntegrityAlgorithm[0].TransformID)
 		}
 	}
-	if childsaKey.EsnInfo = esn.DecodeTransform(proposal.ExtendedSequenceNumbers[0]); childsaKey.EsnInfo == nil {
-		return false
+
+	childsaKey.EsnInfo = esn.DecodeTransform(proposal.ExtendedSequenceNumbers[0])
+	if childsaKey.EsnInfo == nil {
+		return nil, errors.Errorf("NewChildSAKeyByProposal : Get unsupport ExtendedSequenceNumbers[%v]",
+			proposal.PseudorandomFunction[0].TransformID)
 	}
-	return true
+
+	return childsaKey, nil
 }
 
 // Key Gen for child SA
