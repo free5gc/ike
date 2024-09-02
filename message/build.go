@@ -3,6 +3,8 @@ package message
 import (
 	"encoding/binary"
 	"net"
+
+	"github.com/pkg/errors"
 )
 
 func (ikeMessage *IKEMessage) BuildIKEHeader(
@@ -244,10 +246,9 @@ func (container *IKEPayloadContainer) BuildEAP5GStart(identifier uint8) {
 		[]byte{EAP5GType5GStart, EAP5GSpareValue})
 }
 
-func (container *IKEPayloadContainer) BuildEAP5GNAS(identifier uint8, nasPDU []byte) {
+func (container *IKEPayloadContainer) BuildEAP5GNAS(identifier uint8, nasPDU []byte) error {
 	if len(nasPDU) == 0 {
-		msgLog.Error("BuildEAP5GNAS(): NASPDU is nil")
-		return
+		return errors.New("BuildEAP5GNAS(): NASPDU is nil")
 	}
 
 	header := make([]byte, 4)
@@ -260,6 +261,7 @@ func (container *IKEPayloadContainer) BuildEAP5GNAS(identifier uint8, nasPDU []b
 
 	eap := container.BuildEAP(EAPCodeRequest, identifier)
 	eap.EAPTypeData.BuildEAPExpanded(VendorID3GPP, VendorTypeEAP5G, vendorData)
+	return nil
 }
 
 func (container *IKEPayloadContainer) BuildNotify5G_QOS_INFO(

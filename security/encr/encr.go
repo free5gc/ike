@@ -1,9 +1,8 @@
 package encr
 
 import (
-	"github.com/sirupsen/logrus"
-
 	"github.com/free5gc/ike/message"
+	ikeCrypto "github.com/free5gc/ike/security/IKECrypto"
 )
 
 var encrString map[uint16]func(uint16, uint16, []byte) string
@@ -121,16 +120,11 @@ type ENCRType interface {
 	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
 	GetKeyLength() int
-	NewCrypto(key []byte) (IKECrypto, error)
+	NewCrypto(key []byte) (ikeCrypto.IKECrypto, error)
 }
 
 type ENCRKType interface {
 	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
 	GetKeyLength() int
-}
-
-type IKECrypto interface {
-	Encrypt(plainText []byte) ([]byte, error)
-	Decrypt(l *logrus.Entry, cipherText []byte) ([]byte, error)
 }

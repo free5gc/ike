@@ -22,7 +22,7 @@ import (
 func newLog() *logrus.Entry {
 	fieldsOrder := []string{"component", "category"}
 	log := logger_util.New(fieldsOrder)
-	return log.WithFields(logrus.Fields{"component": "LIB", "category": "Security"})
+	return log.WithFields(logrus.Fields{"component": "IKE", "category": "Security"})
 }
 
 func TestGenerateRandomNumber(t *testing.T) {
@@ -454,15 +454,15 @@ func TestDecryptProcedure(t *testing.T) {
 	ikeSAKey.Encr_r, err = ikeSAKey.EncrInfo.NewCrypto(sk_er)
 	require.NoError(t, err)
 
-	msg, err := hex.DecodeString("000000000006f708c9e2e31f8b64053d2e202308000000" +
+	ikeMessageRawData, err := hex.DecodeString("000000000006f708c9e2e31f8b64053d2e202308000000" +
 		"030000006c30000050ec5031162c692fbbfc4d20640c9121ebe9475ef94f9b02959d31242e5" +
 		"35e9c3c4dcaecd1bfd6dd80aa812b07de36dee9b7509435f635e1aaae1c3825f4eae3384903f" +
 		"724f444170c6845ca80")
 	require.NoError(t, err)
 
-	ikeMessage := new(message.IKEMessage)
-	err = ikeMessage.Decode(msg)
-	require.NoError(t, err)
+	// ikeMessage := new(  IKEMessage)
+	// err = ikeMessage.Decode(msg)
+	// require.NoError(t, err)
 
 	encryptedPayload := &message.Encrypted{
 		NextPayload:   message.TypeEAP,

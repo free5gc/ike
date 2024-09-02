@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/free5gc/ike/message"
+	ikeCrypto "github.com/free5gc/ike/security/IKECrypto"
 	"github.com/free5gc/ike/security/dh"
 	"github.com/free5gc/ike/security/encr"
 	"github.com/free5gc/ike/security/esn"
@@ -82,13 +83,13 @@ type IKESAKey struct {
 	PrfInfo   prf.PRFType
 
 	// Security objects
-	Prf_d   hash.Hash      // used to derive key for child sa
-	Integ_i hash.Hash      // used by initiator for integrity checking
-	Integ_r hash.Hash      // used by responder for integrity checking
-	Encr_i  encr.IKECrypto // used by initiator for encrypting
-	Encr_r  encr.IKECrypto // used by responder for encrypting
-	Prf_i   hash.Hash      // used by initiator for IKE authentication
-	Prf_r   hash.Hash      // used by responder for IKE authentication
+	Prf_d   hash.Hash           // used to derive key for child sa
+	Integ_i hash.Hash           // used by initiator for integrity checking
+	Integ_r hash.Hash           // used by responder for integrity checking
+	Encr_i  ikeCrypto.IKECrypto // used by initiator for encrypting
+	Encr_r  ikeCrypto.IKECrypto // used by responder for encrypting
+	Prf_i   hash.Hash           // used by initiator for IKE authentication
+	Prf_r   hash.Hash           // used by responder for IKE authentication
 
 	// Keys
 	SK_d  []byte // used for child SA key deriving
@@ -353,17 +354,16 @@ func DecryptMessage(log *logrus.Entry, role int, ikesaKey *IKESAKey, cipherText 
 }
 
 // Decrypt
-func DecryptProcedure(log *logrus.Entry, role int, ikesaKey *IKESAKey,
-	ikeMessage *message.IKEMessage,
+func DecryptProcedure(log *logrus.Entry, role int,
+	ikesaKey *IKESAKey, ikeMessageRawData []byte,
 	encryptedPayload *message.Encrypted,
 ) (message.IKEPayloadContainer, error) {
+	// Check parameters
 	if ikesaKey == nil {
 		return nil, errors.New("DecryptProcedure(): IKE SA is nil")
 	}
-
-	// Check parameters
-	if ikeMessage == nil {
-		return nil, errors.New("DecryptProcedure(): IKE message is nil")
+	if ikeMessageRawData == nil {
+		return nil, errors.New("DecryptProcedure(): ikeMessageRawData is nil")
 	}
 	if encryptedPayload == nil {
 		return nil, errors.New("DecryptProcedure(): IKE encrypted payload is nil")
@@ -388,13 +388,8 @@ func DecryptProcedure(log *logrus.Entry, role int, ikesaKey *IKESAKey,
 	// Checksum
 	checksum := encryptedPayload.EncryptedData[len(encryptedPayload.EncryptedData)-checksumLength:]
 
-	ikeMessageData, err := ikeMessage.Encode()
-	if err != nil {
-		return nil, errors.Wrapf(err, "DecryptProcedure(): Encoding IKE message failed")
-	}
-
 	ok, err := verifyIntegrity(log, ikesaKey, role,
-		ikeMessageData[:len(ikeMessageData)-checksumLength], checksum)
+		ikeMessageRawData[:len(ikeMessageRawData)-checksumLength], checksum)
 	if err != nil {
 		return nil, errors.Wrapf(err, "DecryptProcedure(): Error occur when verifying checksum")
 	}
@@ -410,7 +405,7 @@ func DecryptProcedure(log *logrus.Entry, role int, ikesaKey *IKESAKey,
 	}
 
 	var decryptedIKEPayload message.IKEPayloadContainer
-	err = decryptedIKEPayload.Decode(encryptedPayload.NextPayload, plainText)
+	err = decryptedIKEPayload.Decode(log, encryptedPayload.NextPayload, plainText)
 	if err != nil {
 		return nil, errors.Wrapf(err, "DecryptProcedure(): Decoding decrypted payload failed")
 	}
@@ -419,7 +414,7 @@ func DecryptProcedure(log *logrus.Entry, role int, ikesaKey *IKESAKey,
 }
 
 // Encrypt
-func EncryptProcedure(role int, ikesaKey *IKESAKey,
+func EncryptProcedure(log *logrus.Entry, role int, ikesaKey *IKESAKey,
 	ikePayload message.IKEPayloadContainer,
 	responseIKEMessage *message.IKEMessage,
 ) error {
@@ -452,7 +447,7 @@ func EncryptProcedure(role int, ikesaKey *IKESAKey,
 	checksumLength := ikesaKey.IntegInfo.GetOutputLength()
 
 	// Encrypting
-	ikePayloadData, err := ikePayload.Encode()
+	ikePayloadData, err := ikePayload.Encode(log)
 	if err != nil {
 		return errors.Wrapf(err, "EncryptProcedure(): Encoding IKE payload failed.")
 	}
@@ -466,7 +461,7 @@ func EncryptProcedure(role int, ikesaKey *IKESAKey,
 	sk := responseIKEMessage.Payloads.BuildEncrypted(ikePayload[0].Type(), encryptedData)
 
 	// Calculate checksum
-	responseIKEMessageData, err := responseIKEMessage.Encode()
+	responseIKEMessageData, err := responseIKEMessage.Encode(log)
 	if err != nil {
 		return errors.Wrapf(err, "EncryptProcedure(): Encoding IKE message error")
 	}

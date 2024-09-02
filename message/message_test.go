@@ -11,7 +11,16 @@ import (
 	Mrand "math/rand"
 	"net"
 	"testing"
+
+	logger_util "github.com/free5gc/util/logger"
+	"github.com/sirupsen/logrus"
 )
+
+func newLog() *logrus.Entry {
+	fieldsOrder := []string{"component", "category"}
+	log := logger_util.New(fieldsOrder)
+	return log.WithFields(logrus.Fields{"component": "IKE", "category": "Security"})
+}
 
 // TestEncodeDecode tests the Encode() and Decode() function using the data
 // build manually.
@@ -22,6 +31,8 @@ import (
 // Third, send the encoded data to the UDP connection for verification with Wireshark.
 // Compare the dataFirstEncode and dataSecondEncode and return the result.
 func TestEncodeDecode(t *testing.T) {
+	log := newLog()
+
 	conn, err := net.Dial("udp", "127.0.0.1:500")
 	if err != nil {
 		t.Fatalf("udp Dial failed: %+v", err)
@@ -299,7 +310,7 @@ func TestEncodeDecode(t *testing.T) {
 		testAuth,
 	}
 
-	ikePayloadDataForSK, retErr := ikePayload.Encode()
+	ikePayloadDataForSK, retErr := ikePayload.Encode(log)
 	if retErr != nil {
 		t.Fatalf("EncodePayload failed: %+v", retErr)
 	}
@@ -339,17 +350,17 @@ func TestEncodeDecode(t *testing.T) {
 	var dataFirstEncode, dataSecondEncode []byte
 	decodedPacket := new(IKEMessage)
 
-	if dataFirstEncode, err = testPacket.Encode(); err != nil {
+	if dataFirstEncode, err = testPacket.Encode(log); err != nil {
 		t.Fatalf("Encode failed: %+v", err)
 	}
 
 	t.Logf("%+v", dataFirstEncode)
 
-	if err = decodedPacket.Decode(dataFirstEncode); err != nil {
+	if err = decodedPacket.Decode(log, dataFirstEncode); err != nil {
 		t.Fatalf("Decode failed: %+v", err)
 	}
 
-	if dataSecondEncode, err = decodedPacket.Encode(); err != nil {
+	if dataSecondEncode, err = decodedPacket.Encode(log); err != nil {
 		t.Fatalf("Encode failed: %+v", err)
 	}
 
@@ -371,6 +382,8 @@ func TestEncodeDecode(t *testing.T) {
 // Decode and encode the data, and compare the verifyData and the origin
 // data and return the result.
 func TestEncodeDecodeUsingPublicData(t *testing.T) {
+	log := newLog()
+
 	data := []byte{
 		0x86, 0x43, 0x30, 0xac, 0x30, 0xe6, 0x56, 0x4d, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x21, 0x20, 0x22, 0x08, 0x00,
@@ -419,12 +432,12 @@ func TestEncodeDecodeUsingPublicData(t *testing.T) {
 	}
 
 	ikePacket := new(IKEMessage)
-	err := ikePacket.Decode(data)
+	err := ikePacket.Decode(log, data)
 	if err != nil {
 		t.Fatalf("Decode failed: %+v", err)
 	}
 
-	verifyData, err := ikePacket.Encode()
+	verifyData, err := ikePacket.Encode(log)
 	if err != nil {
 		t.Fatalf("Encode failed: %+v", err)
 	}

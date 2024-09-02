@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/free5gc/ike/message"
+	ikeCrypto "github.com/free5gc/ike/security/IKECrypto"
 	"github.com/free5gc/ike/security/lib"
 )
 
@@ -58,7 +59,7 @@ func (t *ENCR_AES_CBC) GetKeyLength() int {
 	return t.keyLength
 }
 
-func (t *ENCR_AES_CBC) NewCrypto(key []byte) (IKECrypto, error) {
+func (t *ENCR_AES_CBC) NewCrypto(key []byte) (ikeCrypto.IKECrypto, error) {
 	var err error
 	encr := new(ENCR_AES_CBC_Crypto)
 	if len(key) != t.keyLength {
@@ -71,7 +72,7 @@ func (t *ENCR_AES_CBC) NewCrypto(key []byte) (IKECrypto, error) {
 	}
 }
 
-var _ IKECrypto = &ENCR_AES_CBC_Crypto{}
+var _ ikeCrypto.IKECrypto = &ENCR_AES_CBC_Crypto{}
 
 type ENCR_AES_CBC_Crypto struct {
 	block cipher.Block
