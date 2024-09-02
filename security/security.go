@@ -248,12 +248,12 @@ func (ikesaKey *IKESAKey) GenerateKeyForIKESA(log *logrus.Entry) error {
 	ikesaKey.Integ_r = ikesaKey.IntegInfo.Init(ikesaKey.SK_ar)
 
 	var err error
-	ikesaKey.Encr_i, err = ikesaKey.EncrInfo.Init(ikesaKey.SK_ei)
+	ikesaKey.Encr_i, err = ikesaKey.EncrInfo.NewCrypto(ikesaKey.SK_ei)
 	if err != nil {
 		return err
 	}
 
-	ikesaKey.Encr_r, err = ikesaKey.EncrInfo.Init(ikesaKey.SK_er)
+	ikesaKey.Encr_r, err = ikesaKey.EncrInfo.NewCrypto(ikesaKey.SK_er)
 	if err != nil {
 		return err
 	}

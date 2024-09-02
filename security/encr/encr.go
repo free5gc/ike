@@ -121,7 +121,7 @@ type ENCRType interface {
 	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
 	GetKeyLength() int
-	Init(key []byte) (IKECrypto, error)
+	NewCrypto(key []byte) (IKECrypto, error)
 }
 
 type ENCRKType interface {

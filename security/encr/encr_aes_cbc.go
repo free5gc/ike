@@ -58,7 +58,7 @@ func (t *ENCR_AES_CBC) GetKeyLength() int {
 	return t.keyLength
 }
 
-func (t *ENCR_AES_CBC) Init(key []byte) (IKECrypto, error) {
+func (t *ENCR_AES_CBC) NewCrypto(key []byte) (IKECrypto, error) {
 	var err error
 	encr := new(ENCR_AES_CBC_Crypto)
 	if len(key) != t.keyLength {

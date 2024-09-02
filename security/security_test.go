@@ -321,12 +321,12 @@ func TestGenerateKeyForIKESA(t *testing.T) {
 
 	expectedSK_ei, err := hex.DecodeString("3dcbcbb2d71d1806d5e5356a5600727eb482101de1868ae9cf71c4117d22cddb")
 	require.NoError(t, err)
-	ecpectedEncr_i, err := ikesaKey.EncrInfo.Init(expectedSK_ei)
+	ecpectedEncr_i, err := ikesaKey.EncrInfo.NewCrypto(expectedSK_ei)
 	require.NoError(t, err)
 
 	expectedSK_er, err := hex.DecodeString("ba3b43cf173435c449f3098c01944f2d9a66c2ca1d967f06a69f36e945a4754b")
 	require.NoError(t, err)
-	ecpectedEncr_r, err := ikesaKey.EncrInfo.Init(expectedSK_er)
+	ecpectedEncr_r, err := ikesaKey.EncrInfo.NewCrypto(expectedSK_er)
 	require.NoError(t, err)
 
 	expectedSK_pi, err := hex.DecodeString("aff4def6c9113c6942f31fa2d8b74f6c054e0e73")
@@ -449,11 +449,11 @@ func TestDecryptProcedure(t *testing.T) {
 
 	ikeSAKey.Integ_r = ikeSAKey.IntegInfo.Init(sk_ar)
 
-	encr_i, err := ikeSAKey.EncrInfo.Init(sk_ei)
+	encr_i, err := ikeSAKey.EncrInfo.NewCrypto(sk_ei)
 	require.NoError(t, err)
 	ikeSAKey.Encr_i = encr_i
 
-	ikeSAKey.Encr_r, err = ikeSAKey.EncrInfo.Init(sk_er)
+	ikeSAKey.Encr_r, err = ikeSAKey.EncrInfo.NewCrypto(sk_er)
 	require.NoError(t, err)
 
 	msg, err := hex.DecodeString("000000000006f708c9e2e31f8b64053d2e202308000000" +
@@ -555,13 +555,13 @@ func TestEncryptProcedure(t *testing.T) {
 	sk_ei, err := hex.DecodeString(
 		"3d7a26417122cee9c77c59f375b024cdb9f0b5777ea18b50f8a671fd3b2daa99")
 	require.NoError(t, err)
-	ikeSAKey.Encr_i, err = ikeSAKey.EncrInfo.Init(sk_ei)
+	ikeSAKey.Encr_i, err = ikeSAKey.EncrInfo.NewCrypto(sk_ei)
 	require.NoError(t, err)
 
 	sk_er, err := hex.DecodeString(
 		"3ea57e7ddfb30756a04619a9873333b08e94deef05b6a05d7eb3dba075d81c6f")
 	require.NoError(t, err)
-	ikeSAKey.Encr_r, err = ikeSAKey.EncrInfo.Init(sk_er)
+	ikeSAKey.Encr_r, err = ikeSAKey.EncrInfo.NewCrypto(sk_er)
 	require.NoError(t, err)
 
 	sk_ai, err := hex.DecodeString(
