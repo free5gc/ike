@@ -117,52 +117,66 @@ func (ikesaKey *IKESAKey) ToProposal() *message.Proposal {
 	return p
 }
 
-func NewIKESAKeyByProposal(proposal *message.Proposal) (*IKESAKey, error) {
+// return IKESAKey and local public value
+func NewIKESAKey(log *logrus.Entry, proposal *message.Proposal,
+	keyExchangeData []byte, concatenatedNonce []byte,
+) (*IKESAKey, []byte, error) {
 	if proposal == nil {
-		return nil, errors.Errorf("NewIKESAKeyByProposal : proposal is nil")
+		return nil, nil, errors.Errorf("NewIKESAKey : proposal is nil")
 	}
 	if len(proposal.DiffieHellmanGroup) == 0 {
-		return nil, errors.Errorf("NewIKESAKeyByProposal : DiffieHellmanGroup is nil")
+		return nil, nil, errors.Errorf("NewIKESAKey : DiffieHellmanGroup is nil")
 	}
 
 	if len(proposal.EncryptionAlgorithm) == 0 {
-		return nil, errors.Errorf("NewIKESAKeyByProposal : EncryptionAlgorithm is nil")
+		return nil, nil, errors.Errorf("NewIKESAKey : EncryptionAlgorithm is nil")
 	}
 
 	if len(proposal.IntegrityAlgorithm) == 0 {
-		return nil, errors.Errorf("NewIKESAKeyByProposal : IntegrityAlgorithm is nil")
+		return nil, nil, errors.Errorf("NewIKESAKey : IntegrityAlgorithm is nil")
 	}
 
 	if len(proposal.PseudorandomFunction) == 0 {
-		return nil, errors.Errorf("NewIKESAKeyByProposal : PseudorandomFunction is nil")
+		return nil, nil, errors.Errorf("NewIKESAKey : PseudorandomFunction is nil")
 	}
 
 	ikesaKey := new(IKESAKey)
 	ikesaKey.DhInfo = dh.DecodeTransform(proposal.DiffieHellmanGroup[0])
 	if ikesaKey.DhInfo == nil {
-		return nil, errors.Errorf("NewIKESAKeyByProposal : Get unsupport DiffieHellmanGroup[%v]",
+		return nil, nil, errors.Errorf("NewIKESAKey : Get unsupport DiffieHellmanGroup[%v]",
 			proposal.DiffieHellmanGroup[0].TransformID)
 	}
 
 	ikesaKey.EncrInfo = encr.DecodeTransform(proposal.EncryptionAlgorithm[0])
 	if ikesaKey.EncrInfo == nil {
-		return nil, errors.Errorf("NewIKESAKeyByProposal : Get unsupport EncryptionAlgorithm[%v]",
+		return nil, nil, errors.Errorf("NewIKESAKey : Get unsupport EncryptionAlgorithm[%v]",
 			proposal.EncryptionAlgorithm[0].TransformID)
 	}
 
 	ikesaKey.IntegInfo = integ.DecodeTransform(proposal.IntegrityAlgorithm[0])
 	if ikesaKey.EncrInfo == nil {
-		return nil, errors.Errorf("NewIKESAKeyByProposal : Get unsupport IntegrityAlgorithm[%v]",
+		return nil, nil, errors.Errorf("NewIKESAKey : Get unsupport IntegrityAlgorithm[%v]",
 			proposal.IntegrityAlgorithm[0].TransformID)
 	}
 
 	ikesaKey.PrfInfo = prf.DecodeTransform(proposal.PseudorandomFunction[0])
 	if ikesaKey.PrfInfo == nil {
-		return nil, errors.Errorf("NewIKESAKeyByProposal : Get unsupport PseudorandomFunction[%v]",
+		return nil, nil, errors.Errorf("NewIKESAKey : Get unsupport PseudorandomFunction[%v]",
 			proposal.PseudorandomFunction[0].TransformID)
 	}
 
-	return ikesaKey, nil
+	localPublicValue, sharedKeyData, err := CalculateDiffieHellmanMaterials(
+		ikesaKey, keyExchangeData)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "NewIKESAKey")
+	}
+
+	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, sharedKeyData)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "NewIKESAKey")
+	}
+
+	return ikesaKey, localPublicValue, nil
 }
 
 // CalculateDiffieHellmanMaterials generates secret and calculate Diffie-Hellman public key
@@ -178,7 +192,9 @@ func CalculateDiffieHellmanMaterials(ikesaKey *IKESAKey, peerPublicValue []byte)
 	return ikesaKey.DhInfo.GetPublicValue(secret), ikesaKey.DhInfo.GetSharedKey(secret, peerPublicValueBig), nil
 }
 
-func (ikesaKey *IKESAKey) GenerateKeyForIKESA(log *logrus.Entry) error {
+func (ikesaKey *IKESAKey) GenerateKeyForIKESA(log *logrus.Entry, concatenatedNonce []byte,
+	diffieHellmanSharedKey []byte,
+) error {
 	// Check parameters
 	if ikesaKey == nil {
 		return errors.New("IKE SA is nil")
@@ -198,10 +214,10 @@ func (ikesaKey *IKESAKey) GenerateKeyForIKESA(log *logrus.Entry) error {
 		return errors.New("No Diffie-hellman group algorithm specified")
 	}
 
-	if len(ikesaKey.ConcatenatedNonce) == 0 {
+	if len(concatenatedNonce) == 0 {
 		return errors.New("No concatenated nonce data")
 	}
-	if len(ikesaKey.DiffieHellmanSharedKey) == 0 {
+	if len(diffieHellmanSharedKey) == 0 {
 		return errors.New("No Diffie-Hellman shared key")
 	}
 
@@ -218,16 +234,16 @@ func (ikesaKey *IKESAKey) GenerateKeyForIKESA(log *logrus.Entry) error {
 	totalKeyLength = length_SK_d + length_SK_ai + length_SK_ar + length_SK_ei + length_SK_er + length_SK_pi + length_SK_pr
 
 	// Generate IKE SA key as defined in RFC7296 Section 1.3 and Section 1.4
-	log.Tracef("Concatenated nonce:\n%s", hex.Dump(ikesaKey.ConcatenatedNonce))
-	log.Tracef("DH shared key:\n%s", hex.Dump(ikesaKey.DiffieHellmanSharedKey))
+	log.Tracef("Concatenated nonce:\n%s", hex.Dump(concatenatedNonce))
+	log.Tracef("DH shared key:\n%s", hex.Dump(diffieHellmanSharedKey))
 
-	prf := ikesaKey.PrfInfo.Init(ikesaKey.ConcatenatedNonce)
-	if _, err := prf.Write(ikesaKey.DiffieHellmanSharedKey); err != nil {
+	prf := ikesaKey.PrfInfo.Init(concatenatedNonce)
+	if _, err := prf.Write(diffieHellmanSharedKey); err != nil {
 		return err
 	}
 
 	skeyseed := prf.Sum(nil)
-	seed := concatenateNonceAndSPI(ikesaKey.ConcatenatedNonce, ikesaKey.InitiatorSPI, ikesaKey.ResponderSPI)
+	seed := concatenateNonceAndSPI(concatenatedNonce, ikesaKey.InitiatorSPI, ikesaKey.ResponderSPI)
 
 	log.Tracef("SKEYSEED:\n%s", hex.Dump(skeyseed))
 
