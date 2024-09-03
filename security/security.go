@@ -297,7 +297,7 @@ type ChildSAKey struct {
 	DhInfo     dh.DHType
 	EncrKInfo  encr.ENCRKType
 	IntegKInfo integ.INTEGKType
-	EsnInfo    esn.ESNType
+	EsnInfo    esn.ESN
 
 	// Security
 	InitiatorToResponderEncryptionKey []byte
@@ -363,10 +363,10 @@ func NewChildSAKeyByProposal(proposal *message.Proposal) (*ChildSAKey, error) {
 		}
 	}
 
-	childsaKey.EsnInfo = esn.DecodeTransform(proposal.ExtendedSequenceNumbers[0])
-	if childsaKey.EsnInfo == nil {
-		return nil, errors.Errorf("NewChildSAKeyByProposal : Get unsupport ExtendedSequenceNumbers[%v]",
-			proposal.PseudorandomFunction[0].TransformID)
+	var err error
+	childsaKey.EsnInfo, err = esn.DecodeTransform(proposal.ExtendedSequenceNumbers[0])
+	if err != nil {
+		return nil, errors.Wrapf(err, "NewChildSAKeyByProposal")
 	}
 
 	return childsaKey, nil

@@ -281,7 +281,8 @@ func TestChildToProposal(t *testing.T) {
 	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrKType := encr.StrToKType("ENCR_AES_CBC_256")
 	integKType := integ.StrToKType("AUTH_HMAC_MD5_96")
-	esnType := esn.StrToType("ESN_ENABLE")
+	esnType, err := esn.StrToType("ESN_ENABLE")
+	require.NoError(t, err)
 
 	childsaKey := ChildSAKey{
 		DhInfo:     dhType,
@@ -305,7 +306,8 @@ func TestChildSetProposal(t *testing.T) {
 	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrKType := encr.StrToKType("ENCR_AES_CBC_256")
 	integKType := integ.StrToKType("AUTH_HMAC_MD5_96")
-	esnType := esn.StrToType("ESN_ENABLE")
+	esnType, err := esn.StrToType("ESN_ENABLE")
+	require.NoError(t, err)
 
 	proposal := new(message.Proposal)
 
@@ -319,8 +321,7 @@ func TestChildSetProposal(t *testing.T) {
 
 	if childsaKey.DhInfo == nil ||
 		childsaKey.EncrKInfo == nil ||
-		childsaKey.IntegKInfo == nil ||
-		childsaKey.EsnInfo == nil {
+		childsaKey.IntegKInfo == nil {
 		t.FailNow()
 	}
 }
