@@ -12,8 +12,9 @@ import (
 	"net"
 	"testing"
 
-	logger_util "github.com/free5gc/util/logger"
 	"github.com/sirupsen/logrus"
+
+	logger_util "github.com/free5gc/util/logger"
 )
 
 func newLog() *logrus.Entry {

@@ -4,10 +4,11 @@ import (
 	"crypto/hmac"
 	"encoding/hex"
 
-	"github.com/free5gc/ike/message"
-	"github.com/free5gc/ike/security"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"github.com/free5gc/ike/message"
+	"github.com/free5gc/ike/security"
 )
 
 func Encode(log *logrus.Entry,
@@ -20,7 +21,6 @@ func Encode(log *logrus.Entry,
 		if err != nil {
 			return nil, errors.Wrapf(err, "IKE Encode()")
 		}
-
 	}
 
 	msg, err := ikeMessage.Encode(log)

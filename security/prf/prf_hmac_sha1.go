@@ -17,7 +17,6 @@ func toString_PRF_HMAC_SHA1(attrType uint16, intValue uint16, bytesValue []byte)
 var _ PRFType = &PRF_HMAC_SHA1{}
 
 type PRF_HMAC_SHA1 struct {
-	priority     uint32
 	keyLength    int
 	outputLength int
 }

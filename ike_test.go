@@ -4,13 +4,14 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/require"
+
 	"github.com/free5gc/ike/message"
 	"github.com/free5gc/ike/security"
 	"github.com/free5gc/ike/security/encr"
 	"github.com/free5gc/ike/security/integ"
 	logger_util "github.com/free5gc/util/logger"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/require"
 )
 
 func newLog() *logrus.Entry {
@@ -288,9 +289,12 @@ func TestEncryptProcedure(t *testing.T) {
 	require.NoError(t, err)
 
 	rawMsg, err := ikeMessage.Encode(log)
+	require.NoError(t, err)
+
 	encryptedPayload := ikeMessage.Payloads[0].(*message.Encrypted)
 	expectedPayload, err := DecryptProcedure(log, message.Role_Responder,
 		ikeSAKey, rawMsg, encryptedPayload)
+	require.NoError(t, err)
 	require.Equal(t, expectedPayload, ikePayload)
 
 	// IKE Security Association is nil
@@ -329,6 +333,7 @@ func TestEncryptProcedure(t *testing.T) {
 	// No responder's encryption key
 	ikeSAKey.Encr_r = nil
 	err = EncryptProcedure(log, message.Role_Initiator, ikeSAKey, ikePayload, ikeMessage)
+	require.Error(t, err)
 }
 
 func TestVerifyIntegrity(t *testing.T) {
