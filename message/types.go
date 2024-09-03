@@ -306,6 +306,6 @@ const (
 
 // IKE role
 const (
-	Role_Initiator = iota
-	Role_Responder
+	Role_Initiator = true
+	Role_Responder = false
 )

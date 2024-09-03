@@ -19,7 +19,7 @@ import (
 func newLog() *logrus.Entry {
 	fieldsOrder := []string{"component", "category"}
 	log := logger_util.New(fieldsOrder)
-	return log.WithFields(logrus.Fields{"component": "IKE", "category": "Security"})
+	return log.WithFields(logrus.Fields{"component": "IKE", "category": "Message"})
 }
 
 // TestEncodeDecode tests the Encode() and Decode() function using the data

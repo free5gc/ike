@@ -12,7 +12,7 @@ import (
 
 func Encode(log *logrus.Entry,
 	ikeMessage *message.IKEMessage,
-	role int, ikesaKey *security.IKESAKey,
+	role bool, ikesaKey *security.IKESAKey,
 ) ([]byte, error) {
 	if ikesaKey != nil {
 		err := EncryptProcedure(log, role, ikesaKey,
@@ -28,7 +28,7 @@ func Encode(log *logrus.Entry,
 }
 
 func Decode(log *logrus.Entry, msg []byte,
-	role int, ikesaKey *security.IKESAKey,
+	role bool, ikesaKey *security.IKESAKey,
 ) (*message.IKEMessage, error) {
 	ikeMessage := new(message.IKEMessage)
 	err := ikeMessage.Decode(log, msg)
@@ -57,14 +57,14 @@ func Decode(log *logrus.Entry, msg []byte,
 		}
 
 		ikeMessage.Payloads.Reset()
-		ikeMessage.Payloads = decryptPayload
+		ikeMessage.Payloads = append(ikeMessage.Payloads, decryptPayload...)
 	}
 
 	return ikeMessage, nil
 }
 
 func verifyIntegrity(log *logrus.Entry, ikesaKey *security.IKESAKey,
-	role int, originData []byte,
+	role bool, originData []byte,
 	checksum []byte,
 ) (bool, error) {
 	expectChecksum, err := calculateIntegrity(ikesaKey, role, originData)
@@ -77,34 +77,34 @@ func verifyIntegrity(log *logrus.Entry, ikesaKey *security.IKESAKey,
 	return hmac.Equal(checksum, expectChecksum), nil
 }
 
-func calculateIntegrity(ikesaKey *security.IKESAKey, role int, originData []byte) ([]byte, error) {
+func calculateIntegrity(ikesaKey *security.IKESAKey, role bool, originData []byte) ([]byte, error) {
 	outputLen := ikesaKey.IntegInfo.GetOutputLength()
 
 	var calculatedChecksum []byte
 	if role == message.Role_Initiator {
-		if ikesaKey.Integ_r == nil {
-			return nil, errors.Errorf("CalcIKEChecksum(%d) : IKE SA have nil Integ_r", role)
-		}
-		ikesaKey.Integ_r.Reset()
-		if _, err := ikesaKey.Integ_r.Write(originData); err != nil {
-			return nil, errors.Wrapf(err, "CalcIKEChecksum(%d)", role)
-		}
-		calculatedChecksum = ikesaKey.Integ_r.Sum(nil)
-	} else {
 		if ikesaKey.Integ_i == nil {
-			return nil, errors.Errorf("CalcIKEChecksum(%d) : IKE SA have nil Integ_i", role)
+			return nil, errors.Errorf("CalcIKEChecksum() : IKE SA have nil Integ_r")
 		}
 		ikesaKey.Integ_i.Reset()
 		if _, err := ikesaKey.Integ_i.Write(originData); err != nil {
-			return nil, errors.Wrapf(err, "CalcIKEChecksum(%d)", role)
+			return nil, errors.Wrapf(err, "CalcIKEChecksum()")
 		}
 		calculatedChecksum = ikesaKey.Integ_i.Sum(nil)
+	} else {
+		if ikesaKey.Integ_r == nil {
+			return nil, errors.Errorf("CalcIKEChecksum() : IKE SA have nil Integ_i")
+		}
+		ikesaKey.Integ_r.Reset()
+		if _, err := ikesaKey.Integ_r.Write(originData); err != nil {
+			return nil, errors.Wrapf(err, "CalcIKEChecksum()")
+		}
+		calculatedChecksum = ikesaKey.Integ_r.Sum(nil)
 	}
 
 	return calculatedChecksum[:outputLen], nil
 }
 
-func EncryptMessage(ikesaKey *security.IKESAKey, role int, originData []byte) ([]byte, error) {
+func EncryptMessage(ikesaKey *security.IKESAKey, role bool, originData []byte) ([]byte, error) {
 	var cipherText []byte
 	if role == message.Role_Initiator {
 		var err error
@@ -118,14 +118,10 @@ func EncryptMessage(ikesaKey *security.IKESAKey, role int, originData []byte) ([
 		}
 	}
 
-	// Append checksum field
-	checksumField := make([]byte, ikesaKey.IntegInfo.GetOutputLength())
-	cipherText = append(cipherText, checksumField...)
-
 	return cipherText, nil
 }
 
-func DecryptMessage(log *logrus.Entry, role int, ikesaKey *security.IKESAKey, cipherText []byte) ([]byte, error) {
+func DecryptMessage(log *logrus.Entry, role bool, ikesaKey *security.IKESAKey, cipherText []byte) ([]byte, error) {
 	var plainText []byte
 	if role == message.Role_Initiator {
 		var err error
@@ -143,7 +139,7 @@ func DecryptMessage(log *logrus.Entry, role int, ikesaKey *security.IKESAKey, ci
 }
 
 // Decrypt
-func DecryptProcedure(log *logrus.Entry, role int,
+func DecryptProcedure(log *logrus.Entry, role bool,
 	ikesaKey *security.IKESAKey, ikeMessageRawData []byte,
 	encryptedPayload *message.Encrypted,
 ) (message.IKEPayloadContainer, error) {
@@ -177,7 +173,7 @@ func DecryptProcedure(log *logrus.Entry, role int,
 	// Checksum
 	checksum := encryptedPayload.EncryptedData[len(encryptedPayload.EncryptedData)-checksumLength:]
 
-	ok, err := verifyIntegrity(log, ikesaKey, role,
+	ok, err := verifyIntegrity(log, ikesaKey, !role,
 		ikeMessageRawData[:len(ikeMessageRawData)-checksumLength], checksum)
 	if err != nil {
 		return nil, errors.Wrapf(err, "DecryptProcedure(): Error occur when verifying checksum")
@@ -203,7 +199,7 @@ func DecryptProcedure(log *logrus.Entry, role int,
 }
 
 // Encrypt
-func EncryptProcedure(log *logrus.Entry, role int, ikesaKey *security.IKESAKey,
+func EncryptProcedure(log *logrus.Entry, role bool, ikesaKey *security.IKESAKey,
 	ikePayload message.IKEPayloadContainer,
 	responseIKEMessage *message.IKEMessage,
 ) error {
