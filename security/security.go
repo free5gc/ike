@@ -95,10 +95,6 @@ type IKESAKey struct {
 	SK_pi []byte // used by initiator for IKE authentication
 	SK_pr []byte // used by responder for IKE authentication
 
-	// Used for key generating
-	ConcatenatedNonce      []byte
-	DiffieHellmanSharedKey []byte
-
 	// Temporary data
 	IKEAuthResponseSA *message.SecurityAssociation
 }
@@ -371,7 +367,7 @@ func NewChildSAKeyByProposal(proposal *message.Proposal) (*ChildSAKey, error) {
 }
 
 // Key Gen for child SA
-func (childsaKey *ChildSAKey) GenerateKeyForChildSA(ikeSA *IKESAKey) error {
+func (childsaKey *ChildSAKey) GenerateKeyForChildSA(ikeSA *IKESAKey, concatenatedNonce []byte) error {
 	// Check parameters
 	if ikeSA == nil {
 		return errors.New("IKE SA is nil")
@@ -401,7 +397,7 @@ func (childsaKey *ChildSAKey) GenerateKeyForChildSA(ikeSA *IKESAKey) error {
 	totalKeyLength = (lengthEncryptionKeyIPSec + lengthIntegrityKeyIPSec) * 2
 
 	// Generate key for child security association as specified in RFC 7296 section 2.17
-	seed := ikeSA.ConcatenatedNonce
+	seed := concatenatedNonce
 
 	keyStream := lib.PrfPlus(ikeSA.Prf_d, seed, totalKeyLength)
 	if keyStream == nil {

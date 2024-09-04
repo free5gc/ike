@@ -27,15 +27,12 @@ func Encode(log *logrus.Entry,
 	return msg, err
 }
 
-func Decode(log *logrus.Entry, msg []byte,
+// Before use this function, need to use IKEMessage.Encode first
+// and get IKESA
+func IkeMsgDecrypt(log *logrus.Entry, msg []byte,
+	ikeMessage *message.IKEMessage,
 	role bool, ikesaKey *security.IKESAKey,
 ) (*message.IKEMessage, error) {
-	ikeMessage := new(message.IKEMessage)
-	err := ikeMessage.Decode(log, msg)
-	if err != nil {
-		return nil, errors.Wrapf(err, "IKE Decode()")
-	}
-
 	if ikesaKey != nil {
 		var encryptedPayload *message.Encrypted
 

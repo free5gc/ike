@@ -225,38 +225,38 @@ func TestGenerateKeyForIKESA(t *testing.T) {
 func TestGenerateKeyForChildSA(t *testing.T) {
 	// IKE Security Association is nil
 	childSAKey := &ChildSAKey{}
-	err := childSAKey.GenerateKeyForChildSA(nil)
+	err := childSAKey.GenerateKeyForChildSA(nil, nil)
 	require.Error(t, err)
 
 	ikeSAKey := &IKESAKey{}
 
 	// Child SecurityAssociation is nil
 	var c *ChildSAKey
-	err = c.GenerateKeyForChildSA(ikeSAKey)
+	err = c.GenerateKeyForChildSA(ikeSAKey, nil)
 	require.Error(t, err)
 
 	// Pseudorandom function is nil
-	err = childSAKey.GenerateKeyForChildSA(ikeSAKey)
+	err = childSAKey.GenerateKeyForChildSA(ikeSAKey, nil)
 	require.Error(t, err)
 
 	ikeSAKey.PrfInfo = prf.StrToType("PRF_HMAC_SHA1")
 
 	// Encryption algorithm is nil
-	err = childSAKey.GenerateKeyForChildSA(ikeSAKey)
+	err = childSAKey.GenerateKeyForChildSA(ikeSAKey, nil)
 	require.Error(t, err)
 
 	childSAKey.EncrKInfo = encr.StrToKType("ENCR_AES_CBC_256")
 	childSAKey.IntegKInfo = integ.StrToKType("AUTH_HMAC_SHA1_96")
 
 	// Deriving key is nil
-	err = childSAKey.GenerateKeyForChildSA(ikeSAKey)
+	err = childSAKey.GenerateKeyForChildSA(ikeSAKey, nil)
 	require.Error(t, err)
 
 	sk_d, err := hex.DecodeString("276e1a8f0d65dae5309da66277ff7c82d39a8956")
 	require.NoError(t, err)
 	ikeSAKey.Prf_d = ikeSAKey.PrfInfo.Init(sk_d)
 
-	err = childSAKey.GenerateKeyForChildSA(ikeSAKey)
+	err = childSAKey.GenerateKeyForChildSA(ikeSAKey, nil)
 	require.NoError(t, err)
 
 	expectedInitiatorToResponderEncryptionKey, err := hex.DecodeString(

@@ -88,7 +88,7 @@ func TestEncodeDecode(t *testing.T) {
 	msg, err := Encode(log, ikeMessage, message.Role_Initiator, ikeSAKey)
 	require.NoError(t, err)
 
-	expectedIkeMsg, err := Decode(log, msg, message.Role_Responder, ikeSAKey)
+	expectedIkeMsg, err := IkeMsgDecrypt(log, msg, ikeMessage, message.Role_Responder, ikeSAKey)
 	require.NoError(t, err)
 
 	require.Equal(t, expectedIkeMsg.Payloads, ikePayload)
