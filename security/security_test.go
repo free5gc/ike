@@ -116,7 +116,8 @@ func TestIKESetProposal(t *testing.T) {
 	concatenatedNonce := []byte{0x01, 0x02, 0x03, 0x04}
 	keyexChange := []byte{0x05, 0x06, 0x07, 0x08}
 
-	ikesaKey, _, err := NewIKESAKey(log, proposal, keyexChange, concatenatedNonce)
+	ikesaKey, _, err := NewIKESAKey(log, proposal, keyexChange, concatenatedNonce,
+		0x123, 0x456)
 	require.NoError(t, err)
 
 	if ikesaKey.DhInfo == nil ||
@@ -131,48 +132,55 @@ func TestGenerateKeyForIKESA(t *testing.T) {
 	log := newLog()
 	concatenatedNonce := []byte{0x01, 0x02, 0x03, 0x04}
 	diffieHellmanSharedKey := []byte{0x05, 0x06, 0x07, 0x08}
+	initiatorSPI := uint64(0x456)
+	responderSPI := uint64(0x123)
 
 	// IKE Security Association is nil
 	var ikesaKey *IKESAKey
-	err := ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey)
+	err := ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
-	ikesaKey = &IKESAKey{
-		ResponderSPI: 0x123,
-		InitiatorSPI: 0x456,
-	}
+	ikesaKey = &IKESAKey{}
 
 	// Encryption algorithm is nil
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey)
+	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
 	ikesaKey.EncrInfo = encr.StrToType("ENCR_AES_CBC_256")
 
 	// Integrity algorithm is nil
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey)
+	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
 	ikesaKey.IntegInfo = integ.StrToType("AUTH_HMAC_SHA1_96")
 	// Pseudorandom function is nil
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey)
+	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
 	ikesaKey.PrfInfo = prf.StrToType("PRF_HMAC_SHA1")
 	// Diffie-Hellman group is nil
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey)
+	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
 	ikesaKey.DhInfo = dh.StrToType("DH_2048_BIT_MODP")
 	// Concatenated nonce is nil
-	err = ikesaKey.GenerateKeyForIKESA(log, nil, diffieHellmanSharedKey)
+	err = ikesaKey.GenerateKeyForIKESA(log, nil, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
 	// Diffie-Hellman shared key is nil
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, nil)
+	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, nil,
+		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
 	// Normal case
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey)
+	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
 	require.NoError(t, err)
 
 	expectedSK_ai, err := hex.DecodeString("58a17edd463b4b5062359c1c98b1736d80219691")
@@ -220,10 +228,7 @@ func TestGenerateKeyForChildSA(t *testing.T) {
 	err := childSAKey.GenerateKeyForChildSA(nil)
 	require.Error(t, err)
 
-	ikeSAKey := &IKESAKey{
-		ResponderSPI: 0x123,
-		InitiatorSPI: 0x456,
-	}
+	ikeSAKey := &IKESAKey{}
 
 	// Child SecurityAssociation is nil
 	var c *ChildSAKey

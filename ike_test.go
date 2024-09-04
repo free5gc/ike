@@ -28,10 +28,8 @@ func TestEncodeDecode(t *testing.T) {
 	integrityAlgorithm := integ.StrToType("AUTH_HMAC_SHA1_96")
 
 	ikeSAKey := &security.IKESAKey{
-		ResponderSPI: 0xc9e2e31f8b64053d,
-		InitiatorSPI: 0x000000000006f708,
-		EncrInfo:     encryptionAlgorithm,
-		IntegInfo:    integrityAlgorithm,
+		EncrInfo:  encryptionAlgorithm,
+		IntegInfo: integrityAlgorithm,
 	}
 
 	var err error
@@ -104,10 +102,8 @@ func TestDecryptProcedure(t *testing.T) {
 	integrityAlgorithm := integ.StrToType("AUTH_HMAC_SHA1_96")
 
 	ikeSAKey := &security.IKESAKey{
-		ResponderSPI: 0xc9e2e31f8b64053d,
-		InitiatorSPI: 0x000000000006f708,
-		EncrInfo:     encryptionAlgorithm,
-		IntegInfo:    integrityAlgorithm,
+		EncrInfo:  encryptionAlgorithm,
+		IntegInfo: integrityAlgorithm,
 	}
 
 	var err error
@@ -226,10 +222,8 @@ func TestEncryptProcedure(t *testing.T) {
 	integrityAlgorithm := integ.StrToType("AUTH_HMAC_SHA1_96")
 
 	ikeSAKey := &security.IKESAKey{
-		ResponderSPI: 0xc9e2e31f8b64053d,
-		InitiatorSPI: 0x000000000006f708,
-		EncrInfo:     encryptionAlgorithm,
-		IntegInfo:    integrityAlgorithm,
+		EncrInfo:  encryptionAlgorithm,
+		IntegInfo: integrityAlgorithm,
 	}
 
 	var err error

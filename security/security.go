@@ -71,10 +71,6 @@ func concatenateNonceAndSPI(nonce []byte, SPI_initiator uint64, SPI_responder ui
 }
 
 type IKESAKey struct {
-	// SPI
-	InitiatorSPI uint64
-	ResponderSPI uint64
-
 	// IKE SA transform types
 	DhInfo    dh.DHType
 	EncrInfo  encr.ENCRType
@@ -120,6 +116,7 @@ func (ikesaKey *IKESAKey) ToProposal() *message.Proposal {
 // return IKESAKey and local public value
 func NewIKESAKey(log *logrus.Entry, proposal *message.Proposal,
 	keyExchangeData []byte, concatenatedNonce []byte,
+	initiatorSPI uint64, responderSPI uint64,
 ) (*IKESAKey, []byte, error) {
 	if proposal == nil {
 		return nil, nil, errors.Errorf("NewIKESAKey : proposal is nil")
@@ -171,7 +168,8 @@ func NewIKESAKey(log *logrus.Entry, proposal *message.Proposal,
 		return nil, nil, errors.Wrapf(err, "NewIKESAKey")
 	}
 
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, sharedKeyData)
+	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, sharedKeyData,
+		initiatorSPI, responderSPI)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "NewIKESAKey")
 	}
@@ -193,7 +191,7 @@ func CalculateDiffieHellmanMaterials(ikesaKey *IKESAKey, peerPublicValue []byte)
 }
 
 func (ikesaKey *IKESAKey) GenerateKeyForIKESA(log *logrus.Entry, concatenatedNonce []byte,
-	diffieHellmanSharedKey []byte,
+	diffieHellmanSharedKey []byte, initiatorSPI uint64, responderSPI uint64,
 ) error {
 	// Check parameters
 	if ikesaKey == nil {
@@ -243,7 +241,7 @@ func (ikesaKey *IKESAKey) GenerateKeyForIKESA(log *logrus.Entry, concatenatedNon
 	}
 
 	skeyseed := prf.Sum(nil)
-	seed := concatenateNonceAndSPI(concatenatedNonce, ikesaKey.InitiatorSPI, ikesaKey.ResponderSPI)
+	seed := concatenateNonceAndSPI(concatenatedNonce, initiatorSPI, responderSPI)
 
 	log.Tracef("SKEYSEED:\n%s", hex.Dump(skeyseed))
 
