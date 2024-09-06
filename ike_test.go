@@ -198,7 +198,7 @@ func TestDecodeDecrypt(t *testing.T) {
 			expErr: true,
 		},
 		{
-			description: "msg len less than 28",
+			description: "msg len less than IKE_HEADER_LEN",
 			b:           []byte{},
 			expErr:      true,
 		},
