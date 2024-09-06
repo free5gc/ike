@@ -7,7 +7,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/free5gc/ike/message"
@@ -16,14 +15,7 @@ import (
 	"github.com/free5gc/ike/security/esn"
 	"github.com/free5gc/ike/security/integ"
 	"github.com/free5gc/ike/security/prf"
-	logger_util "github.com/free5gc/util/logger"
 )
-
-func newLog() *logrus.Entry {
-	fieldsOrder := []string{"component", "category"}
-	log := logger_util.New(fieldsOrder)
-	return log.WithFields(logrus.Fields{"component": "IKE", "category": "Security"})
-}
 
 func TestGenerateRandomNumber(t *testing.T) {
 	// Test multiple go routines call function simultaneously
@@ -100,7 +92,6 @@ func TestIKEToProposal(t *testing.T) {
 }
 
 func TestIKESetProposal(t *testing.T) {
-	log := newLog()
 	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrType := encr.StrToType("ENCR_AES_CBC_256")
 	integType := integ.StrToType("AUTH_HMAC_MD5_96")
@@ -116,7 +107,7 @@ func TestIKESetProposal(t *testing.T) {
 	concatenatedNonce := []byte{0x01, 0x02, 0x03, 0x04}
 	keyexChange := []byte{0x05, 0x06, 0x07, 0x08}
 
-	ikesaKey, _, err := NewIKESAKey(log, proposal, keyexChange, concatenatedNonce,
+	ikesaKey, _, err := NewIKESAKey(proposal, keyexChange, concatenatedNonce,
 		0x123, 0x456)
 	require.NoError(t, err)
 
@@ -129,7 +120,6 @@ func TestIKESetProposal(t *testing.T) {
 }
 
 func TestGenerateKeyForIKESA(t *testing.T) {
-	log := newLog()
 	concatenatedNonce := []byte{0x01, 0x02, 0x03, 0x04}
 	diffieHellmanSharedKey := []byte{0x05, 0x06, 0x07, 0x08}
 	initiatorSPI := uint64(0x456)
@@ -137,49 +127,49 @@ func TestGenerateKeyForIKESA(t *testing.T) {
 
 	// IKE Security Association is nil
 	var ikesaKey *IKESAKey
-	err := ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey,
+	err := ikesaKey.GenerateKeyForIKESA(concatenatedNonce, diffieHellmanSharedKey,
 		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
 	ikesaKey = &IKESAKey{}
 
 	// Encryption algorithm is nil
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey,
+	err = ikesaKey.GenerateKeyForIKESA(concatenatedNonce, diffieHellmanSharedKey,
 		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
 	ikesaKey.EncrInfo = encr.StrToType("ENCR_AES_CBC_256")
 
 	// Integrity algorithm is nil
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey,
+	err = ikesaKey.GenerateKeyForIKESA(concatenatedNonce, diffieHellmanSharedKey,
 		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
 	ikesaKey.IntegInfo = integ.StrToType("AUTH_HMAC_SHA1_96")
 	// Pseudorandom function is nil
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey,
+	err = ikesaKey.GenerateKeyForIKESA(concatenatedNonce, diffieHellmanSharedKey,
 		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
 	ikesaKey.PrfInfo = prf.StrToType("PRF_HMAC_SHA1")
 	// Diffie-Hellman group is nil
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey,
+	err = ikesaKey.GenerateKeyForIKESA(concatenatedNonce, diffieHellmanSharedKey,
 		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
 	ikesaKey.DhInfo = dh.StrToType("DH_2048_BIT_MODP")
 	// Concatenated nonce is nil
-	err = ikesaKey.GenerateKeyForIKESA(log, nil, diffieHellmanSharedKey,
+	err = ikesaKey.GenerateKeyForIKESA(nil, diffieHellmanSharedKey,
 		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
 	// Diffie-Hellman shared key is nil
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, nil,
+	err = ikesaKey.GenerateKeyForIKESA(concatenatedNonce, nil,
 		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
 	// Normal case
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, diffieHellmanSharedKey,
+	err = ikesaKey.GenerateKeyForIKESA(concatenatedNonce, diffieHellmanSharedKey,
 		initiatorSPI, responderSPI)
 	require.NoError(t, err)
 
@@ -329,4 +319,38 @@ func TestChildSetProposal(t *testing.T) {
 		childsaKey.IntegKInfo == nil {
 		t.FailNow()
 	}
+}
+
+func TestGetSPI(t *testing.T) {
+	keys := &IKESAKey{
+		SK_d: []byte{
+			0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
+		},
+		SK_ai: []byte{
+			0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
+		},
+		SK_ar: []byte{
+			0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33,
+		},
+		SK_ei: []byte{
+			0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
+		},
+		SK_er: []byte{
+			0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+		},
+		SK_pi: []byte{
+			0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
+		},
+		SK_pr: []byte{
+			0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77,
+		},
+	}
+	expectedStr := "\nSK_d : 1111111111111111" +
+		"\nSK_ai: 2222222222222222" +
+		"\nSK_ar: 3333333333333333" +
+		"\nSK_ei: 4444444444444444" +
+		"\nSK_er: 5555555555555555" +
+		"\nSK_pi: 6666666666666666" +
+		"\nSK_pr: 7777777777777777\n"
+	require.Equal(t, expectedStr, keys.String())
 }

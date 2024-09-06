@@ -3,13 +3,10 @@ package dh
 import (
 	"math/big"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/free5gc/ike/message"
 )
 
 var (
-	dhLog    *logrus.Entry
 	dhString map[uint16]func(uint16, uint16, []byte) string
 	dhTypes  map[string]DHType
 )
@@ -28,7 +25,6 @@ func init() {
 	// Group 2: DH_1024_BIT_MODP
 	factor, ok := new(big.Int).SetString(Group2PrimeString, 16)
 	if !ok {
-		dhLog.Error("Error occurs when setting big number")
 		panic("IKE Diffie Hellman Group failed to init.")
 	}
 	generator = new(big.Int).SetUint64(Group2Generator)
@@ -41,7 +37,6 @@ func init() {
 	// Group 14: DH_2048_BIT_MODP
 	factor, ok = new(big.Int).SetString(Group14PrimeString, 16)
 	if !ok {
-		dhLog.Error("Error occurs when setting big number")
 		panic("IKE Diffie Hellman Group failed to init.")
 	}
 	generator = new(big.Int).SetUint64(Group14Generator)

@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
 	"github.com/free5gc/ike/message"
 	ikeCrypto "github.com/free5gc/ike/security/IKECrypto"
@@ -94,9 +93,16 @@ type IKESAKey struct {
 	SK_er []byte // used by responder for encrypting
 	SK_pi []byte // used by initiator for IKE authentication
 	SK_pr []byte // used by responder for IKE authentication
+}
 
-	// Temporary data
-	IKEAuthResponseSA *message.SecurityAssociation
+func (ikesaKey *IKESAKey) String() string {
+	return "\nSK_d : " + hex.EncodeToString(ikesaKey.SK_d) +
+		"\nSK_ai: " + hex.EncodeToString(ikesaKey.SK_ai) +
+		"\nSK_ar: " + hex.EncodeToString(ikesaKey.SK_ar) +
+		"\nSK_ei: " + hex.EncodeToString(ikesaKey.SK_ei) +
+		"\nSK_er: " + hex.EncodeToString(ikesaKey.SK_er) +
+		"\nSK_pi: " + hex.EncodeToString(ikesaKey.SK_pi) +
+		"\nSK_pr: " + hex.EncodeToString(ikesaKey.SK_pr) + "\n"
 }
 
 func (ikesaKey *IKESAKey) ToProposal() *message.Proposal {
@@ -110,9 +116,10 @@ func (ikesaKey *IKESAKey) ToProposal() *message.Proposal {
 }
 
 // return IKESAKey and local public value
-func NewIKESAKey(log *logrus.Entry, proposal *message.Proposal,
-	keyExchangeData []byte, concatenatedNonce []byte,
-	initiatorSPI uint64, responderSPI uint64,
+func NewIKESAKey(
+	proposal *message.Proposal,
+	keyExchangeData, concatenatedNonce []byte,
+	initiatorSPI, responderSPI uint64,
 ) (*IKESAKey, []byte, error) {
 	if proposal == nil {
 		return nil, nil, errors.Errorf("NewIKESAKey : proposal is nil")
@@ -164,7 +171,7 @@ func NewIKESAKey(log *logrus.Entry, proposal *message.Proposal,
 		return nil, nil, errors.Wrapf(err, "NewIKESAKey")
 	}
 
-	err = ikesaKey.GenerateKeyForIKESA(log, concatenatedNonce, sharedKeyData,
+	err = ikesaKey.GenerateKeyForIKESA(concatenatedNonce, sharedKeyData,
 		initiatorSPI, responderSPI)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "NewIKESAKey")
@@ -176,7 +183,10 @@ func NewIKESAKey(log *logrus.Entry, proposal *message.Proposal,
 // CalculateDiffieHellmanMaterials generates secret and calculate Diffie-Hellman public key
 // exchange material.
 // Peer public value as parameter, return local public value and shared key.
-func CalculateDiffieHellmanMaterials(ikesaKey *IKESAKey, peerPublicValue []byte) ([]byte, []byte, error) {
+func CalculateDiffieHellmanMaterials(
+	ikesaKey *IKESAKey,
+	peerPublicValue []byte,
+) ([]byte, []byte, error) {
 	secret, err := GenerateRandomNumber()
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "CalculateDiffieHellmanMaterials()")
@@ -186,8 +196,9 @@ func CalculateDiffieHellmanMaterials(ikesaKey *IKESAKey, peerPublicValue []byte)
 	return ikesaKey.DhInfo.GetPublicValue(secret), ikesaKey.DhInfo.GetSharedKey(secret, peerPublicValueBig), nil
 }
 
-func (ikesaKey *IKESAKey) GenerateKeyForIKESA(log *logrus.Entry, concatenatedNonce []byte,
-	diffieHellmanSharedKey []byte, initiatorSPI uint64, responderSPI uint64,
+func (ikesaKey *IKESAKey) GenerateKeyForIKESA(
+	concatenatedNonce, diffieHellmanSharedKey []byte,
+	initiatorSPI, responderSPI uint64,
 ) error {
 	// Check parameters
 	if ikesaKey == nil {
@@ -228,8 +239,8 @@ func (ikesaKey *IKESAKey) GenerateKeyForIKESA(log *logrus.Entry, concatenatedNon
 	totalKeyLength = length_SK_d + length_SK_ai + length_SK_ar + length_SK_ei + length_SK_er + length_SK_pi + length_SK_pr
 
 	// Generate IKE SA key as defined in RFC7296 Section 1.3 and Section 1.4
-	log.Tracef("Concatenated nonce:\n%s", hex.Dump(concatenatedNonce))
-	log.Tracef("DH shared key:\n%s", hex.Dump(diffieHellmanSharedKey))
+	// fmt.Printf("Concatenated nonce:\n%s", hex.Dump(concatenatedNonce))
+	// fmt.Printf("DH shared key:\n%s", hex.Dump(diffieHellmanSharedKey))
 
 	prf := ikesaKey.PrfInfo.Init(concatenatedNonce)
 	if _, err := prf.Write(diffieHellmanSharedKey); err != nil {
@@ -239,7 +250,7 @@ func (ikesaKey *IKESAKey) GenerateKeyForIKESA(log *logrus.Entry, concatenatedNon
 	skeyseed := prf.Sum(nil)
 	seed := concatenateNonceAndSPI(concatenatedNonce, initiatorSPI, responderSPI)
 
-	log.Tracef("SKEYSEED:\n%s", hex.Dump(skeyseed))
+	// fmt.Printf("SKEYSEED:\n%s", hex.Dump(skeyseed))
 
 	keyStream := lib.PrfPlus(ikesaKey.PrfInfo.Init(skeyseed), seed, totalKeyLength)
 	if keyStream == nil {
@@ -367,7 +378,10 @@ func NewChildSAKeyByProposal(proposal *message.Proposal) (*ChildSAKey, error) {
 }
 
 // Key Gen for child SA
-func (childsaKey *ChildSAKey) GenerateKeyForChildSA(ikeSA *IKESAKey, concatenatedNonce []byte) error {
+func (childsaKey *ChildSAKey) GenerateKeyForChildSA(
+	ikeSA *IKESAKey,
+	concatenatedNonce []byte,
+) error {
 	// Check parameters
 	if ikeSA == nil {
 		return errors.Errorf("IKE SA is nil")
