@@ -4,8 +4,8 @@ package message
 type IKEPayloadType uint8
 
 const (
-	NoNext = 0
-	TypeSA = iota + 32
+	NoNext IKEPayloadType = 0
+	TypeSA IKEPayloadType = iota + 32
 	TypeKE
 	TypeIDi
 	TypeIDr
@@ -27,10 +27,10 @@ const (
 type EAPType uint8
 
 const (
-	EAPTypeIdentity = iota + 1
+	EAPTypeIdentity EAPType = iota + 1
 	EAPTypeNotification
 	EAPTypeNak
-	EAPTypeExpanded = 254
+	EAPTypeExpanded EAPType = 254
 )
 
 const (
@@ -289,7 +289,6 @@ const (
 // Spare
 const EAP5GSpareValue = 0
 
-// 3GPP specified IKE Notify
 // 3GPP specified IKE Notify Message Types
 const (
 	Vendor3GPPNotifyType5G_QOS_INFO     uint16 = 55501
@@ -300,12 +299,14 @@ const (
 
 // Used in NotifyType5G_QOS_INFO
 const (
-	NotifyType5G_QOS_INFOBitDSCPICheck uint8 = 1
-	NotifyType5G_QOS_INFOBitDCSICheck  uint8 = 1 << 1
+	NotifyType5G_QOS_INFOBitDSCPICheck uint8 = 1 << iota
+	NotifyType5G_QOS_INFOBitDCSICheck
 )
 
 // IKE role
+type Role bool
+
 const (
-	Role_Initiator = true
-	Role_Responder = false
+	Role_Initiator Role = true
+	Role_Responder Role = false
 )

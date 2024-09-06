@@ -191,28 +191,28 @@ func (ikesaKey *IKESAKey) GenerateKeyForIKESA(log *logrus.Entry, concatenatedNon
 ) error {
 	// Check parameters
 	if ikesaKey == nil {
-		return errors.New("IKE SA is nil")
+		return errors.Errorf("IKE SA is nil")
 	}
 
 	// Check if the context contain needed data
 	if ikesaKey.EncrInfo == nil {
-		return errors.New("No encryption algorithm specified")
+		return errors.Errorf("No encryption algorithm specified")
 	}
 	if ikesaKey.IntegInfo == nil {
-		return errors.New("No integrity algorithm specified")
+		return errors.Errorf("No integrity algorithm specified")
 	}
 	if ikesaKey.PrfInfo == nil {
-		return errors.New("No pseudorandom function specified")
+		return errors.Errorf("No pseudorandom function specified")
 	}
 	if ikesaKey.DhInfo == nil {
-		return errors.New("No Diffie-hellman group algorithm specified")
+		return errors.Errorf("No Diffie-hellman group algorithm specified")
 	}
 
 	if len(concatenatedNonce) == 0 {
-		return errors.New("No concatenated nonce data")
+		return errors.Errorf("No concatenated nonce data")
 	}
 	if len(diffieHellmanSharedKey) == 0 {
-		return errors.New("No Diffie-Hellman shared key")
+		return errors.Errorf("No Diffie-Hellman shared key")
 	}
 
 	// Get key length of SK_d, SK_ai, SK_ar, SK_ei, SK_er, SK_pi, SK_pr
@@ -243,7 +243,7 @@ func (ikesaKey *IKESAKey) GenerateKeyForIKESA(log *logrus.Entry, concatenatedNon
 
 	keyStream := lib.PrfPlus(ikesaKey.PrfInfo.Init(skeyseed), seed, totalKeyLength)
 	if keyStream == nil {
-		return errors.New("Error happened in PrfPlus")
+		return errors.Errorf("Error happened in PrfPlus")
 	}
 
 	// Assign keys into context
@@ -370,21 +370,21 @@ func NewChildSAKeyByProposal(proposal *message.Proposal) (*ChildSAKey, error) {
 func (childsaKey *ChildSAKey) GenerateKeyForChildSA(ikeSA *IKESAKey, concatenatedNonce []byte) error {
 	// Check parameters
 	if ikeSA == nil {
-		return errors.New("IKE SA is nil")
+		return errors.Errorf("IKE SA is nil")
 	}
 	if childsaKey == nil {
-		return errors.New("Child SA is nil")
+		return errors.Errorf("Child SA is nil")
 	}
 
 	// Check if the context contain needed data
 	if ikeSA.PrfInfo == nil {
-		return errors.New("No pseudorandom function specified")
+		return errors.Errorf("No pseudorandom function specified")
 	}
 	if childsaKey.EncrKInfo == nil {
-		return errors.New("No encryption algorithm specified")
+		return errors.Errorf("No encryption algorithm specified")
 	}
 	if ikeSA.Prf_d == nil {
-		return errors.New("No key deriving key")
+		return errors.Errorf("No key deriving key")
 	}
 
 	// Get key length for encryption and integrity key for IPSec
@@ -401,7 +401,7 @@ func (childsaKey *ChildSAKey) GenerateKeyForChildSA(ikeSA *IKESAKey, concatenate
 
 	keyStream := lib.PrfPlus(ikeSA.Prf_d, seed, totalKeyLength)
 	if keyStream == nil {
-		return errors.New("Error happened in PrfPlus")
+		return errors.Errorf("Error happened in PrfPlus")
 	}
 
 	childsaKey.InitiatorToResponderEncryptionKey = append(

@@ -65,7 +65,7 @@ func StrToType(algo string) (ESN, error) {
 	if t, ok := esnTypes[algo]; ok {
 		return t, nil
 	} else {
-		return ESN{}, errors.New("ESN StrToType get unsupport string")
+		return ESN{}, errors.Errorf("ESN StrToType get unsupport string")
 	}
 }
 
@@ -79,10 +79,10 @@ func DecodeTransform(transform *message.Transform) (ESN, error) {
 			}
 			return esn, nil
 		} else {
-			return ESN{}, errors.New("ESN DecodeTransform get unsupport string")
+			return ESN{}, errors.Errorf("ESN DecodeTransform get unsupport string")
 		}
 	} else {
-		return ESN{}, errors.New("ESN DecodeTransform get unsupport transform")
+		return ESN{}, errors.Errorf("ESN DecodeTransform get unsupport transform")
 	}
 }
 

@@ -12,16 +12,8 @@ import (
 	"net"
 	"testing"
 
-	"github.com/sirupsen/logrus"
-
-	logger_util "github.com/free5gc/util/logger"
+	"github.com/stretchr/testify/require"
 )
-
-func newLog() *logrus.Entry {
-	fieldsOrder := []string{"component", "category"}
-	log := logger_util.New(fieldsOrder)
-	return log.WithFields(logrus.Fields{"component": "IKE", "category": "Message"})
-}
 
 // TestEncodeDecode tests the Encode() and Decode() function using the data
 // build manually.
@@ -32,8 +24,6 @@ func newLog() *logrus.Entry {
 // Third, send the encoded data to the UDP connection for verification with Wireshark.
 // Compare the dataFirstEncode and dataSecondEncode and return the result.
 func TestEncodeDecode(t *testing.T) {
-	log := newLog()
-
 	conn, err := net.Dial("udp", "127.0.0.1:500")
 	if err != nil {
 		t.Fatalf("udp Dial failed: %+v", err)
@@ -46,7 +36,8 @@ func TestEncodeDecode(t *testing.T) {
 	ispi := localRand.Uint64()
 
 	testPacket.InitiatorSPI = ispi
-	testPacket.Version = 0x20
+	testPacket.MajorVersion = 2
+	testPacket.MinorVersion = 0
 	testPacket.ExchangeType = 34 // IKE_SA_INIT
 	testPacket.Flags = 16        // flagI is set
 	testPacket.MessageID = 0     // for IKE_SA_INIT
@@ -304,14 +295,14 @@ func TestEncodeDecode(t *testing.T) {
 
 	testSK := new(Encrypted)
 
-	testSK.NextPayload = TypeSA
+	testSK.NextPayload = uint8(TypeSA)
 
 	ikePayload := IKEPayloadContainer{
 		testSA,
 		testAuth,
 	}
 
-	ikePayloadDataForSK, retErr := ikePayload.Encode(log)
+	ikePayloadDataForSK, retErr := ikePayload.Encode()
 	if retErr != nil {
 		t.Fatalf("EncodePayload failed: %+v", retErr)
 	}
@@ -351,17 +342,17 @@ func TestEncodeDecode(t *testing.T) {
 	var dataFirstEncode, dataSecondEncode []byte
 	decodedPacket := new(IKEMessage)
 
-	if dataFirstEncode, err = testPacket.Encode(log); err != nil {
+	if dataFirstEncode, err = testPacket.Encode(); err != nil {
 		t.Fatalf("Encode failed: %+v", err)
 	}
 
 	t.Logf("%+v", dataFirstEncode)
 
-	if err = decodedPacket.Decode(log, dataFirstEncode); err != nil {
+	if err = decodedPacket.Decode(dataFirstEncode); err != nil {
 		t.Fatalf("Decode failed: %+v", err)
 	}
 
-	if dataSecondEncode, err = decodedPacket.Encode(log); err != nil {
+	if dataSecondEncode, err = decodedPacket.Encode(); err != nil {
 		t.Fatalf("Encode failed: %+v", err)
 	}
 
@@ -383,8 +374,6 @@ func TestEncodeDecode(t *testing.T) {
 // Decode and encode the data, and compare the verifyData and the origin
 // data and return the result.
 func TestEncodeDecodeUsingPublicData(t *testing.T) {
-	log := newLog()
-
 	data := []byte{
 		0x86, 0x43, 0x30, 0xac, 0x30, 0xe6, 0x56, 0x4d, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x21, 0x20, 0x22, 0x08, 0x00,
@@ -432,18 +421,87 @@ func TestEncodeDecodeUsingPublicData(t *testing.T) {
 		0xde, 0x7f, 0x00, 0xd6, 0xc2, 0xd3,
 	}
 
-	ikePacket := new(IKEMessage)
-	err := ikePacket.Decode(log, data)
+	ikeMsg := new(IKEMessage)
+	err := ikeMsg.Decode(data)
 	if err != nil {
 		t.Fatalf("Decode failed: %+v", err)
 	}
 
-	verifyData, err := ikePacket.Encode(log)
+	verifyData, err := ikeMsg.Encode()
 	if err != nil {
 		t.Fatalf("Encode failed: %+v", err)
 	}
 
 	if !bytes.Equal(data, verifyData) {
 		t.FailNow()
+	}
+}
+
+func TestDecode(t *testing.T) {
+	testcases := []struct {
+		description string
+		b           []byte
+		expErr      bool
+		expIkeMsg   *IKEMessage
+	}{
+		{
+			description: "decode IKE_AUTH",
+			b: []byte{
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0xf7, 0x08,
+				0xc9, 0xe2, 0xe3, 0x1f, 0x8b, 0x64, 0x05, 0x3d,
+				0x2e, 0x20, 0x23, 0x08, 0x00, 0x00, 0x00, 0x03,
+				0x00, 0x00, 0x00, 0x6c, 0x30, 0x00, 0x00, 0x50,
+				0xec, 0x50, 0x31, 0x16, 0x2c, 0x69, 0x2f, 0xbb,
+				0xfc, 0x4d, 0x20, 0x64, 0x0c, 0x91, 0x21, 0xeb,
+				0xe9, 0x47, 0x5e, 0xf9, 0x4f, 0x9b, 0x02, 0x95,
+				0x9d, 0x31, 0x24, 0x2e, 0x53, 0x5e, 0x9c, 0x3c,
+				0x4d, 0xca, 0xec, 0xd1, 0xbf, 0xd6, 0xdd, 0x80,
+				0xaa, 0x81, 0x2b, 0x07, 0xde, 0x36, 0xde, 0xe9,
+				0xb7, 0x50, 0x94, 0x35, 0xf6, 0x35, 0xe1, 0xaa,
+				0xae, 0x1c, 0x38, 0x25, 0xf4, 0xea, 0xe3, 0x38,
+				0x49, 0x03, 0xf7, 0x24, 0xf4, 0x44, 0x17, 0x0c,
+				0x68, 0x45, 0xca, 0x80,
+			},
+			expErr: false,
+			expIkeMsg: &IKEMessage{
+				InitiatorSPI: 0x000000000006f708,
+				ResponderSPI: 0xc9e2e31f8b64053d,
+				MajorVersion: 2,
+				MinorVersion: 0,
+				ExchangeType: IKE_AUTH,
+				Flags:        0x08,
+				MessageID:    0x03,
+				Payloads: IKEPayloadContainer{
+					&Encrypted{
+						NextPayload: uint8(TypeEAP),
+						EncryptedData: []byte{
+							0xec, 0x50, 0x31, 0x16, 0x2c, 0x69, 0x2f, 0xbb,
+							0xfc, 0x4d, 0x20, 0x64, 0x0c, 0x91, 0x21, 0xeb,
+							0xe9, 0x47, 0x5e, 0xf9, 0x4f, 0x9b, 0x02, 0x95,
+							0x9d, 0x31, 0x24, 0x2e, 0x53, 0x5e, 0x9c, 0x3c,
+							0x4d, 0xca, 0xec, 0xd1, 0xbf, 0xd6, 0xdd, 0x80,
+							0xaa, 0x81, 0x2b, 0x07, 0xde, 0x36, 0xde, 0xe9,
+							0xb7, 0x50, 0x94, 0x35, 0xf6, 0x35, 0xe1, 0xaa,
+							0xae, 0x1c, 0x38, 0x25, 0xf4, 0xea, 0xe3, 0x38,
+							0x49, 0x03, 0xf7, 0x24, 0xf4, 0x44, 0x17, 0x0c,
+							0x68, 0x45, 0xca, 0x80,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.description, func(t *testing.T) {
+			ikeMsg := new(IKEMessage)
+			err := ikeMsg.Decode(tc.b)
+			if tc.expErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			require.Equal(t, tc.expIkeMsg, ikeMsg)
+		})
 	}
 }

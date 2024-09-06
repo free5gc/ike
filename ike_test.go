@@ -4,25 +4,15 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/free5gc/ike/message"
 	"github.com/free5gc/ike/security"
 	"github.com/free5gc/ike/security/encr"
 	"github.com/free5gc/ike/security/integ"
-	logger_util "github.com/free5gc/util/logger"
 )
 
-func newLog() *logrus.Entry {
-	fieldsOrder := []string{"component", "category"}
-	log := logger_util.New(fieldsOrder)
-	return log.WithFields(logrus.Fields{"component": "IKE", "category": "ike"})
-}
-
 func TestEncodeDecode(t *testing.T) {
-	log := newLog()
-
 	encryptionAlgorithm := encr.StrToType("ENCR_AES_CBC_256")
 
 	integrityAlgorithm := integ.StrToType("AUTH_HMAC_SHA1_96")
@@ -34,37 +24,48 @@ func TestEncodeDecode(t *testing.T) {
 
 	var err error
 	ikeSAKey.SK_ei, err = hex.DecodeString(
-		"3d7a26417122cee9c77c59f375b024cdb9f0b5777ea18b50f8a671fd3b2daa99")
+		"3d7a26417122cee9" +
+			"c77c59f375b024cd" +
+			"b9f0b5777ea18b50" +
+			"f8a671fd3b2daa99")
 	require.NoError(t, err)
 	ikeSAKey.Encr_i, err = ikeSAKey.EncrInfo.NewCrypto(ikeSAKey.SK_ei)
 	require.NoError(t, err)
 
 	ikeSAKey.SK_er, err = hex.DecodeString(
-		"3ea57e7ddfb30756a04619a9873333b08e94deef05b6a05d7eb3dba075d81c6f")
+		"3ea57e7ddfb30756" +
+			"a04619a9873333b0" +
+			"8e94deef05b6a05d" +
+			"7eb3dba075d81c6f")
 	require.NoError(t, err)
 	ikeSAKey.Encr_r, err = ikeSAKey.EncrInfo.NewCrypto(ikeSAKey.SK_er)
 	require.NoError(t, err)
 
 	ikeSAKey.SK_ai, err = hex.DecodeString(
-		"ab8047415535cf53e19a69e2c86feadfebfff1e9")
+		"ab8047415535cf53" +
+			"e19a69e2c86feadf" +
+			"ebfff1e9")
 	require.NoError(t, err)
 	ikeSAKey.Integ_i = ikeSAKey.IntegInfo.Init(ikeSAKey.SK_ai)
 
 	ikeSAKey.SK_ar, err = hex.DecodeString(
-		"16d5ae6f2859a73a8c7db60bed07e24538b19bb0")
+		"16d5ae6f2859a73a" +
+			"8c7db60bed07e245" +
+			"38b19bb0")
 	require.NoError(t, err)
 	ikeSAKey.Integ_r = ikeSAKey.IntegInfo.Init(ikeSAKey.SK_ar)
 
-	ikeMessage := &message.IKEMessage{
-		ResponderSPI: 0xc9e2e31f8b64053d,
+	expIkeMsg := &message.IKEMessage{
 		InitiatorSPI: 0x000000000006f708,
-		Version:      0x02,
+		ResponderSPI: 0xc9e2e31f8b64053d,
+		MajorVersion: 2,
+		MinorVersion: 0,
 		ExchangeType: message.IKE_AUTH,
 		Flags:        0x08,
 		MessageID:    0x03,
 	}
 
-	ikePayload := message.IKEPayloadContainer{
+	expIkePayloads := message.IKEPayloadContainer{
 		&message.EAP{
 			Code:       0x02,
 			Identifier: 0x3b,
@@ -83,140 +84,286 @@ func TestEncodeDecode(t *testing.T) {
 		},
 	}
 
-	ikeMessage.Payloads = append(ikeMessage.Payloads, ikePayload...)
+	expIkeMsg.Payloads = append(expIkeMsg.Payloads, expIkePayloads...)
 
-	msg, err := Encode(log, ikeMessage, message.Role_Initiator, ikeSAKey)
+	b, err := EncodeEncrypt(expIkeMsg, ikeSAKey, message.Role_Initiator)
 	require.NoError(t, err)
 
-	expectedIkeMsg, err := IkeMsgDecrypt(log, msg, ikeMessage, message.Role_Responder, ikeSAKey)
+	ikeMsg, err := DecodeDecrypt(b, ikeSAKey, message.Role_Responder)
 	require.NoError(t, err)
 
-	require.Equal(t, expectedIkeMsg.Payloads, ikePayload)
+	require.Equal(t, expIkePayloads, ikeMsg.Payloads)
 }
 
-func TestDecryptProcedure(t *testing.T) {
-	log := newLog()
-
-	encryptionAlgorithm := encr.StrToType("ENCR_AES_CBC_256")
-
-	integrityAlgorithm := integ.StrToType("AUTH_HMAC_SHA1_96")
-
-	ikeSAKey := &security.IKESAKey{
-		EncrInfo:  encryptionAlgorithm,
-		IntegInfo: integrityAlgorithm,
+func TestDecodeDecrypt(t *testing.T) {
+	testcases := []struct {
+		description                string
+		b                          []byte
+		ikeSAKey                   *security.IKESAKey
+		sk_ei, sk_er, sk_ai, sk_ar []byte
+		expErr                     bool
+		expIkeMsg                  *message.IKEMessage
+	}{
+		{
+			description: "decrypt with key",
+			b: []byte{
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0xf7, 0x08,
+				0xc9, 0xe2, 0xe3, 0x1f, 0x8b, 0x64, 0x05, 0x3d,
+				0x2e, 0x20, 0x23, 0x08, 0x00, 0x00, 0x00, 0x03,
+				0x00, 0x00, 0x00, 0x6c, 0x30, 0x00, 0x00, 0x50,
+				0xec, 0x50, 0x31, 0x16, 0x2c, 0x69, 0x2f, 0xbb,
+				0xfc, 0x4d, 0x20, 0x64, 0x0c, 0x91, 0x21, 0xeb,
+				0xe9, 0x47, 0x5e, 0xf9, 0x4f, 0x9b, 0x02, 0x95,
+				0x9d, 0x31, 0x24, 0x2e, 0x53, 0x5e, 0x9c, 0x3c,
+				0x4d, 0xca, 0xec, 0xd1, 0xbf, 0xd6, 0xdd, 0x80,
+				0xaa, 0x81, 0x2b, 0x07, 0xde, 0x36, 0xde, 0xe9,
+				0xb7, 0x50, 0x94, 0x35, 0xf6, 0x35, 0xe1, 0xaa,
+				0xae, 0x1c, 0x38, 0x25, 0xf4, 0xea, 0xe3, 0x38,
+				0x49, 0x03, 0xf7, 0x24, 0xf4, 0x44, 0x17, 0x0c,
+				0x68, 0x45, 0xca, 0x80,
+			},
+			ikeSAKey: &security.IKESAKey{
+				EncrInfo:  encr.StrToType("ENCR_AES_CBC_256"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
+			},
+			sk_ei: []byte{
+				0x3d, 0x7a, 0x26, 0x41, 0x71, 0x22, 0xce, 0xe9,
+				0xc7, 0x7c, 0x59, 0xf3, 0x75, 0xb0, 0x24, 0xcd,
+				0xb9, 0xf0, 0xb5, 0x77, 0x7e, 0xa1, 0x8b, 0x50,
+				0xf8, 0xa6, 0x71, 0xfd, 0x3b, 0x2d, 0xaa, 0x99,
+			},
+			sk_er: []byte{
+				0x3e, 0xa5, 0x7e, 0x7d, 0xdf, 0xb3, 0x07, 0x56,
+				0xa0, 0x46, 0x19, 0xa9, 0x87, 0x33, 0x33, 0xb0,
+				0x8e, 0x94, 0xde, 0xef, 0x05, 0xb6, 0xa0, 0x5d,
+				0x7e, 0xb3, 0xdb, 0xa0, 0x75, 0xd8, 0x1c, 0x6f,
+			},
+			sk_ai: []byte{
+				0xab, 0x80, 0x47, 0x41, 0x55, 0x35, 0xcf, 0x53,
+				0xe1, 0x9a, 0x69, 0xe2, 0xc8, 0x6f, 0xea, 0xdf,
+				0xeb, 0xff, 0xf1, 0xe9,
+			},
+			sk_ar: []byte{
+				0x16, 0xd5, 0xae, 0x6f, 0x28, 0x59, 0xa7, 0x3a,
+				0x8c, 0x7d, 0xb6, 0x0b, 0xed, 0x07, 0xe2, 0x45,
+				0x38, 0xb1, 0x9b, 0xb0,
+			},
+			expErr: false,
+			expIkeMsg: &message.IKEMessage{
+				InitiatorSPI: 0x000000000006f708,
+				ResponderSPI: 0xc9e2e31f8b64053d,
+				MajorVersion: 2,
+				MinorVersion: 0,
+				ExchangeType: message.IKE_AUTH,
+				Flags:        0x08,
+				MessageID:    0x03,
+				Payloads: message.IKEPayloadContainer{
+					&message.EAP{
+						Code:       0x02,
+						Identifier: 0x3b,
+						EAPTypeData: []message.EAPTypeFormat{
+							&message.EAPExpanded{
+								VendorID:   0x28af,
+								VendorType: 0x03,
+								VendorData: []byte{
+									0x02, 0x00, 0x00, 0x00, 0x00, 0x15, 0x7e, 0x00,
+									0x57, 0x2d, 0x10, 0xf5, 0x07, 0x36, 0x2e, 0x32,
+									0x2d, 0xe3, 0x68, 0x57, 0x93, 0x65, 0xd2, 0x86,
+									0x2b, 0x50, 0xed,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			description: "decrypt without key",
+			b: []byte{
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0xf7, 0x08,
+				0xc9, 0xe2, 0xe3, 0x1f, 0x8b, 0x64, 0x05, 0x3d,
+				0x2e, 0x20, 0x23, 0x08, 0x00, 0x00, 0x00, 0x03,
+				0x00, 0x00, 0x00, 0x6c, 0x30, 0x00, 0x00, 0x50,
+				0xec, 0x50, 0x31, 0x16, 0x2c, 0x69, 0x2f, 0xbb,
+				0xfc, 0x4d, 0x20, 0x64, 0x0c, 0x91, 0x21, 0xeb,
+				0xe9, 0x47, 0x5e, 0xf9, 0x4f, 0x9b, 0x02, 0x95,
+				0x9d, 0x31, 0x24, 0x2e, 0x53, 0x5e, 0x9c, 0x3c,
+				0x4d, 0xca, 0xec, 0xd1, 0xbf, 0xd6, 0xdd, 0x80,
+				0xaa, 0x81, 0x2b, 0x07, 0xde, 0x36, 0xde, 0xe9,
+				0xb7, 0x50, 0x94, 0x35, 0xf6, 0x35, 0xe1, 0xaa,
+				0xae, 0x1c, 0x38, 0x25, 0xf4, 0xea, 0xe3, 0x38,
+				0x49, 0x03, 0xf7, 0x24, 0xf4, 0x44, 0x17, 0x0c,
+				0x68, 0x45, 0xca, 0x80,
+			},
+			expErr: true,
+		},
+		{
+			description: "msg len less than 28",
+			b:           []byte{},
+			expErr:      true,
+		},
+		{
+			description: "no sk_ai",
+			b: []byte{
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0xf7, 0x08,
+				0xc9, 0xe2, 0xe3, 0x1f, 0x8b, 0x64, 0x05, 0x3d,
+				0x2e, 0x20, 0x23, 0x08, 0x00, 0x00, 0x00, 0x03,
+				0x00, 0x00, 0x00, 0x6c, 0x30, 0x00, 0x00, 0x50,
+				0xec, 0x50, 0x31, 0x16, 0x2c, 0x69, 0x2f, 0xbb,
+				0xfc, 0x4d, 0x20, 0x64, 0x0c, 0x91, 0x21, 0xeb,
+				0xe9, 0x47, 0x5e, 0xf9, 0x4f, 0x9b, 0x02, 0x95,
+				0x9d, 0x31, 0x24, 0x2e, 0x53, 0x5e, 0x9c, 0x3c,
+				0x4d, 0xca, 0xec, 0xd1, 0xbf, 0xd6, 0xdd, 0x80,
+				0xaa, 0x81, 0x2b, 0x07, 0xde, 0x36, 0xde, 0xe9,
+				0xb7, 0x50, 0x94, 0x35, 0xf6, 0x35, 0xe1, 0xaa,
+				0xae, 0x1c, 0x38, 0x25, 0xf4, 0xea, 0xe3, 0x38,
+				0x49, 0x03, 0xf7, 0x24, 0xf4, 0x44, 0x17, 0x0c,
+				0x68, 0x45, 0xca, 0x80,
+			},
+			ikeSAKey: &security.IKESAKey{
+				EncrInfo:  encr.StrToType("ENCR_AES_CBC_256"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
+			},
+			sk_ei: []byte{
+				0x3d, 0x7a, 0x26, 0x41, 0x71, 0x22, 0xce, 0xe9,
+				0xc7, 0x7c, 0x59, 0xf3, 0x75, 0xb0, 0x24, 0xcd,
+				0xb9, 0xf0, 0xb5, 0x77, 0x7e, 0xa1, 0x8b, 0x50,
+				0xf8, 0xa6, 0x71, 0xfd, 0x3b, 0x2d, 0xaa, 0x99,
+			},
+			sk_er: []byte{
+				0x3e, 0xa5, 0x7e, 0x7d, 0xdf, 0xb3, 0x07, 0x56,
+				0xa0, 0x46, 0x19, 0xa9, 0x87, 0x33, 0x33, 0xb0,
+				0x8e, 0x94, 0xde, 0xef, 0x05, 0xb6, 0xa0, 0x5d,
+				0x7e, 0xb3, 0xdb, 0xa0, 0x75, 0xd8, 0x1c, 0x6f,
+			},
+			sk_ar: []byte{
+				0x16, 0xd5, 0xae, 0x6f, 0x28, 0x59, 0xa7, 0x3a,
+				0x8c, 0x7d, 0xb6, 0x0b, 0xed, 0x07, 0xe2, 0x45,
+				0x38, 0xb1, 0x9b, 0xb0,
+			},
+			expErr: true,
+		},
+		{
+			description: "no sk_ei",
+			b: []byte{
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0xf7, 0x08,
+				0xc9, 0xe2, 0xe3, 0x1f, 0x8b, 0x64, 0x05, 0x3d,
+				0x2e, 0x20, 0x23, 0x08, 0x00, 0x00, 0x00, 0x03,
+				0x00, 0x00, 0x00, 0x6c, 0x30, 0x00, 0x00, 0x50,
+				0xec, 0x50, 0x31, 0x16, 0x2c, 0x69, 0x2f, 0xbb,
+				0xfc, 0x4d, 0x20, 0x64, 0x0c, 0x91, 0x21, 0xeb,
+				0xe9, 0x47, 0x5e, 0xf9, 0x4f, 0x9b, 0x02, 0x95,
+				0x9d, 0x31, 0x24, 0x2e, 0x53, 0x5e, 0x9c, 0x3c,
+				0x4d, 0xca, 0xec, 0xd1, 0xbf, 0xd6, 0xdd, 0x80,
+				0xaa, 0x81, 0x2b, 0x07, 0xde, 0x36, 0xde, 0xe9,
+				0xb7, 0x50, 0x94, 0x35, 0xf6, 0x35, 0xe1, 0xaa,
+				0xae, 0x1c, 0x38, 0x25, 0xf4, 0xea, 0xe3, 0x38,
+				0x49, 0x03, 0xf7, 0x24, 0xf4, 0x44, 0x17, 0x0c,
+				0x68, 0x45, 0xca, 0x80,
+			},
+			ikeSAKey: &security.IKESAKey{
+				EncrInfo:  encr.StrToType("ENCR_AES_CBC_256"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
+			},
+			sk_er: []byte{
+				0x3e, 0xa5, 0x7e, 0x7d, 0xdf, 0xb3, 0x07, 0x56,
+				0xa0, 0x46, 0x19, 0xa9, 0x87, 0x33, 0x33, 0xb0,
+				0x8e, 0x94, 0xde, 0xef, 0x05, 0xb6, 0xa0, 0x5d,
+				0x7e, 0xb3, 0xdb, 0xa0, 0x75, 0xd8, 0x1c, 0x6f,
+			},
+			sk_ai: []byte{
+				0xab, 0x80, 0x47, 0x41, 0x55, 0x35, 0xcf, 0x53,
+				0xe1, 0x9a, 0x69, 0xe2, 0xc8, 0x6f, 0xea, 0xdf,
+				0xeb, 0xff, 0xf1, 0xe9,
+			},
+			sk_ar: []byte{
+				0x16, 0xd5, 0xae, 0x6f, 0x28, 0x59, 0xa7, 0x3a,
+				0x8c, 0x7d, 0xb6, 0x0b, 0xed, 0x07, 0xe2, 0x45,
+				0x38, 0xb1, 0x9b, 0xb0,
+			},
+			expErr: true,
+		},
+		{
+			description: "invalid checksum",
+			b: []byte{
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0xf7, 0x08,
+				0xc9, 0xe2, 0xe3, 0x1f, 0x8b, 0x64, 0x05, 0x3d,
+				0x2e, 0x20, 0x23, 0x08, 0x00, 0x00, 0x00, 0x03,
+				0x00, 0x00, 0x00, 0x6c, 0x30, 0x00, 0x00, 0x50,
+				0xec, 0x50, 0x31, 0x16, 0x2c, 0x69, 0x2f, 0xbb,
+				0xfc, 0x4d, 0x20, 0x64, 0x0c, 0x91, 0x21, 0xeb,
+				0xe9, 0x47, 0x5e, 0xf9, 0x4f, 0x9b, 0x02, 0x95,
+				0x9d, 0x31, 0x24, 0x2e, 0x53, 0x5e, 0x9c, 0x3c,
+				0x4d, 0xca, 0xec, 0xd1, 0xbf, 0xd6, 0xdd, 0x80,
+				0xaa, 0x81, 0x2b, 0x07, 0xde, 0x36, 0xde, 0xe9,
+				0xb7, 0x50, 0x94, 0x35, 0xf6, 0x35, 0xe1, 0xaa,
+				0xae, 0x1c, 0x38, 0x25, 0xf4, 0xea, 0xe3, 0x38,
+				0x49, 0x03, 0xf7, 0x24, 0xf4, 0x44, 0x17, 0x0c,
+				0x00, 0x00, 0x00, 0x00,
+			},
+			ikeSAKey: &security.IKESAKey{
+				EncrInfo:  encr.StrToType("ENCR_AES_CBC_256"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
+			},
+			sk_ei: []byte{
+				0x3d, 0x7a, 0x26, 0x41, 0x71, 0x22, 0xce, 0xe9,
+				0xc7, 0x7c, 0x59, 0xf3, 0x75, 0xb0, 0x24, 0xcd,
+				0xb9, 0xf0, 0xb5, 0x77, 0x7e, 0xa1, 0x8b, 0x50,
+				0xf8, 0xa6, 0x71, 0xfd, 0x3b, 0x2d, 0xaa, 0x99,
+			},
+			sk_er: []byte{
+				0x3e, 0xa5, 0x7e, 0x7d, 0xdf, 0xb3, 0x07, 0x56,
+				0xa0, 0x46, 0x19, 0xa9, 0x87, 0x33, 0x33, 0xb0,
+				0x8e, 0x94, 0xde, 0xef, 0x05, 0xb6, 0xa0, 0x5d,
+				0x7e, 0xb3, 0xdb, 0xa0, 0x75, 0xd8, 0x1c, 0x6f,
+			},
+			sk_ai: []byte{
+				0xab, 0x80, 0x47, 0x41, 0x55, 0x35, 0xcf, 0x53,
+				0xe1, 0x9a, 0x69, 0xe2, 0xc8, 0x6f, 0xea, 0xdf,
+				0xeb, 0xff, 0xf1, 0xe9,
+			},
+			sk_ar: []byte{
+				0x16, 0xd5, 0xae, 0x6f, 0x28, 0x59, 0xa7, 0x3a,
+				0x8c, 0x7d, 0xb6, 0x0b, 0xed, 0x07, 0xe2, 0x45,
+				0x38, 0xb1, 0x9b, 0xb0,
+			},
+			expErr: true,
+		},
 	}
 
 	var err error
-	sk_ei, err := hex.DecodeString(
-		"3d7a26417122cee9c77c59f375b024cdb9f0b5777ea18b50f8a671fd3b2daa99")
-	require.NoError(t, err)
 
-	sk_er, err := hex.DecodeString(
-		"3ea57e7ddfb30756a04619a9873333b08e94deef05b6a05d7eb3dba075d81c6f")
-	require.NoError(t, err)
+	for _, tc := range testcases {
+		t.Run(tc.description, func(t *testing.T) {
+			if len(tc.sk_ai) > 0 {
+				tc.ikeSAKey.Integ_i = tc.ikeSAKey.IntegInfo.Init(tc.sk_ai)
+			}
+			if len(tc.sk_ar) > 0 {
+				tc.ikeSAKey.Integ_r = tc.ikeSAKey.IntegInfo.Init(tc.sk_ar)
+			}
 
-	sk_ai, err := hex.DecodeString(
-		"ab8047415535cf53e19a69e2c86feadfebfff1e9")
-	require.NoError(t, err)
+			if len(tc.sk_ei) > 0 {
+				tc.ikeSAKey.Encr_i, err = tc.ikeSAKey.EncrInfo.NewCrypto(tc.sk_ei)
+				require.NoError(t, err)
+			}
 
-	sk_ar, err := hex.DecodeString(
-		"16d5ae6f2859a73a8c7db60bed07e24538b19bb0")
-	require.NoError(t, err)
+			if len(tc.sk_er) > 0 {
+				tc.ikeSAKey.Encr_r, err = tc.ikeSAKey.EncrInfo.NewCrypto(tc.sk_er)
+				require.NoError(t, err)
+			}
 
-	integ_i := ikeSAKey.IntegInfo.Init(sk_ai)
-	ikeSAKey.Integ_i = integ_i
-
-	ikeSAKey.Integ_r = ikeSAKey.IntegInfo.Init(sk_ar)
-
-	encr_i, err := ikeSAKey.EncrInfo.NewCrypto(sk_ei)
-	require.NoError(t, err)
-	ikeSAKey.Encr_i = encr_i
-
-	ikeSAKey.Encr_r, err = ikeSAKey.EncrInfo.NewCrypto(sk_er)
-	require.NoError(t, err)
-
-	ikeMessageRawData, err := hex.DecodeString("000000000006f708c9e2e31f8b64053d2e202308000000" +
-		"030000006c30000050ec5031162c692fbbfc4d20640c9121ebe9475ef94f9b02959d31242e5" +
-		"35e9c3c4dcaecd1bfd6dd80aa812b07de36dee9b7509435f635e1aaae1c3825f4eae3384903f" +
-		"724f444170c6845ca80")
-	require.NoError(t, err)
-
-	encryptedPayload := &message.Encrypted{
-		NextPayload:   message.TypeEAP,
-		EncryptedData: []byte{},
+			ikeMsg, err := DecodeDecrypt(tc.b, tc.ikeSAKey, message.Role_Responder)
+			if tc.expErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			require.Equal(t, tc.expIkeMsg, ikeMsg)
+		})
 	}
-	encryptedPayload.EncryptedData, err = hex.DecodeString("ec5031162c692fbbfc4d20640c9121ebe9475ef9" +
-		"4f9b02959d31242e535e9c3c4dcaecd1bfd6dd80aa812b07de36dee9b7509435f635e1aaa" +
-		"e1c3825f4eae3384903f724f444170c6845ca80")
-	require.NoError(t, err)
-
-	// Successful decryption
-	decryptedPayload, err := DecryptProcedure(log, message.Role_Responder, ikeSAKey, ikeMessageRawData, encryptedPayload)
-	require.NoError(t, err)
-
-	ecpectedDecryptData := message.IKEPayloadContainer{
-		&message.EAP{
-			Code:        0x02,
-			Identifier:  0x3b,
-			EAPTypeData: make(message.EAPTypeDataContainer, 1),
-		},
-	}
-	ecpectedDecryptData[0].(*message.EAP).EAPTypeData[0] = &message.EAPExpanded{
-		VendorID:   0x28af,
-		VendorType: 0x03,
-		VendorData: []byte{
-			0x02, 0x00, 0x00, 0x00, 0x00, 0x15, 0x7e, 0x00,
-			0x57, 0x2d, 0x10, 0xf5, 0x07, 0x36, 0x2e, 0x32,
-			0x2d, 0xe3, 0x68, 0x57, 0x93, 0x65, 0xd2, 0x86,
-			0x2b, 0x50, 0xed,
-		},
-	}
-
-	require.Equal(t, ecpectedDecryptData, decryptedPayload)
-
-	// IKE Security Association is nil
-	_, err = DecryptProcedure(log, message.Role_Responder, nil, ikeMessageRawData, encryptedPayload)
-	require.Error(t, err)
-
-	// IKE Message is nil
-	_, err = DecryptProcedure(log, message.Role_Responder, ikeSAKey, nil, encryptedPayload)
-	require.Error(t, err)
-
-	// Encrypted Payload is nil
-	_, err = DecryptProcedure(log, message.Role_Responder, ikeSAKey, ikeMessageRawData, nil)
-	require.Error(t, err)
-
-	// No integrity algorithm specified
-	ikeSAKey.IntegInfo = nil
-	_, err = DecryptProcedure(log, message.Role_Responder, ikeSAKey, ikeMessageRawData, encryptedPayload)
-	require.Error(t, err)
-
-	ikeSAKey.IntegInfo = integrityAlgorithm
-
-	// No initiator's integrity key
-	ikeSAKey.Integ_i = nil
-	_, err = DecryptProcedure(log, message.Role_Responder, ikeSAKey, ikeMessageRawData, encryptedPayload)
-	require.Error(t, err)
-
-	ikeSAKey.Integ_i = integ_i
-	// No initiator's encryption key
-	ikeSAKey.Encr_i = nil
-	_, err = DecryptProcedure(log, message.Role_Responder, ikeSAKey, ikeMessageRawData, encryptedPayload)
-	require.Error(t, err, "Expected an error when no initiator's encryption key is provided")
-
-	// Checksum verification fails
-	ikeSAKey.Encr_i = encr_i
-	invalidEncryptPayload := &message.Encrypted{ // Invalid checksum data
-		NextPayload:   message.TypeIDi,
-		EncryptedData: []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13},
-	}
-	_, err = DecryptProcedure(log, message.Role_Responder, ikeSAKey, ikeMessageRawData, invalidEncryptPayload)
-	require.Error(t, err)
 }
 
-func TestEncryptProcedure(t *testing.T) {
-	log := newLog()
-
+func TestEncryptMsg(t *testing.T) {
 	encryptionAlgorithm := encr.StrToType("ENCR_AES_CBC_256")
 
 	integrityAlgorithm := integ.StrToType("AUTH_HMAC_SHA1_96")
@@ -253,13 +400,14 @@ func TestEncryptProcedure(t *testing.T) {
 	ikeMessage := &message.IKEMessage{
 		ResponderSPI: 0xc9e2e31f8b64053d,
 		InitiatorSPI: 0x000000000006f708,
-		Version:      0x02,
+		MajorVersion: 2,
+		MinorVersion: 0,
 		ExchangeType: message.IKE_AUTH,
 		Flags:        0x08,
 		MessageID:    0x03,
 	}
 
-	ikePayload := message.IKEPayloadContainer{
+	ikePayloads := message.IKEPayloadContainer{
 		&message.EAP{
 			Code:       0x02,
 			Identifier: 0x3b,
@@ -277,69 +425,69 @@ func TestEncryptProcedure(t *testing.T) {
 			},
 		},
 	}
+	ikeMessage.Payloads = ikePayloads
 
 	// Successful encryption
-	err = EncryptProcedure(log, message.Role_Initiator, ikeSAKey, ikePayload, ikeMessage)
+	err = encryptMsg(ikeMessage, ikeSAKey, message.Role_Initiator)
 	require.NoError(t, err)
 
-	rawMsg, err := ikeMessage.Encode(log)
+	rawMsg, err := ikeMessage.Encode()
 	require.NoError(t, err)
 
-	encryptedPayload := ikeMessage.Payloads[0].(*message.Encrypted)
-	expectedPayload, err := DecryptProcedure(log, message.Role_Responder,
-		ikeSAKey, rawMsg, encryptedPayload)
+	expectedIkeMsg, err := decryptMsg(
+		rawMsg, ikeMessage, ikeSAKey, message.Role_Responder)
 	require.NoError(t, err)
-	require.Equal(t, expectedPayload, ikePayload)
+	require.Equal(t, expectedIkeMsg, ikeMessage)
 
 	// IKE Security Association is nil
-	err = EncryptProcedure(log, message.Role_Initiator, nil, ikePayload, ikeMessage)
+	err = encryptMsg(ikeMessage, nil, message.Role_Initiator)
 	require.Error(t, err)
 
 	// No IKE payload to be encrypted
-	err = EncryptProcedure(log, message.Role_Initiator, ikeSAKey, message.IKEPayloadContainer{}, ikeMessage)
+	ikeMessage.Payloads.Reset()
+	err = encryptMsg(ikeMessage, ikeSAKey, message.Role_Initiator)
 	require.Error(t, err)
+	ikeMessage.Payloads = ikePayloads
 
 	// Response IKE Message is nil
-	err = EncryptProcedure(log, message.Role_Initiator, ikeSAKey, ikePayload, nil)
+	err = encryptMsg(nil, ikeSAKey, message.Role_Initiator)
 	require.Error(t, err)
 
 	// No integrity algorithm specified
 	ikeSAKey.IntegInfo = nil
-	err = EncryptProcedure(log, message.Role_Initiator, ikeSAKey, ikePayload, ikeMessage)
+	err = encryptMsg(ikeMessage, ikeSAKey, message.Role_Initiator)
 	require.Error(t, err)
 
 	ikeSAKey.IntegInfo = integrityAlgorithm
 
 	// No encryption algorithm specified
 	ikeSAKey.EncrInfo = nil
-	err = EncryptProcedure(log, message.Role_Initiator, ikeSAKey, ikePayload, ikeMessage)
+	err = encryptMsg(ikeMessage, ikeSAKey, message.Role_Initiator)
 	require.Error(t, err)
 
 	ikeSAKey.EncrInfo = encryptionAlgorithm
 
 	// No responder's integrity key
 	ikeSAKey.Integ_r = nil
-	err = EncryptProcedure(log, message.Role_Initiator, ikeSAKey, ikePayload, ikeMessage)
+	err = encryptMsg(ikeMessage, ikeSAKey, message.Role_Initiator)
 	require.Error(t, err)
 
 	ikeSAKey.Integ_r = integ_r
 
 	// No responder's encryption key
 	ikeSAKey.Encr_r = nil
-	err = EncryptProcedure(log, message.Role_Initiator, ikeSAKey, ikePayload, ikeMessage)
+	err = encryptMsg(ikeMessage, ikeSAKey, message.Role_Initiator)
 	require.Error(t, err)
 }
 
 func TestVerifyIntegrity(t *testing.T) {
-	log := newLog()
-
 	tests := []struct {
 		name          string
 		key           string
 		originData    []byte
 		checksum      string
 		ikeSAKey      *security.IKESAKey
-		role          bool
+		role          message.Role
 		expectedValid bool
 	}{
 		{
@@ -457,11 +605,10 @@ func TestVerifyIntegrity(t *testing.T) {
 				tt.ikeSAKey.Integ_r = integ
 			}
 
-			valid, err := verifyIntegrity(log, tt.ikeSAKey, tt.role, tt.originData, checksum)
+			err = verifyIntegrity(tt.originData, checksum, tt.ikeSAKey, tt.role)
 			if tt.expectedValid {
 				require.NoError(t, err, "verifyIntegrity returned an error")
 			}
-			require.Equal(t, tt.expectedValid, valid)
 		})
 	}
 }

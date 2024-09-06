@@ -4,11 +4,9 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/hex"
 	"io"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
 	"github.com/free5gc/ike/message"
 	ikeCrypto "github.com/free5gc/ike/security/IKECrypto"
@@ -90,7 +88,7 @@ func (encr *ENCR_AES_CBC_Crypto) Encrypt(plainText []byte) ([]byte, error) {
 	// IV
 	_, err := io.ReadFull(rand.Reader, initializationVector)
 	if err != nil {
-		return nil, errors.New("Read random initialization vector failed")
+		return nil, errors.Errorf("Read random initialization vector failed")
 	}
 
 	// Encryption
@@ -100,17 +98,17 @@ func (encr *ENCR_AES_CBC_Crypto) Encrypt(plainText []byte) ([]byte, error) {
 	return cipherText, nil
 }
 
-func (encr *ENCR_AES_CBC_Crypto) Decrypt(l *logrus.Entry, cipherText []byte) ([]byte, error) {
+func (encr *ENCR_AES_CBC_Crypto) Decrypt(cipherText []byte) ([]byte, error) {
 	// Check
 	if len(cipherText) < aes.BlockSize {
-		return nil, errors.New("ENCR_AES_CBC_Crypto: Length of cipher text is too short to decrypt")
+		return nil, errors.Errorf("ENCR_AES_CBC_Crypto: Length of cipher text is too short to decrypt")
 	}
 
 	initializationVector := cipherText[:aes.BlockSize]
 	encryptedMessage := cipherText[aes.BlockSize:]
 
 	if len(encryptedMessage)%aes.BlockSize != 0 {
-		return nil, errors.New("ENCR_AES_CBC_Crypto: Cipher text is not a multiple of block size")
+		return nil, errors.Errorf("ENCR_AES_CBC_Crypto: Cipher text is not a multiple of block size")
 	}
 
 	// Slice
@@ -120,13 +118,13 @@ func (encr *ENCR_AES_CBC_Crypto) Decrypt(l *logrus.Entry, cipherText []byte) ([]
 	cbcBlockMode := cipher.NewCBCDecrypter(encr.block, initializationVector)
 	cbcBlockMode.CryptBlocks(plainText, encryptedMessage)
 
-	l.Tracef("Decrypted content:\n%s", hex.Dump(plainText))
+	// fmt.Printf("Decrypted content:\n%s", hex.Dump(plainText))
 
 	// Remove padding
 	padding := int(plainText[len(plainText)-1]) + 1
 	plainText = plainText[:len(plainText)-padding]
 
-	l.Tracef("Decrypted content with out padding:\n%s", hex.Dump(plainText))
+	// fmt.Printf("Decrypted content with out padding:\n%s", hex.Dump(plainText))
 
 	return plainText, nil
 }

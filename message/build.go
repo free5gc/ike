@@ -16,7 +16,8 @@ func (ikeMessage *IKEMessage) BuildIKEHeader(
 ) {
 	ikeMessage.InitiatorSPI = initiatorSPI
 	ikeMessage.ResponderSPI = responsorSPI
-	ikeMessage.Version = 0x20
+	ikeMessage.MajorVersion = 2
+	ikeMessage.MinorVersion = 0
 	ikeMessage.ExchangeType = exchangeType
 	ikeMessage.Flags = flags
 	ikeMessage.MessageID = messageID
@@ -248,7 +249,7 @@ func (container *IKEPayloadContainer) BuildEAP5GStart(identifier uint8) {
 
 func (container *IKEPayloadContainer) BuildEAP5GNAS(identifier uint8, nasPDU []byte) error {
 	if len(nasPDU) == 0 {
-		return errors.New("BuildEAP5GNAS(): NASPDU is nil")
+		return errors.Errorf("BuildEAP5GNAS(): NASPDU is nil")
 	}
 
 	header := make([]byte, 4)

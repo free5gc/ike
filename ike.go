@@ -2,79 +2,78 @@ package ike
 
 import (
 	"crypto/hmac"
-	"encoding/hex"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
 	"github.com/free5gc/ike/message"
 	"github.com/free5gc/ike/security"
 )
 
-func Encode(log *logrus.Entry,
-	ikeMessage *message.IKEMessage,
-	role bool, ikesaKey *security.IKESAKey,
+func EncodeEncrypt(
+	ikeMsg *message.IKEMessage,
+	ikesaKey *security.IKESAKey,
+	role message.Role,
 ) ([]byte, error) {
 	if ikesaKey != nil {
-		err := EncryptProcedure(log, role, ikesaKey,
-			ikeMessage.Payloads, ikeMessage)
+		err := encryptMsg(ikeMsg, ikesaKey, role)
 		if err != nil {
-			return nil, errors.Wrapf(err, "IKE Encode()")
+			return nil, errors.Wrapf(err, "IKE encode encrypt")
 		}
 	}
 
-	msg, err := ikeMessage.Encode(log)
-	return msg, err
+	msg, err := ikeMsg.Encode()
+	return msg, errors.Wrapf(err, "IKE encode")
 }
 
 // Before use this function, need to use IKEMessage.Encode first
 // and get IKESA
-func IkeMsgDecrypt(log *logrus.Entry, msg []byte,
-	ikeMessage *message.IKEMessage,
-	role bool, ikesaKey *security.IKESAKey,
+func DecodeDecrypt(
+	msg []byte,
+	ikesaKey *security.IKESAKey,
+	role message.Role,
 ) (*message.IKEMessage, error) {
-	if ikesaKey != nil {
-		var encryptedPayload *message.Encrypted
-
-		for _, ikePayload := range ikeMessage.Payloads {
-			switch ikePayload.Type() {
-			case message.TypeSK:
-				encryptedPayload = ikePayload.(*message.Encrypted)
-			default:
-				return nil, errors.Errorf(
-					"Get IKE payload (type %d), this payload will not be decode",
-					ikePayload.Type())
-			}
+	ikeMsg := new(message.IKEMessage)
+	err := ikeMsg.Decode(msg)
+	if err != nil {
+		return nil, errors.Wrapf(err, "IKE decode")
+	}
+	if ikeMsg.Payloads[0].Type() == message.TypeSK {
+		if ikesaKey == nil {
+			return nil, errors.Errorf("IKE decode decrypt: need ikesaKey to decrypt")
 		}
-
-		decryptPayload, err := DecryptProcedure(log, role, ikesaKey,
-			msg, encryptedPayload)
+		ikeMsg, err = decryptMsg(msg, ikeMsg, ikesaKey, role)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Decode()")
+			return nil, errors.Wrapf(err, "IKE decode decrypt")
 		}
-
-		ikeMessage.Payloads.Reset()
-		ikeMessage.Payloads = append(ikeMessage.Payloads, decryptPayload...)
 	}
 
-	return ikeMessage, nil
+	return ikeMsg, nil
 }
 
-func verifyIntegrity(log *logrus.Entry, ikesaKey *security.IKESAKey,
-	role bool, originData []byte,
+func verifyIntegrity(
+	originData []byte,
 	checksum []byte,
-) (bool, error) {
+	ikesaKey *security.IKESAKey,
+	role message.Role,
+) error {
 	expectChecksum, err := calculateIntegrity(ikesaKey, role, originData)
 	if err != nil {
-		return false, errors.Wrapf(err, "verifyIntegrity[%d]", ikesaKey.IntegInfo.TransformID())
+		return errors.Wrapf(err, "verifyIntegrity[%d]", ikesaKey.IntegInfo.TransformID())
 	}
 
-	log.Tracef("Calculated checksum:\n%s\nReceived checksum:\n%s",
-		hex.Dump(expectChecksum), hex.Dump(checksum))
-	return hmac.Equal(checksum, expectChecksum), nil
+	// fmt.Printf("Calculated checksum:\n%s\nReceived checksum:\n%s",
+	// 	hex.Dump(expectChecksum), hex.Dump(checksum))
+	if !hmac.Equal(checksum, expectChecksum) {
+		return errors.Errorf("invalid checksum")
+	}
+	return nil
 }
 
-func calculateIntegrity(ikesaKey *security.IKESAKey, role bool, originData []byte) ([]byte, error) {
+func calculateIntegrity(
+	ikesaKey *security.IKESAKey,
+	role message.Role,
+	originData []byte,
+) ([]byte, error) {
 	outputLen := ikesaKey.IntegInfo.GetOutputLength()
 
 	var calculatedChecksum []byte
@@ -101,157 +100,176 @@ func calculateIntegrity(ikesaKey *security.IKESAKey, role bool, originData []byt
 	return calculatedChecksum[:outputLen], nil
 }
 
-func EncryptMessage(ikesaKey *security.IKESAKey, role bool, originData []byte) ([]byte, error) {
+func encryptPayload(
+	plainText []byte,
+	ikesaKey *security.IKESAKey,
+	role message.Role,
+) ([]byte, error) {
 	var cipherText []byte
 	if role == message.Role_Initiator {
 		var err error
-		if cipherText, err = ikesaKey.Encr_i.Encrypt(originData); err != nil {
-			return nil, errors.Errorf("Encrypt() failed to encrypt to SK: %v", err)
+		if cipherText, err = ikesaKey.Encr_i.Encrypt(plainText); err != nil {
+			return nil, errors.Wrapf(err, "encryptPayload()")
 		}
 	} else {
 		var err error
-		if cipherText, err = ikesaKey.Encr_r.Encrypt(originData); err != nil {
-			return nil, errors.Errorf("Encrypt() failed to encrypt to SK: %v", err)
+		if cipherText, err = ikesaKey.Encr_r.Encrypt(plainText); err != nil {
+			return nil, errors.Wrapf(err, "encryptPayload()")
 		}
 	}
 
 	return cipherText, nil
 }
 
-func DecryptMessage(log *logrus.Entry, role bool, ikesaKey *security.IKESAKey, cipherText []byte) ([]byte, error) {
+func decryptPayload(
+	cipherText []byte,
+	ikesaKey *security.IKESAKey,
+	role message.Role,
+) ([]byte, error) {
 	var plainText []byte
 	if role == message.Role_Initiator {
 		var err error
-		if plainText, err = ikesaKey.Encr_r.Decrypt(log, cipherText); err != nil {
-			return nil, errors.Errorf("Encrypt() Failed to decrypt to SK: %v", err)
+		if plainText, err = ikesaKey.Encr_r.Decrypt(cipherText); err != nil {
+			return nil, errors.Wrapf(err, "decryptPayload()")
 		}
 	} else {
 		var err error
-		if plainText, err = ikesaKey.Encr_i.Decrypt(log, cipherText); err != nil {
-			return nil, errors.Errorf("Encrypt() Failed to decrypt to SK: %v", err)
+		if plainText, err = ikesaKey.Encr_i.Decrypt(cipherText); err != nil {
+			return nil, errors.Wrapf(err, "decryptPayload()")
 		}
 	}
 
 	return plainText, nil
 }
 
-// Decrypt
-func DecryptProcedure(log *logrus.Entry, role bool,
-	ikesaKey *security.IKESAKey, ikeMessageRawData []byte,
-	encryptedPayload *message.Encrypted,
-) (message.IKEPayloadContainer, error) {
+func decryptMsg(
+	msg []byte,
+	ikeMsg *message.IKEMessage,
+	ikesaKey *security.IKESAKey,
+	role message.Role,
+) (*message.IKEMessage, error) {
 	// Check parameters
 	if ikesaKey == nil {
-		return nil, errors.New("DecryptProcedure(): IKE SA is nil")
+		return nil, errors.Errorf("decryptMsg(): IKE SA is nil")
 	}
-	if ikeMessageRawData == nil {
-		return nil, errors.New("DecryptProcedure(): ikeMessageRawData is nil")
+	if msg == nil {
+		return nil, errors.Errorf("decryptMsg(): msg is nil")
 	}
-	if encryptedPayload == nil {
-		return nil, errors.New("DecryptProcedure(): IKE encrypted payload is nil")
+	if ikeMsg == nil {
+		return nil, errors.Errorf("decryptMsg(): IKE encrypted payload is nil")
 	}
 
 	// Check if the context contain needed data
 	if ikesaKey.IntegInfo == nil {
-		return nil, errors.New("DecryptProcedure(): No integrity algorithm specified")
+		return nil, errors.Errorf("decryptMsg(): No integrity algorithm specified")
 	}
 	if ikesaKey.EncrInfo == nil {
-		return nil, errors.New("DecryptProcedure(): No encryption algorithm specified")
+		return nil, errors.Errorf("decryptMsg(): No encryption algorithm specified")
 	}
 
 	if ikesaKey.Integ_i == nil {
-		return nil, errors.New("DecryptProcedure(): No initiator's integrity key")
+		return nil, errors.Errorf("decryptMsg(): No initiator's integrity key")
 	}
 	if ikesaKey.Encr_i == nil {
-		return nil, errors.New("DecryptProcedure(): No initiator's encryption key")
+		return nil, errors.Errorf("decryptMsg(): No initiator's encryption key")
+	}
+
+	var encryptedPayload *message.Encrypted
+	for _, ikePayload := range ikeMsg.Payloads {
+		switch ikePayload.Type() {
+		case message.TypeSK:
+			encryptedPayload = ikePayload.(*message.Encrypted)
+		default:
+			return nil, errors.Errorf(
+				"Get IKE payload (type %d), this payload will not be decode",
+				ikePayload.Type())
+		}
 	}
 
 	checksumLength := ikesaKey.IntegInfo.GetOutputLength()
 	// Checksum
 	checksum := encryptedPayload.EncryptedData[len(encryptedPayload.EncryptedData)-checksumLength:]
 
-	ok, err := verifyIntegrity(log, ikesaKey, !role,
-		ikeMessageRawData[:len(ikeMessageRawData)-checksumLength], checksum)
+	err := verifyIntegrity(msg[:len(msg)-checksumLength], checksum, ikesaKey, !role)
 	if err != nil {
-		return nil, errors.Wrapf(err, "DecryptProcedure(): Error occur when verifying checksum")
-	}
-	if !ok {
-		return nil, errors.New("DecryptProcedure(): Checksum failed, drop the message.")
+		return nil, errors.Wrapf(err, "decryptMsg(): verify integrity")
 	}
 
 	// Decrypt
 	encryptedData := encryptedPayload.EncryptedData[:len(encryptedPayload.EncryptedData)-checksumLength]
-	plainText, err := DecryptMessage(log, role, ikesaKey, encryptedData)
+	plainText, err := decryptPayload(encryptedData, ikesaKey, role)
 	if err != nil {
-		return nil, errors.Wrapf(err, "DecryptProcedure(): Error decrypting message")
+		return nil, errors.Wrapf(err, "decryptMsg(): Error decrypting message")
 	}
 
-	var decryptedIKEPayload message.IKEPayloadContainer
-	err = decryptedIKEPayload.Decode(log, encryptedPayload.NextPayload, plainText)
+	var decryptedPayloads message.IKEPayloadContainer
+	err = decryptedPayloads.Decode(encryptedPayload.NextPayload, plainText)
 	if err != nil {
-		return nil, errors.Wrapf(err, "DecryptProcedure(): Decoding decrypted payload failed")
+		return nil, errors.Wrapf(err, "decryptMsg(): Decoding decrypted payload failed")
 	}
 
-	return decryptedIKEPayload, nil
+	ikeMsg.Payloads.Reset()
+	ikeMsg.Payloads = append(ikeMsg.Payloads, decryptedPayloads...)
+	return ikeMsg, nil
 }
 
-// Encrypt
-func EncryptProcedure(log *logrus.Entry, role bool, ikesaKey *security.IKESAKey,
-	ikePayload message.IKEPayloadContainer,
-	responseIKEMessage *message.IKEMessage,
+func encryptMsg(
+	ikeMsg *message.IKEMessage,
+	ikesaKey *security.IKESAKey,
+	role message.Role,
 ) error {
+	if ikeMsg == nil {
+		return errors.Errorf("encryptMsg(): Response IKE message is nil")
+	}
 	if ikesaKey == nil {
-		return errors.New("EncryptProcedure(): IKE SA is nil")
+		return errors.Errorf("encryptMsg(): IKE SA is nil")
 	}
+	ikePayloads := ikeMsg.Payloads
 	// Check parameters
-	if len(ikePayload) == 0 {
-		return errors.New("EncryptProcedure(): No IKE payload to be encrypted")
+	if len(ikePayloads) == 0 {
+		return errors.Errorf("encryptMsg(): No IKE payload to be encrypted")
 	}
-	if responseIKEMessage == nil {
-		return errors.New("EncryptProcedure(): Response IKE message is nil")
-	}
-
 	// Check if the context contain needed data
 	if ikesaKey.IntegInfo == nil {
-		return errors.New("EncryptProcedure(): No integrity algorithm specified")
+		return errors.Errorf("encryptMsg(): No integrity algorithm specified")
 	}
 	if ikesaKey.EncrInfo == nil {
-		return errors.New("EncryptProcedure(): No encryption algorithm specified")
+		return errors.Errorf("encryptMsg(): No encryption algorithm specified")
 	}
 
 	if ikesaKey.Integ_r == nil {
-		return errors.New("EncryptProcedure(): No responder's integrity key")
+		return errors.Errorf("encryptMsg(): No responder's integrity key")
 	}
 	if ikesaKey.Encr_r == nil {
-		return errors.New("EncryptProcedure(): No responder's encryption key")
+		return errors.Errorf("encryptMsg(): No responder's encryption key")
 	}
 
 	checksumLength := ikesaKey.IntegInfo.GetOutputLength()
 
-	// Encrypting
-	ikePayloadData, err := ikePayload.Encode(log)
+	plainTextPayload, err := ikePayloads.Encode()
 	if err != nil {
-		return errors.Wrapf(err, "EncryptProcedure(): Encoding IKE payload failed.")
+		return errors.Wrapf(err, "encryptMsg(): Encoding IKE payload failed.")
 	}
 
-	encryptedData, err := EncryptMessage(ikesaKey, role, ikePayloadData)
+	// Encrypting
+	encryptedData, err := encryptPayload(plainTextPayload, ikesaKey, role)
 	if err != nil {
-		return errors.Wrapf(err, "EncryptProcedure(): Error encrypting message")
+		return errors.Wrapf(err, "encryptMsg(): Error encrypting message")
 	}
 
 	encryptedData = append(encryptedData, make([]byte, checksumLength)...)
-	responseIKEMessage.Payloads.Reset()
-	sk := responseIKEMessage.Payloads.BuildEncrypted(ikePayload[0].Type(), encryptedData)
+	ikeMsg.Payloads.Reset()
+	sk := ikeMsg.Payloads.BuildEncrypted(ikePayloads[0].Type(), encryptedData)
 
 	// Calculate checksum
-	responseIKEMessageData, err := responseIKEMessage.Encode(log)
+	ikeMsgData, err := ikeMsg.Encode()
 	if err != nil {
-		return errors.Wrapf(err, "EncryptProcedure(): Encoding IKE message error")
+		return errors.Wrapf(err, "encryptMsg(): Encoding IKE message error")
 	}
 	checksumOfMessage, err := calculateIntegrity(ikesaKey, role,
-		responseIKEMessageData[:len(responseIKEMessageData)-checksumLength])
+		ikeMsgData[:len(ikeMsgData)-checksumLength])
 	if err != nil {
-		return errors.Wrapf(err, "EncryptProcedure(): Error calculating checksum")
+		return errors.Wrapf(err, "encryptMsg(): Error calculating checksum")
 	}
 	checksumField := sk.EncryptedData[len(sk.EncryptedData)-checksumLength:]
 	copy(checksumField, checksumOfMessage)
