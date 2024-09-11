@@ -56,13 +56,16 @@ func TestEncodeDecode(t *testing.T) {
 	ikeSAKey.Integ_r = ikeSAKey.IntegInfo.Init(ikeSAKey.SK_ar)
 
 	expIkeMsg := &message.IKEMessage{
-		InitiatorSPI: 0x000000000006f708,
-		ResponderSPI: 0xc9e2e31f8b64053d,
-		MajorVersion: 2,
-		MinorVersion: 0,
-		ExchangeType: message.IKE_AUTH,
-		Flags:        0x08,
-		MessageID:    0x03,
+		IKEHeader: message.IKEHeader{
+			InitiatorSPI: 0x000000000006f708,
+			ResponderSPI: 0xc9e2e31f8b64053d,
+			MajorVersion: 2,
+			MinorVersion: 0,
+			ExchangeType: message.IKE_AUTH,
+			Flags:        0x08,
+			MessageID:    0x03,
+			NextPayload:  uint8(message.TypeEAP),
+		},
 	}
 
 	expIkePayloads := message.IKEPayloadContainer{
@@ -89,7 +92,10 @@ func TestEncodeDecode(t *testing.T) {
 	b, err := EncodeEncrypt(expIkeMsg, ikeSAKey, message.Role_Initiator)
 	require.NoError(t, err)
 
-	ikeMsg, err := DecodeDecrypt(b, ikeSAKey, message.Role_Responder)
+	ikeMsg, err := message.ParseIkeHeader(b)
+	require.NoError(t, err)
+
+	err = DecodeDecrypt(b, ikeMsg, ikeSAKey, message.Role_Responder)
 	require.NoError(t, err)
 
 	require.Equal(t, expIkePayloads, ikeMsg.Payloads)
@@ -150,13 +156,15 @@ func TestDecodeDecrypt(t *testing.T) {
 			},
 			expErr: false,
 			expIkeMsg: &message.IKEMessage{
-				InitiatorSPI: 0x000000000006f708,
-				ResponderSPI: 0xc9e2e31f8b64053d,
-				MajorVersion: 2,
-				MinorVersion: 0,
-				ExchangeType: message.IKE_AUTH,
-				Flags:        0x08,
-				MessageID:    0x03,
+				IKEHeader: message.IKEHeader{
+					InitiatorSPI: 0x000000000006f708,
+					ResponderSPI: 0xc9e2e31f8b64053d,
+					MajorVersion: 2,
+					MinorVersion: 0,
+					ExchangeType: message.IKE_AUTH,
+					Flags:        0x08,
+					MessageID:    0x03,
+				},
 				Payloads: message.IKEPayloadContainer{
 					&message.EAP{
 						Code:       0x02,
@@ -351,8 +359,10 @@ func TestDecodeDecrypt(t *testing.T) {
 				tc.ikeSAKey.Encr_r, err = tc.ikeSAKey.EncrInfo.NewCrypto(tc.sk_er)
 				require.NoError(t, err)
 			}
+			ikeMsg, err := message.ParseIkeHeader(tc.b)
+			require.NoError(t, err)
 
-			ikeMsg, err := DecodeDecrypt(tc.b, tc.ikeSAKey, message.Role_Responder)
+			err = DecodeDecrypt(tc.b, ikeMsg, tc.ikeSAKey, message.Role_Responder)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {
@@ -398,13 +408,15 @@ func TestEncryptMsg(t *testing.T) {
 	ikeSAKey.Integ_r = integ_r
 
 	ikeMessage := &message.IKEMessage{
-		ResponderSPI: 0xc9e2e31f8b64053d,
-		InitiatorSPI: 0x000000000006f708,
-		MajorVersion: 2,
-		MinorVersion: 0,
-		ExchangeType: message.IKE_AUTH,
-		Flags:        0x08,
-		MessageID:    0x03,
+		IKEHeader: message.IKEHeader{
+			ResponderSPI: 0xc9e2e31f8b64053d,
+			InitiatorSPI: 0x000000000006f708,
+			MajorVersion: 2,
+			MinorVersion: 0,
+			ExchangeType: message.IKE_AUTH,
+			Flags:        0x08,
+			MessageID:    0x03,
+		},
 	}
 
 	ikePayloads := message.IKEPayloadContainer{
@@ -434,10 +446,10 @@ func TestEncryptMsg(t *testing.T) {
 	rawMsg, err := ikeMessage.Encode()
 	require.NoError(t, err)
 
-	expectedIkeMsg, err := decryptMsg(
+	err = decryptMsg(
 		rawMsg, ikeMessage, ikeSAKey, message.Role_Responder)
 	require.NoError(t, err)
-	require.Equal(t, expectedIkeMsg, ikeMessage)
+	require.Equal(t, ikePayloads, ikeMessage.Payloads)
 
 	// IKE Security Association is nil
 	err = encryptMsg(ikeMessage, nil, message.Role_Initiator)

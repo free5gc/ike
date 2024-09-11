@@ -464,13 +464,16 @@ func TestDecode(t *testing.T) {
 			},
 			expErr: false,
 			expIkeMsg: &IKEMessage{
-				InitiatorSPI: 0x000000000006f708,
-				ResponderSPI: 0xc9e2e31f8b64053d,
-				MajorVersion: 2,
-				MinorVersion: 0,
-				ExchangeType: IKE_AUTH,
-				Flags:        0x08,
-				MessageID:    0x03,
+				IKEHeader: IKEHeader{
+					InitiatorSPI: 0x000000000006f708,
+					ResponderSPI: 0xc9e2e31f8b64053d,
+					MajorVersion: 2,
+					MinorVersion: 0,
+					ExchangeType: IKE_AUTH,
+					Flags:        0x08,
+					MessageID:    0x03,
+					NextPayload:  uint8(TypeSK),
+				},
 				Payloads: IKEPayloadContainer{
 					&Encrypted{
 						NextPayload: uint8(TypeEAP),
@@ -494,8 +497,10 @@ func TestDecode(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			ikeMsg := new(IKEMessage)
-			err := ikeMsg.Decode(tc.b)
+			ikeMsg, err := ParseIkeHeader(tc.b)
+			require.NoError(t, err)
+
+			err = ikeMsg.Decode(tc.b[IKE_HEADER_LEN:])
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

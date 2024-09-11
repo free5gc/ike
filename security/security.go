@@ -1,6 +1,7 @@
 package security
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
@@ -329,9 +330,6 @@ func NewChildSAKeyByProposal(proposal *message.Proposal) (*ChildSAKey, error) {
 	if proposal == nil {
 		return nil, errors.Errorf("NewChildSAKeyByProposal : proposal is nil")
 	}
-	if len(proposal.DiffieHellmanGroup) == 0 {
-		return nil, errors.Errorf("NewChildSAKeyByProposal : DiffieHellmanGroup is nil")
-	}
 
 	if len(proposal.EncryptionAlgorithm) == 0 {
 		return nil, errors.Errorf("NewChildSAKeyByProposal : EncryptionAlgorithm is nil")
@@ -435,4 +433,23 @@ func (childsaKey *ChildSAKey) GenerateKeyForChildSA(
 		keyStream[:lengthIntegrityKeyIPSec]...)
 
 	return nil
+}
+
+// Certificate
+func CompareRootCertificate(
+	ca []byte,
+	certificateEncoding uint8,
+	requestedCertificateAuthorityHash []byte,
+) bool {
+	if certificateEncoding != message.X509CertificateSignature {
+		// fmt.Printf("Not support certificate type: %d. Reject.", certificateEncoding)
+		return false
+	}
+
+	if len(ca) == 0 {
+		// fmt.Printf("Certificate authority in context is empty")
+		return false
+	}
+
+	return bytes.Equal(ca, requestedCertificateAuthorityHash)
 }

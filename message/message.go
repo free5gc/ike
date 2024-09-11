@@ -8,7 +8,7 @@ import (
 
 const IKE_HEADER_LEN int = 28
 
-type IKEMessage struct {
+type IKEHeader struct {
 	InitiatorSPI uint64
 	ResponderSPI uint64
 	MajorVersion uint8
@@ -16,7 +16,46 @@ type IKEMessage struct {
 	ExchangeType uint8
 	Flags        uint8
 	MessageID    uint32
-	Payloads     IKEPayloadContainer
+	NextPayload  uint8
+}
+
+type IKEMessage struct {
+	IKEHeader
+	Payloads IKEPayloadContainer
+}
+
+func ParseIkeHeader(b []byte) (*IKEMessage, error) {
+	// IKE message packet format this implementation referenced is
+	// defined in RFC 7296, Section 3.1
+	// bounds checking
+	if len(b) < IKE_HEADER_LEN {
+		return nil, errors.Errorf("ParseIkeHeader(): Received broken IKE header")
+	}
+	ikeMessageLength := binary.BigEndian.Uint32(b[24:IKE_HEADER_LEN])
+	if ikeMessageLength < uint32(IKE_HEADER_LEN) {
+		return nil, errors.Errorf("ParseIkeHeader(): Illegal IKE message length %d < header length %d",
+			ikeMessageLength, IKE_HEADER_LEN)
+	}
+	// len() return int, which is 64 bit on 64-bit host and 32 bit
+	// on 32-bit host, so this implementation may potentially cause
+	// problem on 32-bit machine
+	if len(b) != int(ikeMessageLength) {
+		return nil, errors.Errorf("ParseIkeHeader(): The length of received message " +
+			"not matchs the length specified in header")
+	}
+
+	ikeMessage := new(IKEMessage)
+
+	ikeMessage.InitiatorSPI = binary.BigEndian.Uint64(b[:8])
+	ikeMessage.ResponderSPI = binary.BigEndian.Uint64(b[8:16])
+	ikeMessage.MajorVersion = b[17] >> 4
+	ikeMessage.MinorVersion = b[17] & 0x0F
+	ikeMessage.ExchangeType = b[18]
+	ikeMessage.Flags = b[19]
+	ikeMessage.MessageID = binary.BigEndian.Uint32(b[20:24])
+	ikeMessage.NextPayload = b[16]
+
+	return ikeMessage, nil
 }
 
 func GetSPI(b []byte) (uint64, uint64, error) {
@@ -57,35 +96,7 @@ func (ikeMessage *IKEMessage) Encode() ([]byte, error) {
 }
 
 func (ikeMessage *IKEMessage) Decode(b []byte) error {
-	// IKE message packet format this implementation referenced is
-	// defined in RFC 7296, Section 3.1
-	// bounds checking
-	if len(b) < IKE_HEADER_LEN {
-		return errors.Errorf("Decode(): Received broken IKE header")
-	}
-	ikeMessageLength := binary.BigEndian.Uint32(b[24:IKE_HEADER_LEN])
-	if ikeMessageLength < uint32(IKE_HEADER_LEN) {
-		return errors.Errorf("Decode(): Illegal IKE message length %d < header length %d",
-			ikeMessageLength, IKE_HEADER_LEN)
-	}
-	// len() return int, which is 64 bit on 64-bit host and 32 bit
-	// on 32-bit host, so this implementation may potentially cause
-	// problem on 32-bit machine
-	if len(b) != int(ikeMessageLength) {
-		return errors.Errorf("Decode(): The length of received message not matchs the length specified in header")
-	}
-
-	nextPayload := b[16]
-
-	ikeMessage.InitiatorSPI = binary.BigEndian.Uint64(b[:8])
-	ikeMessage.ResponderSPI = binary.BigEndian.Uint64(b[8:16])
-	ikeMessage.MajorVersion = b[17] >> 4
-	ikeMessage.MinorVersion = b[17] & 0x0F
-	ikeMessage.ExchangeType = b[18]
-	ikeMessage.Flags = b[19]
-	ikeMessage.MessageID = binary.BigEndian.Uint32(b[20:24])
-
-	err := ikeMessage.Payloads.Decode(nextPayload, b[IKE_HEADER_LEN:])
+	err := ikeMessage.Payloads.Decode(ikeMessage.NextPayload, b)
 	if err != nil {
 		return errors.Errorf("Decode(): DecodePayload failed: %+v", err)
 	}
