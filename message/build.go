@@ -14,6 +14,7 @@ func (ikeMessage *IKEMessage) BuildIKEHeader(
 	flags uint8,
 	messageID uint32,
 ) {
+	ikeMessage.IKEHeader = new(IKEHeader)
 	ikeMessage.InitiatorSPI = initiatorSPI
 	ikeMessage.ResponderSPI = responsorSPI
 	ikeMessage.MajorVersion = 2

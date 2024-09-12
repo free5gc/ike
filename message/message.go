@@ -20,11 +20,11 @@ type IKEHeader struct {
 }
 
 type IKEMessage struct {
-	IKEHeader
+	*IKEHeader
 	Payloads IKEPayloadContainer
 }
 
-func ParseIkeHeader(b []byte) (*IKEMessage, error) {
+func ParseIkeHeader(b []byte) (*IKEHeader, error) {
 	// IKE message packet format this implementation referenced is
 	// defined in RFC 7296, Section 3.1
 	// bounds checking
@@ -44,18 +44,18 @@ func ParseIkeHeader(b []byte) (*IKEMessage, error) {
 			"not matchs the length specified in header")
 	}
 
-	ikeMessage := new(IKEMessage)
+	ikeHeader := new(IKEHeader)
 
-	ikeMessage.InitiatorSPI = binary.BigEndian.Uint64(b[:8])
-	ikeMessage.ResponderSPI = binary.BigEndian.Uint64(b[8:16])
-	ikeMessage.MajorVersion = b[17] >> 4
-	ikeMessage.MinorVersion = b[17] & 0x0F
-	ikeMessage.ExchangeType = b[18]
-	ikeMessage.Flags = b[19]
-	ikeMessage.MessageID = binary.BigEndian.Uint32(b[20:24])
-	ikeMessage.NextPayload = b[16]
+	ikeHeader.InitiatorSPI = binary.BigEndian.Uint64(b[:8])
+	ikeHeader.ResponderSPI = binary.BigEndian.Uint64(b[8:16])
+	ikeHeader.MajorVersion = b[17] >> 4
+	ikeHeader.MinorVersion = b[17] & 0x0F
+	ikeHeader.ExchangeType = b[18]
+	ikeHeader.Flags = b[19]
+	ikeHeader.MessageID = binary.BigEndian.Uint32(b[20:24])
+	ikeHeader.NextPayload = b[16]
 
-	return ikeMessage, nil
+	return ikeHeader, nil
 }
 
 func GetSPI(b []byte) (uint64, uint64, error) {
@@ -96,9 +96,24 @@ func (ikeMessage *IKEMessage) Encode() ([]byte, error) {
 }
 
 func (ikeMessage *IKEMessage) Decode(b []byte) error {
-	err := ikeMessage.Payloads.Decode(ikeMessage.NextPayload, b)
+	var err error
+	ikeMessage.IKEHeader, err = ParseIkeHeader(b)
+	if err != nil {
+		return errors.Wrapf(err, "Decode()")
+	}
+
+	err = ikeMessage.DecodePayload(b[IKE_HEADER_LEN:])
 	if err != nil {
 		return errors.Errorf("Decode(): DecodePayload failed: %+v", err)
+	}
+
+	return nil
+}
+
+func (ikeMessage *IKEMessage) DecodePayload(b []byte) error {
+	err := ikeMessage.Payloads.Decode(ikeMessage.NextPayload, b)
+	if err != nil {
+		return errors.Errorf("DecodePayload(): DecodePayload failed: %+v", err)
 	}
 
 	return nil

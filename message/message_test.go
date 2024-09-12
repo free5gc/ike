@@ -464,7 +464,7 @@ func TestDecode(t *testing.T) {
 			},
 			expErr: false,
 			expIkeMsg: &IKEMessage{
-				IKEHeader: IKEHeader{
+				IKEHeader: &IKEHeader{
 					InitiatorSPI: 0x000000000006f708,
 					ResponderSPI: 0xc9e2e31f8b64053d,
 					MajorVersion: 2,
@@ -497,10 +497,9 @@ func TestDecode(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			ikeMsg, err := ParseIkeHeader(tc.b)
-			require.NoError(t, err)
+			ikeMsg := new(IKEMessage)
 
-			err = ikeMsg.Decode(tc.b[IKE_HEADER_LEN:])
+			err := ikeMsg.Decode(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

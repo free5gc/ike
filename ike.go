@@ -29,25 +29,37 @@ func EncodeEncrypt(
 // and get IKESA
 func DecodeDecrypt(
 	msg []byte,
-	ikeMsg *message.IKEMessage,
+	ikeHeader *message.IKEHeader,
 	ikesaKey *security.IKESAKey,
 	role message.Role,
-) error {
-	err := ikeMsg.Decode(msg[message.IKE_HEADER_LEN:])
-	if err != nil {
-		return errors.Wrapf(err, "IKE decode")
-	}
-	if ikeMsg.Payloads[0].Type() == message.TypeSK {
-		if ikesaKey == nil {
-			return errors.Errorf("IKE decode decrypt: need ikesaKey to decrypt")
-		}
-		err = decryptMsg(msg, ikeMsg, ikesaKey, role)
+) (*message.IKEMessage, error) {
+	ikeMsg := new(message.IKEMessage)
+	var err error
+
+	if ikeHeader == nil {
+		err = ikeMsg.Decode(msg)
 		if err != nil {
-			return errors.Wrapf(err, "IKE decode decrypt")
+			return nil, errors.Wrapf(err, "DecodeDecrypt()")
+		}
+	} else {
+		ikeMsg.IKEHeader = ikeHeader
+		err = ikeMsg.DecodePayload(msg[message.IKE_HEADER_LEN:])
+		if err != nil {
+			return nil, errors.Wrapf(err, "DecodeDecrypt()")
 		}
 	}
 
-	return nil
+	if ikeMsg.Payloads[0].Type() == message.TypeSK {
+		if ikesaKey == nil {
+			return nil, errors.Errorf("IKE decode decrypt: need ikesaKey to decrypt")
+		}
+		ikeMsg, err = decryptMsg(msg, ikeMsg, ikesaKey, role)
+		if err != nil {
+			return nil, errors.Wrapf(err, "IKE decode decrypt")
+		}
+	}
+
+	return ikeMsg, nil
 }
 
 func verifyIntegrity(
@@ -147,31 +159,31 @@ func decryptMsg(
 	ikeMsg *message.IKEMessage,
 	ikesaKey *security.IKESAKey,
 	role message.Role,
-) error {
+) (*message.IKEMessage, error) {
 	// Check parameters
 	if ikesaKey == nil {
-		return errors.Errorf("decryptMsg(): IKE SA is nil")
+		return nil, errors.Errorf("decryptMsg(): IKE SA is nil")
 	}
 	if msg == nil {
-		return errors.Errorf("decryptMsg(): msg is nil")
+		return nil, errors.Errorf("decryptMsg(): msg is nil")
 	}
 	if ikeMsg == nil {
-		return errors.Errorf("decryptMsg(): IKE encrypted payload is nil")
+		return nil, errors.Errorf("decryptMsg(): IKE encrypted payload is nil")
 	}
 
 	// Check if the context contain needed data
 	if ikesaKey.IntegInfo == nil {
-		return errors.Errorf("decryptMsg(): No integrity algorithm specified")
+		return nil, errors.Errorf("decryptMsg(): No integrity algorithm specified")
 	}
 	if ikesaKey.EncrInfo == nil {
-		return errors.Errorf("decryptMsg(): No encryption algorithm specified")
+		return nil, errors.Errorf("decryptMsg(): No encryption algorithm specified")
 	}
 
 	if ikesaKey.Integ_i == nil {
-		return errors.Errorf("decryptMsg(): No initiator's integrity key")
+		return nil, errors.Errorf("decryptMsg(): No initiator's integrity key")
 	}
 	if ikesaKey.Encr_i == nil {
-		return errors.Errorf("decryptMsg(): No initiator's encryption key")
+		return nil, errors.Errorf("decryptMsg(): No initiator's encryption key")
 	}
 
 	var encryptedPayload *message.Encrypted
@@ -180,7 +192,7 @@ func decryptMsg(
 		case message.TypeSK:
 			encryptedPayload = ikePayload.(*message.Encrypted)
 		default:
-			return errors.Errorf(
+			return nil, errors.Errorf(
 				"Get IKE payload (type %d), this payload will not be decode",
 				ikePayload.Type())
 		}
@@ -192,25 +204,25 @@ func decryptMsg(
 
 	err := verifyIntegrity(msg[:len(msg)-checksumLength], checksum, ikesaKey, !role)
 	if err != nil {
-		return errors.Wrapf(err, "decryptMsg(): verify integrity")
+		return nil, errors.Wrapf(err, "decryptMsg(): verify integrity")
 	}
 
 	// Decrypt
 	encryptedData := encryptedPayload.EncryptedData[:len(encryptedPayload.EncryptedData)-checksumLength]
 	plainText, err := decryptPayload(encryptedData, ikesaKey, role)
 	if err != nil {
-		return errors.Wrapf(err, "decryptMsg(): Error decrypting message")
+		return nil, errors.Wrapf(err, "decryptMsg(): Error decrypting message")
 	}
 
 	var decryptedPayloads message.IKEPayloadContainer
 	err = decryptedPayloads.Decode(encryptedPayload.NextPayload, plainText)
 	if err != nil {
-		return errors.Wrapf(err, "decryptMsg(): Decoding decrypted payload failed")
+		return nil, errors.Wrapf(err, "decryptMsg(): Decoding decrypted payload failed")
 	}
 
 	ikeMsg.Payloads.Reset()
 	ikeMsg.Payloads = append(ikeMsg.Payloads, decryptedPayloads...)
-	return nil
+	return ikeMsg, nil
 }
 
 func encryptMsg(
