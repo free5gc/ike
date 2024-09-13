@@ -8,6 +8,7 @@ import (
 	"hash"
 	"io"
 	"math/big"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -97,13 +98,17 @@ type IKESAKey struct {
 }
 
 func (ikesaKey *IKESAKey) String() string {
-	return "\nSK_d : " + hex.EncodeToString(ikesaKey.SK_d) +
-		"\nSK_ai: " + hex.EncodeToString(ikesaKey.SK_ai) +
-		"\nSK_ar: " + hex.EncodeToString(ikesaKey.SK_ar) +
+	return "\nEncryption Algorithm: " +
+		strconv.FormatUint(uint64(ikesaKey.EncrInfo.TransformID()), 10) +
 		"\nSK_ei: " + hex.EncodeToString(ikesaKey.SK_ei) +
 		"\nSK_er: " + hex.EncodeToString(ikesaKey.SK_er) +
+		"\nIntegrity Algorithm: " +
+		strconv.FormatUint(uint64(ikesaKey.IntegInfo.TransformID()), 10) +
+		"\nSK_ai: " + hex.EncodeToString(ikesaKey.SK_ai) +
+		"\nSK_ar: " + hex.EncodeToString(ikesaKey.SK_ar) +
 		"\nSK_pi: " + hex.EncodeToString(ikesaKey.SK_pi) +
-		"\nSK_pr: " + hex.EncodeToString(ikesaKey.SK_pr) + "\n"
+		"\nSK_pr: " + hex.EncodeToString(ikesaKey.SK_pr) +
+		"\nSK_d : " + hex.EncodeToString(ikesaKey.SK_d) + "\n"
 }
 
 func (ikesaKey *IKESAKey) ToProposal() *message.Proposal {
