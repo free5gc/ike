@@ -49,8 +49,12 @@ func (t *ENCR_AES_CBC) TransformID() uint16 {
 	return message.ENCR_AES_CBC
 }
 
-func (t *ENCR_AES_CBC) getAttribute() (bool, uint16, uint16, []byte) {
-	return true, message.AttributeTypeKeyLength, uint16(t.keyLength * 8), nil
+func (t *ENCR_AES_CBC) getAttribute() (bool, uint16, uint16, []byte, error) {
+	keyLengthBits := t.keyLength * 8
+	if keyLengthBits < 0 || keyLengthBits > 0xFFFF {
+		return false, 0, 0, nil, errors.Errorf("key length exceeds uint16 maximum value: %v", keyLengthBits)
+	}
+	return true, message.AttributeTypeKeyLength, uint16(keyLengthBits), nil, nil
 }
 
 func (t *ENCR_AES_CBC) GetKeyLength() int {
@@ -83,7 +87,8 @@ func (encr *ENCR_AES_CBC_Crypto) Encrypt(plainText []byte) ([]byte, error) {
 
 	// Slice
 	cipherText := make([]byte, aes.BlockSize+len(plainText))
-	initializationVector := cipherText[:aes.BlockSize]
+	initializationVector := make([]byte, aes.BlockSize)
+	initializationVector = append(initializationVector, cipherText[:aes.BlockSize]...)
 
 	// IV
 	_, err := io.ReadFull(rand.Reader, initializationVector)
@@ -104,7 +109,8 @@ func (encr *ENCR_AES_CBC_Crypto) Decrypt(cipherText []byte) ([]byte, error) {
 		return nil, errors.Errorf("ENCR_AES_CBC_Crypto: Length of cipher text is too short to decrypt")
 	}
 
-	initializationVector := cipherText[:aes.BlockSize]
+	initializationVector := make([]byte, aes.BlockSize)
+	initializationVector = append(initializationVector, cipherText[:aes.BlockSize]...)
 	encryptedMessage := cipherText[aes.BlockSize:]
 
 	if len(encryptedMessage)%aes.BlockSize != 0 {

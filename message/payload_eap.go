@@ -42,7 +42,11 @@ func (eap *EAP) marshal() ([]byte, error) {
 		eapData = append(eapData, eapTypeData...)
 	}
 
-	binary.BigEndian.PutUint16(eapData[2:4], uint16(len(eapData)))
+	eapDataLen := len(eapData)
+	if eapDataLen > 0xFFFF {
+		return nil, errors.Errorf("EAP: eapData length exceeds uint16 limit: %d", eapDataLen)
+	}
+	binary.BigEndian.PutUint16(eapData[2:4], uint16(eapDataLen))
 	return eapData, nil
 }
 

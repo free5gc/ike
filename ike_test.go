@@ -340,10 +340,11 @@ func TestDecodeDecrypt(t *testing.T) {
 		},
 	}
 
-	var err error
-
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
+			var err error
+			var ikeMsg *message.IKEMessage
+
 			if len(tc.sk_ai) > 0 {
 				tc.ikeSAKey.Integ_i = tc.ikeSAKey.IntegInfo.Init(tc.sk_ai)
 			}
@@ -361,7 +362,7 @@ func TestDecodeDecrypt(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			ikeMsg, err := DecodeDecrypt(tc.b, nil, tc.ikeSAKey, message.Role_Responder)
+			ikeMsg, err = DecodeDecrypt(tc.b, nil, tc.ikeSAKey, message.Role_Responder)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

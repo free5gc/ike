@@ -54,7 +54,11 @@ func (securityAssociation *SecurityAssociation) marshal() ([]byte, error) {
 		proposalData[4] = proposal.ProposalNumber
 		proposalData[5] = proposal.ProtocolID
 
-		proposalData[6] = uint8(len(proposal.SPI))
+		numberofSPI := len(proposal.SPI)
+		if numberofSPI > 0xFF {
+			return nil, errors.Errorf("Proposal: Too many SPI: %d", numberofSPI)
+		}
+		proposalData[6] = uint8(numberofSPI)
 		if len(proposal.SPI) > 0 {
 			proposalData = append(proposalData, proposal.SPI...)
 		}
@@ -70,7 +74,12 @@ func (securityAssociation *SecurityAssociation) marshal() ([]byte, error) {
 		if len(transformList) == 0 {
 			return nil, errors.Errorf("One proposal has no any transform")
 		}
-		proposalData[7] = uint8(len(transformList))
+
+		transformListCount := len(transformList)
+		if transformListCount > 0xFF {
+			return nil, errors.Errorf("Transform: Too many transform: %d", transformListCount)
+		}
+		proposalData[7] = uint8(transformListCount)
 
 		proposalTransformData := make([]byte, 0)
 
@@ -96,7 +105,11 @@ func (securityAssociation *SecurityAssociation) marshal() ([]byte, error) {
 					}
 					attributeFormatAndType := ((uint16(transform.AttributeFormat) & 0x1) << 15) | transform.AttributeType
 					binary.BigEndian.PutUint16(attributeData[0:2], attributeFormatAndType)
-					binary.BigEndian.PutUint16(attributeData[2:4], uint16(len(transform.VariableLengthAttributeValue)))
+					variableLen := len(transform.VariableLengthAttributeValue)
+					if variableLen > 0xFFFF {
+						return nil, errors.Errorf("VariableLengthAttributeValue length exceeds uint16 limit: %d", variableLen)
+					}
+					binary.BigEndian.PutUint16(attributeData[2:4], uint16(variableLen))
 					attributeData = append(attributeData, transform.VariableLengthAttributeValue...)
 				} else {
 					// TV
@@ -107,14 +120,21 @@ func (securityAssociation *SecurityAssociation) marshal() ([]byte, error) {
 
 				transformData = append(transformData, attributeData...)
 			}
-
-			binary.BigEndian.PutUint16(transformData[2:4], uint16(len(transformData)))
+			transformDataLen := len(transformData)
+			if transformDataLen > 0xFFFF {
+				return nil, errors.Errorf("Transform: transformData length exceeds uint16 limit: %d", transformDataLen)
+			}
+			binary.BigEndian.PutUint16(transformData[2:4], uint16(transformDataLen))
 
 			proposalTransformData = append(proposalTransformData, transformData...)
 		}
 
 		proposalData = append(proposalData, proposalTransformData...)
-		binary.BigEndian.PutUint16(proposalData[2:4], uint16(len(proposalData)))
+		proposalDataLen := len(proposalData)
+		if proposalDataLen > 0xFFFF {
+			return nil, errors.Errorf("Proposal: proposalData length exceeds uint16 limit: %d", proposalDataLen)
+		}
+		binary.BigEndian.PutUint16(proposalData[2:4], uint16(proposalDataLen))
 
 		securityAssociationData = append(securityAssociationData, proposalData...)
 	}

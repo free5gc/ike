@@ -1,6 +1,8 @@
 package encr
 
 import (
+	"github.com/pkg/errors"
+
 	"github.com/free5gc/ike/message"
 	ikeCrypto "github.com/free5gc/ike/security/IKECrypto"
 )
@@ -64,7 +66,7 @@ func DecodeTransform(transform *message.Transform) ENCRType {
 	if f, ok := encrString[transform.TransformID]; ok {
 		s := f(transform.AttributeType, transform.AttributeValue, transform.VariableLengthAttributeValue)
 		if s != "" {
-			if encrType, ok := encrTypes[s]; ok {
+			if encrType, ok2 := encrTypes[s]; ok2 {
 				return encrType
 			} else {
 				return nil
@@ -77,22 +79,27 @@ func DecodeTransform(transform *message.Transform) ENCRType {
 	}
 }
 
-func ToTransform(encrType ENCRType) *message.Transform {
+func ToTransform(encrType ENCRType) (*message.Transform, error) {
 	t := new(message.Transform)
+	var err error
 	t.TransformType = message.TypeEncryptionAlgorithm
 	t.TransformID = encrType.TransformID()
-	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = encrType.getAttribute()
+	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue,
+		err = encrType.getAttribute()
+	if err != nil {
+		return nil, errors.Wrapf(err, "ToTransform")
+	}
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
 		t.AttributeFormat = message.AttributeFormatUseTV
 	}
-	return t
+	return t, nil
 }
 
 func DecodeTransformChildSA(transform *message.Transform) ENCRKType {
 	if f, ok := encrString[transform.TransformID]; ok {
 		s := f(transform.AttributeType, transform.AttributeValue, transform.VariableLengthAttributeValue)
 		if s != "" {
-			if encrKType, ok := encrKTypes[s]; ok {
+			if encrKType, ok2 := encrKTypes[s]; ok2 {
 				return encrKType
 			} else {
 				return nil
@@ -105,26 +112,31 @@ func DecodeTransformChildSA(transform *message.Transform) ENCRKType {
 	}
 }
 
-func ToTransformChildSA(encrKType ENCRKType) *message.Transform {
+func ToTransformChildSA(encrKType ENCRKType) (*message.Transform, error) {
 	t := new(message.Transform)
+	var err error
 	t.TransformType = message.TypeEncryptionAlgorithm
 	t.TransformID = encrKType.TransformID()
-	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = encrKType.getAttribute()
+	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue,
+		err = encrKType.getAttribute()
+	if err != nil {
+		return nil, errors.Wrapf(err, "ToTransformChildSA")
+	}
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
 		t.AttributeFormat = 1 // TV
 	}
-	return t
+	return t, nil
 }
 
 type ENCRType interface {
 	TransformID() uint16
-	getAttribute() (bool, uint16, uint16, []byte)
+	getAttribute() (bool, uint16, uint16, []byte, error)
 	GetKeyLength() int
 	NewCrypto(key []byte) (ikeCrypto.IKECrypto, error)
 }
 
 type ENCRKType interface {
 	TransformID() uint16
-	getAttribute() (bool, uint16, uint16, []byte)
+	getAttribute() (bool, uint16, uint16, []byte, error)
 	GetKeyLength() int
 }

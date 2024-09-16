@@ -58,17 +58,6 @@ func ParseIkeHeader(b []byte) (*IKEHeader, error) {
 	return ikeHeader, nil
 }
 
-func GetSPI(b []byte) (uint64, uint64, error) {
-	if len(b) < IKE_HEADER_LEN {
-		return 0, 0, errors.Errorf("packet len(%d) is not enough", len(b))
-	}
-
-	var initiatorSPI, responderSPI uint64
-	binary.BigEndian.PutUint64(b[0:8], initiatorSPI)
-	binary.BigEndian.PutUint64(b[8:16], responderSPI)
-	return initiatorSPI, responderSPI, nil
-}
-
 func (ikeMessage *IKEMessage) Encode() ([]byte, error) {
 	ikeMessageData := make([]byte, IKE_HEADER_LEN)
 
@@ -91,7 +80,11 @@ func (ikeMessage *IKEMessage) Encode() ([]byte, error) {
 	}
 
 	ikeMessageData = append(ikeMessageData, ikeMessagePayloadData...)
-	binary.BigEndian.PutUint32(ikeMessageData[24:IKE_HEADER_LEN], uint32(len(ikeMessageData)))
+	ikeMsgDataLen := len(ikeMessageData)
+	if ikeMsgDataLen > 0xFFFFFFFF {
+		return nil, errors.Errorf("Encode(): ikeMessageData length exceeds uint32 limit: %d", ikeMsgDataLen)
+	}
+	binary.BigEndian.PutUint32(ikeMessageData[24:IKE_HEADER_LEN], uint32(ikeMsgDataLen))
 	return ikeMessageData, nil
 }
 
@@ -142,7 +135,11 @@ func (container *IKEPayloadContainer) Encode() ([]byte, error) {
 		}
 
 		payloadData = append(payloadData, data...)
-		binary.BigEndian.PutUint16(payloadData[2:4], uint16(len(payloadData)))
+		payloadDataLen := len(payloadData)
+		if payloadDataLen > 0xFFFF {
+			return nil, errors.Errorf("EncodePayload(): payloadData length exceeds uint16 limit: %d", payloadDataLen)
+		}
+		binary.BigEndian.PutUint16(payloadData[2:4], uint16(payloadDataLen))
 
 		ikeMessagePayloadData = append(ikeMessagePayloadData, payloadData...)
 	}

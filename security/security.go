@@ -111,14 +111,18 @@ func (ikesaKey *IKESAKey) String() string {
 		"\nSK_d : " + hex.EncodeToString(ikesaKey.SK_d) + "\n"
 }
 
-func (ikesaKey *IKESAKey) ToProposal() *message.Proposal {
+func (ikesaKey *IKESAKey) ToProposal() (*message.Proposal, error) {
 	p := new(message.Proposal)
 	p.ProtocolID = message.TypeIKE
 	p.DiffieHellmanGroup = append(p.DiffieHellmanGroup, dh.ToTransform(ikesaKey.DhInfo))
 	p.PseudorandomFunction = append(p.PseudorandomFunction, prf.ToTransform(ikesaKey.PrfInfo))
-	p.EncryptionAlgorithm = append(p.EncryptionAlgorithm, encr.ToTransform(ikesaKey.EncrInfo))
+	encrTranform, err := encr.ToTransform(ikesaKey.EncrInfo)
+	if err != nil {
+		return nil, errors.Wrapf(err, "IKESAKey ToProposal")
+	}
+	p.EncryptionAlgorithm = append(p.EncryptionAlgorithm, encrTranform)
 	p.IntegrityAlgorithm = append(p.IntegrityAlgorithm, integ.ToTransform(ikesaKey.IntegInfo))
-	return p
+	return p, nil
 }
 
 // return IKESAKey and local public value
@@ -317,18 +321,22 @@ type ChildSAKey struct {
 	ResponderToInitiatorIntegrityKey  []byte
 }
 
-func (childsaKey *ChildSAKey) ToProposal() *message.Proposal {
+func (childsaKey *ChildSAKey) ToProposal() (*message.Proposal, error) {
 	p := new(message.Proposal)
 	p.ProtocolID = message.TypeESP
 	if childsaKey.DhInfo != nil {
 		p.DiffieHellmanGroup = append(p.DiffieHellmanGroup, dh.ToTransform(childsaKey.DhInfo))
 	}
-	p.EncryptionAlgorithm = append(p.EncryptionAlgorithm, encr.ToTransformChildSA(childsaKey.EncrKInfo))
+	encrKTransform, err := encr.ToTransformChildSA(childsaKey.EncrKInfo)
+	if err != nil {
+		return nil, errors.Wrapf(err, "ChildSAKey ToProposal")
+	}
+	p.EncryptionAlgorithm = append(p.EncryptionAlgorithm, encrKTransform)
 	if childsaKey.IntegKInfo != nil {
 		p.IntegrityAlgorithm = append(p.IntegrityAlgorithm, integ.ToTransformChildSA(childsaKey.IntegKInfo))
 	}
 	p.ExtendedSequenceNumbers = append(p.ExtendedSequenceNumbers, esn.ToTransform(childsaKey.EsnInfo))
-	return p
+	return p, nil
 }
 
 func NewChildSAKeyByProposal(proposal *message.Proposal) (*ChildSAKey, error) {

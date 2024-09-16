@@ -17,7 +17,13 @@ func (trafficSelector *TrafficSelectorResponder) Type() IKEPayloadType { return 
 func (trafficSelector *TrafficSelectorResponder) marshal() ([]byte, error) {
 	if len(trafficSelector.TrafficSelectors) > 0 {
 		trafficSelectorData := make([]byte, 4)
-		trafficSelectorData[0] = uint8(len(trafficSelector.TrafficSelectors))
+		selectorCount := len(trafficSelector.TrafficSelectors)
+
+		if selectorCount > 0xFF {
+			return nil, errors.Errorf("TrafficSelector: too many traffic selectors: %d", selectorCount)
+		}
+
+		trafficSelectorData[0] = uint8(selectorCount)
 
 		for _, individualTrafficSelector := range trafficSelector.TrafficSelectors {
 			if individualTrafficSelector.TSType == TS_IPV4_ADDR_RANGE {
@@ -39,7 +45,11 @@ func (trafficSelector *TrafficSelectorResponder) marshal() ([]byte, error) {
 				individualTrafficSelectorData = append(individualTrafficSelectorData, individualTrafficSelector.StartAddress...)
 				individualTrafficSelectorData = append(individualTrafficSelectorData, individualTrafficSelector.EndAddress...)
 
-				binary.BigEndian.PutUint16(individualTrafficSelectorData[2:4], uint16(len(individualTrafficSelectorData)))
+				dataLen := len(individualTrafficSelectorData)
+				if dataLen > 0xFFFF {
+					return nil, errors.Errorf("TrafficSelector: individualTrafficSelectorData length exceeds uint16 maximum value: %v", dataLen)
+				}
+				binary.BigEndian.PutUint16(individualTrafficSelectorData[2:4], uint16(dataLen))
 
 				trafficSelectorData = append(trafficSelectorData, individualTrafficSelectorData...)
 			} else if individualTrafficSelector.TSType == TS_IPV6_ADDR_RANGE {
@@ -61,7 +71,11 @@ func (trafficSelector *TrafficSelectorResponder) marshal() ([]byte, error) {
 				individualTrafficSelectorData = append(individualTrafficSelectorData, individualTrafficSelector.StartAddress...)
 				individualTrafficSelectorData = append(individualTrafficSelectorData, individualTrafficSelector.EndAddress...)
 
-				binary.BigEndian.PutUint16(individualTrafficSelectorData[2:4], uint16(len(individualTrafficSelectorData)))
+				dataLen := len(individualTrafficSelectorData)
+				if dataLen > 0xFFFF {
+					return nil, errors.Errorf("TrafficSelector: individualTrafficSelectorData length exceeds uint16 maximum value: %v", dataLen)
+				}
+				binary.BigEndian.PutUint16(individualTrafficSelectorData[2:4], uint16(dataLen))
 
 				trafficSelectorData = append(trafficSelectorData, individualTrafficSelectorData...)
 			} else {

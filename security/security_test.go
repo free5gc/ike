@@ -80,7 +80,8 @@ func TestIKEToProposal(t *testing.T) {
 		PrfInfo:   prfType,
 	}
 
-	proposal := ikesaKey.ToProposal()
+	proposal, err := ikesaKey.ToProposal()
+	require.NoError(t, err)
 
 	if len(proposal.DiffieHellmanGroup) != 1 ||
 		len(proposal.EncryptionAlgorithm) != 1 ||
@@ -100,7 +101,9 @@ func TestIKESetProposal(t *testing.T) {
 	proposal := new(message.Proposal)
 
 	proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, dh.ToTransform(dhType))
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, encr.ToTransform(encrType))
+	encrTranform, err := encr.ToTransform(encrType)
+	require.NoError(t, err)
+	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, encrTranform)
 	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, integ.ToTransform(integType))
 	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, prf.ToTransform(prfType))
 
@@ -286,7 +289,8 @@ func TestChildToProposal(t *testing.T) {
 		EsnInfo:    esnType,
 	}
 
-	proposal := childsaKey.ToProposal()
+	proposal, err := childsaKey.ToProposal()
+	require.NoError(t, err)
 
 	if len(proposal.DiffieHellmanGroup) != 1 ||
 		len(proposal.EncryptionAlgorithm) != 1 ||
@@ -307,7 +311,9 @@ func TestChildSetProposal(t *testing.T) {
 	proposal := new(message.Proposal)
 
 	proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, dh.ToTransform(dhType))
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, encr.ToTransformChildSA(encrKType))
+	encrKTranform, err := encr.ToTransformChildSA(encrKType)
+	require.NoError(t, err)
+	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, encrKTranform)
 	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, integ.ToTransformChildSA(integKType))
 	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, esn.ToTransform(esnType))
 
@@ -319,38 +325,4 @@ func TestChildSetProposal(t *testing.T) {
 		childsaKey.IntegKInfo == nil {
 		t.FailNow()
 	}
-}
-
-func TestGetSPI(t *testing.T) {
-	keys := &IKESAKey{
-		SK_d: []byte{
-			0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
-		},
-		SK_ai: []byte{
-			0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
-		},
-		SK_ar: []byte{
-			0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33,
-		},
-		SK_ei: []byte{
-			0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
-		},
-		SK_er: []byte{
-			0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
-		},
-		SK_pi: []byte{
-			0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
-		},
-		SK_pr: []byte{
-			0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77,
-		},
-	}
-	expectedStr := "\nSK_d : 1111111111111111" +
-		"\nSK_ai: 2222222222222222" +
-		"\nSK_ar: 3333333333333333" +
-		"\nSK_ei: 4444444444444444" +
-		"\nSK_er: 5555555555555555" +
-		"\nSK_pi: 6666666666666666" +
-		"\nSK_pr: 7777777777777777\n"
-	require.Equal(t, expectedStr, keys.String())
 }

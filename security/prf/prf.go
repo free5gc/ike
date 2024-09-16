@@ -47,7 +47,7 @@ func DecodeTransform(transform *message.Transform) PRFType {
 	if f, ok := prfString[transform.TransformID]; ok {
 		s := f(transform.AttributeType, transform.AttributeValue, transform.VariableLengthAttributeValue)
 		if s != "" {
-			if prfType, ok := prfTypes[s]; ok {
+			if prfType, ok2 := prfTypes[s]; ok2 {
 				return prfType
 			} else {
 				return nil

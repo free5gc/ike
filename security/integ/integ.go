@@ -73,7 +73,7 @@ func DecodeTransform(transform *message.Transform) INTEGType {
 	if f, ok := integString[transform.TransformID]; ok {
 		s := f(transform.AttributeType, transform.AttributeValue, transform.VariableLengthAttributeValue)
 		if s != "" {
-			if integType, ok := integTypes[s]; ok {
+			if integType, ok2 := integTypes[s]; ok2 {
 				return integType
 			} else {
 				return nil
@@ -101,7 +101,7 @@ func DecodeTransformChildSA(transform *message.Transform) INTEGKType {
 	if f, ok := integString[transform.TransformID]; ok {
 		s := f(transform.AttributeType, transform.AttributeValue, transform.VariableLengthAttributeValue)
 		if s != "" {
-			if integKType, ok := integKTypes[s]; ok {
+			if integKType, ok2 := integKTypes[s]; ok2 {
 				return integKType
 			} else {
 				return nil

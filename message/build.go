@@ -258,7 +258,11 @@ func (container *IKEPayloadContainer) BuildEAP5GNAS(identifier uint8, nasPDU []b
 	// Message ID
 	header[0] = EAP5GType5GNAS
 	// NASPDU length (2 octets)
-	binary.BigEndian.PutUint16(header[2:4], uint16(len(nasPDU)))
+	nasPDULen := len(nasPDU)
+	if nasPDULen > 0xFFFF {
+		return errors.Errorf("BuildEAP5GNAS(): nasPDU length exceeds uint16 limit: %d", nasPDULen)
+	}
+	binary.BigEndian.PutUint16(header[2:4], uint16(nasPDULen))
 	vendorData := append(header, nasPDU...)
 
 	eap := container.BuildEAP(EAPCodeRequest, identifier)
@@ -272,12 +276,16 @@ func (container *IKEPayloadContainer) BuildNotify5G_QOS_INFO(
 	isDefault bool,
 	isDSCPSpecified bool,
 	DSCP uint8,
-) {
+) error {
 	notifyData := make([]byte, 1) // For length
 	// Append PDU session ID
 	notifyData = append(notifyData, pduSessionID)
 	// Append QFI list length
-	notifyData = append(notifyData, uint8(len(qfiList)))
+	qfiListLen := len(qfiList)
+	if qfiListLen > 0xFF {
+		return errors.Errorf("BuildNotify5G_QOS_INFO(): qfiList is too long")
+	}
+	notifyData = append(notifyData, uint8(qfiListLen))
 	// Append QFI list
 	notifyData = append(notifyData, qfiList...)
 	// Append default and differentiated service flags
@@ -295,9 +303,14 @@ func (container *IKEPayloadContainer) BuildNotify5G_QOS_INFO(
 	}
 
 	// Assign length
-	notifyData[0] = uint8(len(notifyData))
+	notifyDataLen := len(notifyData)
+	if notifyDataLen > 0xFF {
+		return errors.Errorf("BuildNotify5G_QOS_INFO(): notifyData is too long")
+	}
+	notifyData[0] = uint8(notifyDataLen)
 
 	container.BuildNotification(TypeNone, Vendor3GPPNotifyType5G_QOS_INFO, nil, notifyData)
+	return nil
 }
 
 func (container *IKEPayloadContainer) BuildNotifyNAS_IP4_ADDRESS(nasIPAddr string) {

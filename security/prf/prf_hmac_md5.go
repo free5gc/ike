@@ -2,7 +2,7 @@ package prf
 
 import (
 	"crypto/hmac"
-	"crypto/md5"
+	"crypto/md5" // #nosec G501
 	"hash"
 
 	"github.com/free5gc/ike/message"

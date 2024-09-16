@@ -30,7 +30,11 @@ func (configuration *Configuration) marshal() ([]byte, error) {
 		individualConfigurationAttributeData := make([]byte, 4)
 
 		binary.BigEndian.PutUint16(individualConfigurationAttributeData[0:2], (attribute.Type & 0x7fff))
-		binary.BigEndian.PutUint16(individualConfigurationAttributeData[2:4], uint16(len(attribute.Value)))
+		attributeLen := len(attribute.Value)
+		if attributeLen > 0xFFFF {
+			return nil, errors.Errorf("Configuration: attribute value length exceeds uint16 limit: %d", attributeLen)
+		}
+		binary.BigEndian.PutUint16(individualConfigurationAttributeData[2:4], uint16(attributeLen))
 
 		individualConfigurationAttributeData = append(individualConfigurationAttributeData, attribute.Value...)
 

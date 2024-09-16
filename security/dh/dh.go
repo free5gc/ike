@@ -59,7 +59,7 @@ func DecodeTransform(transform *message.Transform) DHType {
 	if f, ok := dhString[transform.TransformID]; ok {
 		s := f(transform.AttributeType, transform.AttributeValue, transform.VariableLengthAttributeValue)
 		if s != "" {
-			if dhType, ok := dhTypes[s]; ok {
+			if dhType, ok2 := dhTypes[s]; ok2 {
 				return dhType
 			} else {
 				return nil

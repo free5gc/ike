@@ -21,7 +21,11 @@ func (notification *Notification) marshal() ([]byte, error) {
 	notificationData := make([]byte, 4)
 
 	notificationData[0] = notification.ProtocolID
-	notificationData[1] = uint8(len(notification.SPI))
+	numberofSPI := len(notification.SPI)
+	if numberofSPI > 0xFF {
+		return nil, errors.Errorf("Notification: Number of SPI exceeds uint8 limit: %d", numberofSPI)
+	}
+	notificationData[1] = uint8(numberofSPI)
 	binary.BigEndian.PutUint16(notificationData[2:4], notification.NotifyMessageType)
 
 	notificationData = append(notificationData, notification.SPI...)
