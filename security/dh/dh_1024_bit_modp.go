@@ -32,7 +32,7 @@ type DH_1024_BIT_MODP struct {
 	factorBytesLength int
 }
 
-func (t *DH_1024_BIT_MODP) transformID() uint16 {
+func (t *DH_1024_BIT_MODP) TransformID() uint16 {
 	return message.DH_1024_BIT_MODP
 }
 

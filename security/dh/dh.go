@@ -75,7 +75,7 @@ func DecodeTransform(transform *message.Transform) DHType {
 func ToTransform(dhType DHType) *message.Transform {
 	t := new(message.Transform)
 	t.TransformType = message.TypeDiffieHellmanGroup
-	t.TransformID = dhType.transformID()
+	t.TransformID = dhType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = dhType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
 		t.AttributeFormat = message.AttributeFormatUseTV
@@ -84,7 +84,7 @@ func ToTransform(dhType DHType) *message.Transform {
 }
 
 type DHType interface {
-	transformID() uint16
+	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
 	GetSharedKey(secret, peerPublicValue *big.Int) []byte
 	GetPublicValue(secret *big.Int) []byte

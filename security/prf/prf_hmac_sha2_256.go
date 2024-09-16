@@ -21,7 +21,7 @@ type PRF_HMAC_SHA2_256 struct {
 	outputLength int
 }
 
-func (t *PRF_HMAC_SHA2_256) transformID() uint16 {
+func (t *PRF_HMAC_SHA2_256) TransformID() uint16 {
 	return message.PRF_HMAC_SHA2_256
 }
 

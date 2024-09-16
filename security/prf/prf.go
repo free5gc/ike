@@ -63,7 +63,7 @@ func DecodeTransform(transform *message.Transform) PRFType {
 func ToTransform(prfType PRFType) *message.Transform {
 	t := new(message.Transform)
 	t.TransformType = message.TypePseudorandomFunction
-	t.TransformID = prfType.transformID()
+	t.TransformID = prfType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = prfType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
 		t.AttributeFormat = message.AttributeFormatUseTV
@@ -72,7 +72,7 @@ func ToTransform(prfType PRFType) *message.Transform {
 }
 
 type PRFType interface {
-	transformID() uint16
+	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
 	GetKeyLength() int
 	GetOutputLength() int
