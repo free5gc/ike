@@ -158,7 +158,7 @@ func (container *IKEPayloadContainer) Decode(nextPayload uint8, b []byte) error 
 			return errors.Errorf("DecodePayload(): Illegal payload length %d < header length 4", payloadLength)
 		}
 		if len(b) < int(payloadLength) {
-			return errors.Errorf("DecodePayload(): The length of received message not matchs the length specified in header")
+			return errors.Errorf("DecodePayload(): The length of received message not matchs the length specified in header: %v", len(b))
 		}
 
 		criticalBit := (b[1] & 0x80) >> 7

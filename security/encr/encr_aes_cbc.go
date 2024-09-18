@@ -87,8 +87,7 @@ func (encr *ENCR_AES_CBC_Crypto) Encrypt(plainText []byte) ([]byte, error) {
 
 	// Slice
 	cipherText := make([]byte, aes.BlockSize+len(plainText))
-	initializationVector := make([]byte, aes.BlockSize)
-	initializationVector = append(initializationVector, cipherText[:aes.BlockSize]...)
+	initializationVector := cipherText[:aes.BlockSize]
 
 	// IV
 	_, err := io.ReadFull(rand.Reader, initializationVector)
@@ -97,7 +96,7 @@ func (encr *ENCR_AES_CBC_Crypto) Encrypt(plainText []byte) ([]byte, error) {
 	}
 
 	// Encryption
-	cbcBlockMode := cipher.NewCBCEncrypter(encr.block, initializationVector)
+	cbcBlockMode := cipher.NewCBCEncrypter(encr.block, initializationVector) // #nosec G407
 	cbcBlockMode.CryptBlocks(cipherText[aes.BlockSize:], plainText)
 
 	return cipherText, nil
@@ -110,7 +109,7 @@ func (encr *ENCR_AES_CBC_Crypto) Decrypt(cipherText []byte) ([]byte, error) {
 	}
 
 	initializationVector := make([]byte, aes.BlockSize)
-	initializationVector = append(initializationVector, cipherText[:aes.BlockSize]...)
+	initializationVector = cipherText[:aes.BlockSize]
 	encryptedMessage := cipherText[aes.BlockSize:]
 
 	if len(encryptedMessage)%aes.BlockSize != 0 {
@@ -121,7 +120,7 @@ func (encr *ENCR_AES_CBC_Crypto) Decrypt(cipherText []byte) ([]byte, error) {
 	plainText := make([]byte, len(encryptedMessage))
 
 	// Decryption
-	cbcBlockMode := cipher.NewCBCDecrypter(encr.block, initializationVector)
+	cbcBlockMode := cipher.NewCBCDecrypter(encr.block, initializationVector) // #nosec G407
 	cbcBlockMode.CryptBlocks(plainText, encryptedMessage)
 
 	// fmt.Printf("Decrypted content:\n%s", hex.Dump(plainText))
