@@ -108,8 +108,7 @@ func (encr *ENCR_AES_CBC_Crypto) Decrypt(cipherText []byte) ([]byte, error) {
 		return nil, errors.Errorf("ENCR_AES_CBC_Crypto: Length of cipher text is too short to decrypt")
 	}
 
-	initializationVector := make([]byte, aes.BlockSize)
-	initializationVector = cipherText[:aes.BlockSize]
+	initializationVector := cipherText[:aes.BlockSize]
 	encryptedMessage := cipherText[aes.BlockSize:]
 
 	if len(encryptedMessage)%aes.BlockSize != 0 {

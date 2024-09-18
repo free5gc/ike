@@ -168,13 +168,13 @@ func (container *ProposalContainer) BuildProposal(proposalNumber uint8, protocol
 }
 
 func (container *IKEPayloadContainer) BuildDeletePayload(
-	protocolID uint8, SPISize uint8, numberOfSPI uint16, SPIs []byte,
+	protocolID uint8, spiSize uint8, numberOfSPI uint16, spis []byte,
 ) {
 	deletePayload := new(Delete)
 	deletePayload.ProtocolID = protocolID
-	deletePayload.SPISize = SPISize
+	deletePayload.SPISize = spiSize
 	deletePayload.NumberOfSPI = numberOfSPI
-	deletePayload.SPIs = SPIs
+	deletePayload.SPIs = spis
 	*container = append(*container, deletePayload)
 }
 
@@ -252,7 +252,7 @@ func (container *IKEPayloadContainer) BuildEAP5GNAS(identifier uint8, nasPDU []b
 	if len(nasPDU) == 0 {
 		return errors.Errorf("BuildEAP5GNAS(): NASPDU is nil")
 	}
-
+	var vendorData []byte
 	header := make([]byte, 4)
 
 	// Message ID
@@ -263,7 +263,8 @@ func (container *IKEPayloadContainer) BuildEAP5GNAS(identifier uint8, nasPDU []b
 		return errors.Errorf("BuildEAP5GNAS(): nasPDU length exceeds uint16 limit: %d", nasPDULen)
 	}
 	binary.BigEndian.PutUint16(header[2:4], uint16(nasPDULen))
-	vendorData := append(header, nasPDU...)
+	vendorData = append(vendorData, header...)
+	vendorData = append(vendorData, nasPDU...)
 
 	eap := container.BuildEAP(EAPCodeRequest, identifier)
 	eap.EAPTypeData.BuildEAPExpanded(VendorID3GPP, VendorTypeEAP5G, vendorData)
@@ -275,7 +276,7 @@ func (container *IKEPayloadContainer) BuildNotify5G_QOS_INFO(
 	qfiList []uint8,
 	isDefault bool,
 	isDSCPSpecified bool,
-	DSCP uint8,
+	dscp uint8,
 ) error {
 	notifyData := make([]byte, 1) // For length
 	// Append PDU session ID
@@ -299,7 +300,7 @@ func (container *IKEPayloadContainer) BuildNotify5G_QOS_INFO(
 
 	notifyData = append(notifyData, defaultAndDifferentiatedServiceFlags)
 	if isDSCPSpecified {
-		notifyData = append(notifyData, DSCP)
+		notifyData = append(notifyData, dscp)
 	}
 
 	// Assign length

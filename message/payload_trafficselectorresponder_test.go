@@ -62,7 +62,7 @@ func TestTrafficSelectorResponderMarshal(t *testing.T) {
 		expErr      bool
 	}{
 		{
-			description: "Contains no traffic selector for marshalling message",
+			description: "Contains no traffic selector for marshaling message",
 			tsi:         TrafficSelectorResponder{},
 			expErr:      true,
 		},

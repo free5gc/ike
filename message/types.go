@@ -280,7 +280,7 @@ const (
 const (
 	EstablishmentCauseEmergency          = 0
 	EstablishmentCauseHighPriorityAccess = 1
-	EstablishmentCauseMO_Signalling      = 3
+	EstablishmentCauseMO_Signaling       = 3
 	EstablishmentCauseMO_Data            = 4
 	EstablishmentCauseMPS_PriorityAccess = 8
 	EstablishmentCauseMCS_PriorityAccess = 9

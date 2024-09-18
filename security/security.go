@@ -42,10 +42,8 @@ func GenerateRandomNumber() (*big.Int, error) {
 		number, err = rand.Int(rand.Reader, &randomNumberMaximum)
 		if err != nil {
 			return nil, errors.Errorf("GenerateRandomNumber(): Error occurs when generate random number: %+v", err)
-		} else {
-			if number.Cmp(&randomNumberMinimum) == 1 {
-				break
-			}
+		} else if number.Cmp(&randomNumberMinimum) == 1 {
+			break
 		}
 	}
 	return number, nil
@@ -60,12 +58,14 @@ func GenerateRandomUint8() (uint8, error) {
 	return number[0], nil
 }
 
-func concatenateNonceAndSPI(nonce []byte, SPI_initiator uint64, SPI_responder uint64) []byte {
+func concatenateNonceAndSPI(nonce []byte, spi_initiator uint64, spi_responder uint64) []byte {
+	var newSlice []byte
 	spi := make([]byte, 8)
 
-	binary.BigEndian.PutUint64(spi, SPI_initiator)
-	newSlice := append(nonce, spi...)
-	binary.BigEndian.PutUint64(spi, SPI_responder)
+	newSlice = append(newSlice, nonce...)
+	binary.BigEndian.PutUint64(spi, spi_initiator)
+	newSlice = append(newSlice, spi...)
+	binary.BigEndian.PutUint64(spi, spi_responder)
 	newSlice = append(newSlice, spi...)
 
 	return newSlice

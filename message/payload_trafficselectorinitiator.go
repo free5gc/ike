@@ -27,7 +27,7 @@ func (trafficSelector *TrafficSelectorInitiator) Type() IKEPayloadType { return 
 
 func (trafficSelector *TrafficSelectorInitiator) marshal() ([]byte, error) {
 	if len(trafficSelector.TrafficSelectors) == 0 {
-		return nil, errors.Errorf("TrafficSelector: Contains no traffic selector for marshalling message")
+		return nil, errors.Errorf("TrafficSelector: Contains no traffic selector for marshaling message")
 	}
 
 	trafficSelectorData := make([]byte, 4)
@@ -62,7 +62,8 @@ func (trafficSelector *TrafficSelectorInitiator) marshal() ([]byte, error) {
 
 			dataLen := len(individualTrafficSelectorData)
 			if dataLen > 0xFFFF {
-				return nil, errors.Errorf("TrafficSelector: individualTrafficSelectorData length exceeds uint16 maximum value: %v", dataLen)
+				return nil, errors.Errorf("TrafficSelector: individualTrafficSelectorData length exceeds uint16 "+
+					"maximum value: %v", dataLen)
 			}
 			binary.BigEndian.PutUint16(individualTrafficSelectorData[2:4], uint16(dataLen))
 
@@ -88,7 +89,8 @@ func (trafficSelector *TrafficSelectorInitiator) marshal() ([]byte, error) {
 
 			dataLen := len(individualTrafficSelectorData)
 			if dataLen > 0xFFFF {
-				return nil, errors.Errorf("TrafficSelector: individualTrafficSelectorData length exceeds uint16 maximum value: %v", dataLen)
+				return nil, errors.Errorf("TrafficSelector: individualTrafficSelectorData length exceeds uint16 "+
+					"maximum value: %v", dataLen)
 			}
 			binary.BigEndian.PutUint16(individualTrafficSelectorData[2:4], uint16(dataLen))
 
