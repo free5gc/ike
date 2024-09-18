@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"net"
 
-	"github.com/free5gc/ike/types"
+	"github.com/pkg/errors"
 )
 
 func (ikeMessage *IKEMessage) BuildIKEHeader(
@@ -14,9 +14,11 @@ func (ikeMessage *IKEMessage) BuildIKEHeader(
 	flags uint8,
 	messageID uint32,
 ) {
+	ikeMessage.IKEHeader = new(IKEHeader)
 	ikeMessage.InitiatorSPI = initiatorSPI
 	ikeMessage.ResponderSPI = responsorSPI
-	ikeMessage.Version = 0x20
+	ikeMessage.MajorVersion = 2
+	ikeMessage.MinorVersion = 0
 	ikeMessage.ExchangeType = exchangeType
 	ikeMessage.Flags = flags
 	ikeMessage.MessageID = messageID
@@ -47,7 +49,7 @@ func (container *IKEPayloadContainer) BuildCertificate(certificateEncode uint8, 
 	*container = append(*container, certificate)
 }
 
-func (container *IKEPayloadContainer) BuildEncrypted(nextPayload types.IKEPayloadType,
+func (container *IKEPayloadContainer) BuildEncrypted(nextPayload IKEPayloadType,
 	encryptedData []byte,
 ) *Encrypted {
 	encrypted := new(Encrypted)
@@ -165,6 +167,17 @@ func (container *ProposalContainer) BuildProposal(proposalNumber uint8, protocol
 	return proposal
 }
 
+func (container *IKEPayloadContainer) BuildDeletePayload(
+	protocolID uint8, spiSize uint8, numberOfSPI uint16, spis []byte,
+) {
+	deletePayload := new(Delete)
+	deletePayload.ProtocolID = protocolID
+	deletePayload.SPISize = spiSize
+	deletePayload.NumberOfSPI = numberOfSPI
+	deletePayload.SPIs = spis
+	*container = append(*container, deletePayload)
+}
+
 func (container *TransformContainer) Reset() {
 	*container = nil
 }
@@ -183,10 +196,10 @@ func (container *TransformContainer) BuildTransform(
 		transform.AttributePresent = true
 		transform.AttributeType = *attributeType
 		if attributeValue != nil {
-			transform.AttributeFormat = types.AttributeFormatUseTV
+			transform.AttributeFormat = AttributeFormatUseTV
 			transform.AttributeValue = *attributeValue
 		} else if len(variableLengthAttributeValue) != 0 {
-			transform.AttributeFormat = types.AttributeFormatUseTLV
+			transform.AttributeFormat = AttributeFormatUseTLV
 			transform.VariableLengthAttributeValue = append(
 				transform.VariableLengthAttributeValue,
 				variableLengthAttributeValue...)
@@ -209,14 +222,14 @@ func (container *IKEPayloadContainer) BuildEAP(code uint8, identifier uint8) *EA
 
 func (container *IKEPayloadContainer) BuildEAPSuccess(identifier uint8) {
 	eap := new(EAP)
-	eap.Code = types.EAPCodeSuccess
+	eap.Code = EAPCodeSuccess
 	eap.Identifier = identifier
 	*container = append(*container, eap)
 }
 
 func (container *IKEPayloadContainer) BuildEAPfailure(identifier uint8) {
 	eap := new(EAP)
-	eap.Code = types.EAPCodeFailure
+	eap.Code = EAPCodeFailure
 	eap.Identifier = identifier
 	*container = append(*container, eap)
 }
@@ -230,27 +243,32 @@ func (container *EAPTypeDataContainer) BuildEAPExpanded(vendorID uint32, vendorT
 }
 
 func (container *IKEPayloadContainer) BuildEAP5GStart(identifier uint8) {
-	eap := container.BuildEAP(types.EAPCodeRequest, identifier)
-	eap.EAPTypeData.BuildEAPExpanded(types.VendorID3GPP, types.VendorTypeEAP5G,
-		[]byte{types.EAP5GType5GStart, types.EAP5GSpareValue})
+	eap := container.BuildEAP(EAPCodeRequest, identifier)
+	eap.EAPTypeData.BuildEAPExpanded(VendorID3GPP, VendorTypeEAP5G,
+		[]byte{EAP5GType5GStart, EAP5GSpareValue})
 }
 
-func (container *IKEPayloadContainer) BuildEAP5GNAS(identifier uint8, nasPDU []byte) {
+func (container *IKEPayloadContainer) BuildEAP5GNAS(identifier uint8, nasPDU []byte) error {
 	if len(nasPDU) == 0 {
-		msgLog.Error("BuildEAP5GNAS(): NASPDU is nil")
-		return
+		return errors.Errorf("BuildEAP5GNAS(): NASPDU is nil")
 	}
-
+	var vendorData []byte
 	header := make([]byte, 4)
 
 	// Message ID
-	header[0] = types.EAP5GType5GNAS
+	header[0] = EAP5GType5GNAS
 	// NASPDU length (2 octets)
-	binary.BigEndian.PutUint16(header[2:4], uint16(len(nasPDU)))
-	vendorData := append(header, nasPDU...)
+	nasPDULen := len(nasPDU)
+	if nasPDULen > 0xFFFF {
+		return errors.Errorf("BuildEAP5GNAS(): nasPDU length exceeds uint16 limit: %d", nasPDULen)
+	}
+	binary.BigEndian.PutUint16(header[2:4], uint16(nasPDULen))
+	vendorData = append(vendorData, header...)
+	vendorData = append(vendorData, nasPDU...)
 
-	eap := container.BuildEAP(types.EAPCodeRequest, identifier)
-	eap.EAPTypeData.BuildEAPExpanded(types.VendorID3GPP, types.VendorTypeEAP5G, vendorData)
+	eap := container.BuildEAP(EAPCodeRequest, identifier)
+	eap.EAPTypeData.BuildEAPExpanded(VendorID3GPP, VendorTypeEAP5G, vendorData)
+	return nil
 }
 
 func (container *IKEPayloadContainer) BuildNotify5G_QOS_INFO(
@@ -258,33 +276,42 @@ func (container *IKEPayloadContainer) BuildNotify5G_QOS_INFO(
 	qfiList []uint8,
 	isDefault bool,
 	isDSCPSpecified bool,
-	DSCP uint8,
-) {
+	dscp uint8,
+) error {
 	notifyData := make([]byte, 1) // For length
 	// Append PDU session ID
 	notifyData = append(notifyData, pduSessionID)
 	// Append QFI list length
-	notifyData = append(notifyData, uint8(len(qfiList)))
+	qfiListLen := len(qfiList)
+	if qfiListLen > 0xFF {
+		return errors.Errorf("BuildNotify5G_QOS_INFO(): qfiList is too long")
+	}
+	notifyData = append(notifyData, uint8(qfiListLen))
 	// Append QFI list
 	notifyData = append(notifyData, qfiList...)
 	// Append default and differentiated service flags
 	var defaultAndDifferentiatedServiceFlags uint8
 	if isDefault {
-		defaultAndDifferentiatedServiceFlags |= types.NotifyType5G_QOS_INFOBitDCSICheck
+		defaultAndDifferentiatedServiceFlags |= NotifyType5G_QOS_INFOBitDCSICheck
 	}
 	if isDSCPSpecified {
-		defaultAndDifferentiatedServiceFlags |= types.NotifyType5G_QOS_INFOBitDSCPICheck
+		defaultAndDifferentiatedServiceFlags |= NotifyType5G_QOS_INFOBitDSCPICheck
 	}
 
 	notifyData = append(notifyData, defaultAndDifferentiatedServiceFlags)
 	if isDSCPSpecified {
-		notifyData = append(notifyData, DSCP)
+		notifyData = append(notifyData, dscp)
 	}
 
 	// Assign length
-	notifyData[0] = uint8(len(notifyData))
+	notifyDataLen := len(notifyData)
+	if notifyDataLen > 0xFF {
+		return errors.Errorf("BuildNotify5G_QOS_INFO(): notifyData is too long")
+	}
+	notifyData[0] = uint8(notifyDataLen)
 
-	container.BuildNotification(types.TypeNone, types.Vendor3GPPNotifyType5G_QOS_INFO, nil, notifyData)
+	container.BuildNotification(TypeNone, Vendor3GPPNotifyType5G_QOS_INFO, nil, notifyData)
+	return nil
 }
 
 func (container *IKEPayloadContainer) BuildNotifyNAS_IP4_ADDRESS(nasIPAddr string) {
@@ -292,7 +319,7 @@ func (container *IKEPayloadContainer) BuildNotifyNAS_IP4_ADDRESS(nasIPAddr strin
 		return
 	} else {
 		ipAddrByte := net.ParseIP(nasIPAddr).To4()
-		container.BuildNotification(types.TypeNone, types.Vendor3GPPNotifyTypeNAS_IP4_ADDRESS, nil, ipAddrByte)
+		container.BuildNotification(TypeNone, Vendor3GPPNotifyTypeNAS_IP4_ADDRESS, nil, ipAddrByte)
 	}
 }
 
@@ -301,7 +328,7 @@ func (container *IKEPayloadContainer) BuildNotifyUP_IP4_ADDRESS(upIPAddr string)
 		return
 	} else {
 		ipAddrByte := net.ParseIP(upIPAddr).To4()
-		container.BuildNotification(types.TypeNone, types.Vendor3GPPNotifyTypeUP_IP4_ADDRESS, nil, ipAddrByte)
+		container.BuildNotification(TypeNone, Vendor3GPPNotifyTypeUP_IP4_ADDRESS, nil, ipAddrByte)
 	}
 }
 
@@ -311,6 +338,6 @@ func (container *IKEPayloadContainer) BuildNotifyNAS_TCP_PORT(port uint16) {
 	} else {
 		portData := make([]byte, 2)
 		binary.BigEndian.PutUint16(portData, port)
-		container.BuildNotification(types.TypeNone, types.Vendor3GPPNotifyTypeNAS_TCP_PORT, nil, portData)
+		container.BuildNotification(TypeNone, Vendor3GPPNotifyTypeNAS_TCP_PORT, nil, portData)
 	}
 }

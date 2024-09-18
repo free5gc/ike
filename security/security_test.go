@@ -2,17 +2,19 @@ package security
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"testing"
 
-	"github.com/free5gc/ike/internal/dh"
-	"github.com/free5gc/ike/internal/encr"
-	"github.com/free5gc/ike/internal/esn"
-	"github.com/free5gc/ike/internal/integ"
-	"github.com/free5gc/ike/internal/prf"
+	"github.com/stretchr/testify/require"
+
 	"github.com/free5gc/ike/message"
-	"github.com/free5gc/ike/types"
+	"github.com/free5gc/ike/security/dh"
+	"github.com/free5gc/ike/security/encr"
+	"github.com/free5gc/ike/security/esn"
+	"github.com/free5gc/ike/security/integ"
+	"github.com/free5gc/ike/security/prf"
 )
 
 func TestGenerateRandomNumber(t *testing.T) {
@@ -22,7 +24,8 @@ func TestGenerateRandomNumber(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) {
-			num := GenerateRandomNumber()
+			num, err := GenerateRandomNumber()
+			require.NoError(t, err)
 			if num == nil {
 				fmt.Print("Generate random number failed.")
 			} else {
@@ -64,210 +67,21 @@ func TestConcatenateNonceAndSPI(t *testing.T) {
 	}
 }
 
-func TestIKESelectProposal(t *testing.T) {
-	// Types' pointers
-	dhType1 := dh.StrToType("DH_1024_BIT_MODP")
-	dhType2 := dh.StrToType("DH_2048_BIT_MODP")
-	// encrType1 := encr.StrToType("ENCR_AES_CBC_128")
-	// encrType2 := encr.StrToType("ENCR_AES_CBC_192")
-	encrType3 := encr.StrToType("ENCR_AES_CBC_256")
-	// integType1 := integ.StrToType("AUTH_HMAC_MD5_96")
-	integType2 := integ.StrToType("AUTH_HMAC_SHA1_96")
-	// prfType1 := prf.StrToType("PRF_HMAC_MD5")
-	prfType2 := prf.StrToType("PRF_HMAC_SHA1")
-
-	// Transforms
-	t1 := &message.Transform{
-		TransformType:    types.TypeDiffieHellmanGroup,
-		TransformID:      types.DH_1024_BIT_MODP,
-		AttributePresent: false,
-	}
-	t2 := &message.Transform{
-		TransformType:    types.TypeDiffieHellmanGroup,
-		TransformID:      types.DH_2048_BIT_MODP,
-		AttributePresent: false,
-	}
-	t3 := &message.Transform{
-		TransformType:    types.TypeDiffieHellmanGroup,
-		TransformID:      types.DH_1536_BIT_MODP,
-		AttributePresent: false,
-	}
-	t4 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
-		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
-		AttributeValue:   128,
-	}
-	t5 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
-		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
-		AttributeValue:   192,
-	}
-	t6 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
-		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
-		AttributeValue:   256,
-	}
-	t7 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
-		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
-		AttributeValue:   384,
-	}
-	t8 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_3DES,
-		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
-		AttributeValue:   128,
-	}
-	t9 := &message.Transform{
-		TransformType:    types.TypeIntegrityAlgorithm,
-		TransformID:      types.AUTH_HMAC_MD5_96,
-		AttributePresent: false,
-	}
-	t10 := &message.Transform{
-		TransformType:    types.TypeIntegrityAlgorithm,
-		TransformID:      types.AUTH_HMAC_SHA1_96,
-		AttributePresent: false,
-	}
-	t11 := &message.Transform{
-		TransformType:    types.TypeIntegrityAlgorithm,
-		TransformID:      types.AUTH_DES_MAC,
-		AttributePresent: false,
-	}
-	t12 := &message.Transform{
-		TransformType:    types.TypePseudorandomFunction,
-		TransformID:      types.PRF_HMAC_MD5,
-		AttributePresent: false,
-	}
-	t13 := &message.Transform{
-		TransformType:    types.TypePseudorandomFunction,
-		TransformID:      types.PRF_HMAC_SHA1,
-		AttributePresent: false,
-	}
-	t14 := &message.Transform{
-		TransformType:    types.TypePseudorandomFunction,
-		TransformID:      types.PRF_HMAC_TIGER,
-		AttributePresent: false,
-	}
-	t15 := &message.Transform{
-		TransformType:    types.TypeExtendedSequenceNumbers,
-		TransformID:      types.ESN_ENABLE,
-		AttributePresent: false,
-	}
-
-	// Proposal 1
-	proposal := new(message.Proposal)
-	proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, t3)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t7)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t8)
-	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, t9)
-	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t13)
-
-	ikesa := new(IKESA)
-	if ikesa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
-
-	// Proposal 2
-	proposal = new(message.Proposal)
-	proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, t1)
-	proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, t2)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t4)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t5)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t6)
-	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, t10)
-	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, t11)
-	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t12)
-	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t13)
-	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t14)
-
-	ikesa = new(IKESA)
-	if !ikesa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
-
-	if ikesa.dhInfo != dhType2 || ikesa.encrInfo != encrType3 ||
-		ikesa.integInfo != integType2 || ikesa.prfInfo != prfType2 {
-		t.Fatal("SelectProposal selected a false result")
-	}
-
-	newPriority := map[string]uint32{
-		"DH_1024_BIT_MODP": 1,
-		"DH_2048_BIT_MODP": 0,
-	}
-	if err := dh.SetPriority(newPriority); err != nil {
-		t.Fatalf("Set priority failed: %v", err)
-	}
-
-	ikesa = new(IKESA)
-	if !ikesa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
-
-	if ikesa.dhInfo != dhType1 || ikesa.encrInfo != encrType3 ||
-		ikesa.integInfo != integType2 || ikesa.prfInfo != prfType2 {
-		t.Fatal("SelectProposal selected a false result")
-	}
-
-	// reset priority
-	newPriority = map[string]uint32{
-		"DH_1024_BIT_MODP": 0,
-		"DH_2048_BIT_MODP": 1,
-	}
-	if err := dh.SetPriority(newPriority); err != nil {
-		t.Fatalf("Set priority failed: %v", err)
-	}
-
-	// Proposal 3
-	proposal = new(message.Proposal)
-
-	ikesa = new(IKESA)
-	if ikesa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
-
-	// Proposal 4
-	proposal = new(message.Proposal)
-	proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, t2)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t5)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t6)
-	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, t9)
-	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t13)
-	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, t15)
-
-	ikesa = new(IKESA)
-	if ikesa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
-}
-
 func TestIKEToProposal(t *testing.T) {
 	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrType := encr.StrToType("ENCR_AES_CBC_256")
 	integType := integ.StrToType("AUTH_HMAC_MD5_96")
 	prfType := prf.StrToType("PRF_HMAC_SHA1")
 
-	ikesa := IKESA{
-		dhInfo:    dhType,
-		encrInfo:  encrType,
-		integInfo: integType,
-		prfInfo:   prfType,
+	ikesaKey := IKESAKey{
+		DhInfo:    dhType,
+		EncrInfo:  encrType,
+		IntegInfo: integType,
+		PrfInfo:   prfType,
 	}
 
-	proposal := ikesa.ToProposal()
+	proposal, err := ikesaKey.ToProposal()
+	require.NoError(t, err)
 
 	if len(proposal.DiffieHellmanGroup) != 1 ||
 		len(proposal.EncryptionAlgorithm) != 1 ||
@@ -287,251 +101,196 @@ func TestIKESetProposal(t *testing.T) {
 	proposal := new(message.Proposal)
 
 	proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, dh.ToTransform(dhType))
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, encr.ToTransform(encrType))
+	encrTranform, err := encr.ToTransform(encrType)
+	require.NoError(t, err)
+	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, encrTranform)
 	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, integ.ToTransform(integType))
 	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, prf.ToTransform(prfType))
 
-	ikesa := new(IKESA)
+	concatenatedNonce := []byte{0x01, 0x02, 0x03, 0x04}
+	keyexChange := []byte{0x05, 0x06, 0x07, 0x08}
 
-	ikesa.SetProposal(proposal)
+	ikesaKey, _, err := NewIKESAKey(proposal, keyexChange, concatenatedNonce,
+		0x123, 0x456)
+	require.NoError(t, err)
 
-	if ikesa.dhInfo == nil ||
-		ikesa.encrInfo == nil ||
-		ikesa.integInfo == nil ||
-		ikesa.prfInfo == nil {
+	if ikesaKey.DhInfo == nil ||
+		ikesaKey.EncrInfo == nil ||
+		ikesaKey.IntegInfo == nil ||
+		ikesaKey.PrfInfo == nil {
 		t.FailNow()
 	}
 }
 
-func TestChildSelectProposal(t *testing.T) {
-	// Types' pointers
-	dhType1 := dh.StrToType("DH_1024_BIT_MODP")
-	dhType2 := dh.StrToType("DH_2048_BIT_MODP")
-	// encrKType1 := encr.StrToKType("ENCR_AES_CBC_128")
-	// encrKType2 := encr.StrToKType("ENCR_AES_CBC_192")
-	encrKType3 := encr.StrToKType("ENCR_AES_CBC_256")
-	// integKType1 := integ.StrToKType("AUTH_HMAC_MD5_96")
-	integKType2 := integ.StrToKType("AUTH_HMAC_SHA1_96")
-	// prfType1 := prf.StrToType("PRF_HMAC_MD5")
-	// prfType2 := prf.StrToType("PRF_HMAC_SHA1")
-	// esnType1 := esn.StrToType("ESN_ENABLE")
-	esnType2 := esn.StrToType("ESN_DISABLE")
+func TestGenerateKeyForIKESA(t *testing.T) {
+	concatenatedNonce := []byte{0x01, 0x02, 0x03, 0x04}
+	diffieHellmanSharedKey := []byte{0x05, 0x06, 0x07, 0x08}
+	initiatorSPI := uint64(0x456)
+	responderSPI := uint64(0x123)
 
-	// Transforms
-	t1 := &message.Transform{
-		TransformType:    types.TypeDiffieHellmanGroup,
-		TransformID:      types.DH_1024_BIT_MODP,
-		AttributePresent: false,
-	}
-	t2 := &message.Transform{
-		TransformType:    types.TypeDiffieHellmanGroup,
-		TransformID:      types.DH_2048_BIT_MODP,
-		AttributePresent: false,
-	}
-	t3 := &message.Transform{
-		TransformType:    types.TypeDiffieHellmanGroup,
-		TransformID:      types.DH_1536_BIT_MODP,
-		AttributePresent: false,
-	}
-	t4 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
-		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
-		AttributeValue:   128,
-	}
-	t5 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
-		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
-		AttributeValue:   192,
-	}
-	t6 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
-		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
-		AttributeValue:   256,
-	}
-	t7 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_AES_CBC,
-		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
-		AttributeValue:   384,
-	}
-	t8 := &message.Transform{
-		TransformType:    types.TypeEncryptionAlgorithm,
-		TransformID:      types.ENCR_3DES,
-		AttributePresent: true,
-		AttributeFormat:  types.AttributeFormatUseTV,
-		AttributeType:    types.AttributeTypeKeyLength,
-		AttributeValue:   128,
-	}
-	t9 := &message.Transform{
-		TransformType:    types.TypeIntegrityAlgorithm,
-		TransformID:      types.AUTH_HMAC_MD5_96,
-		AttributePresent: false,
-	}
-	t10 := &message.Transform{
-		TransformType:    types.TypeIntegrityAlgorithm,
-		TransformID:      types.AUTH_HMAC_SHA1_96,
-		AttributePresent: false,
-	}
-	t11 := &message.Transform{
-		TransformType:    types.TypeIntegrityAlgorithm,
-		TransformID:      types.AUTH_DES_MAC,
-		AttributePresent: false,
-	}
-	t12 := &message.Transform{
-		TransformType:    types.TypePseudorandomFunction,
-		TransformID:      types.PRF_HMAC_MD5,
-		AttributePresent: false,
-	}
-	t13 := &message.Transform{
-		TransformType:    types.TypePseudorandomFunction,
-		TransformID:      types.PRF_HMAC_SHA1,
-		AttributePresent: false,
-	}
-	t14 := &message.Transform{
-		TransformType:    types.TypePseudorandomFunction,
-		TransformID:      types.PRF_HMAC_TIGER,
-		AttributePresent: false,
-	}
-	t15 := &message.Transform{
-		TransformType:    types.TypeExtendedSequenceNumbers,
-		TransformID:      types.ESN_ENABLE,
-		AttributePresent: false,
-	}
-	t16 := &message.Transform{
-		TransformType:    types.TypeExtendedSequenceNumbers,
-		TransformID:      types.ESN_DISABLE,
-		AttributePresent: false,
-	}
+	// IKE Security Association is nil
+	var ikesaKey *IKESAKey
+	err := ikesaKey.GenerateKeyForIKESA(concatenatedNonce, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
+	require.Error(t, err)
 
-	// Proposal 1
-	proposal := new(message.Proposal)
-	proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, t3)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t7)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t8)
-	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, t9)
-	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t13)
+	ikesaKey = &IKESAKey{}
 
-	childsa := new(ChildSA)
-	if childsa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
+	// Encryption algorithm is nil
+	err = ikesaKey.GenerateKeyForIKESA(concatenatedNonce, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
+	require.Error(t, err)
 
-	// Proposal 2
-	proposal = new(message.Proposal)
-	proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, t1)
-	proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, t2)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t4)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t5)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t6)
-	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, t10)
-	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, t11)
-	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, t15)
-	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, t16)
+	ikesaKey.EncrInfo = encr.StrToType("ENCR_AES_CBC_256")
 
-	childsa = new(ChildSA)
-	if !childsa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
+	// Integrity algorithm is nil
+	err = ikesaKey.GenerateKeyForIKESA(concatenatedNonce, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
+	require.Error(t, err)
 
-	if childsa.dhInfo != dhType2 || childsa.encrKInfo != encrKType3 ||
-		childsa.integKInfo != integKType2 || childsa.esnInfo != esnType2 {
-		t.Fatal("SelectProposal selected a false result")
-	}
+	ikesaKey.IntegInfo = integ.StrToType("AUTH_HMAC_SHA1_96")
+	// Pseudorandom function is nil
+	err = ikesaKey.GenerateKeyForIKESA(concatenatedNonce, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
+	require.Error(t, err)
 
-	newPriority := map[string]uint32{
-		"DH_1024_BIT_MODP": 1,
-		"DH_2048_BIT_MODP": 0,
-	}
-	if err := dh.SetPriority(newPriority); err != nil {
-		t.Fatalf("Set priority failed: %v", err)
-	}
+	ikesaKey.PrfInfo = prf.StrToType("PRF_HMAC_SHA1")
+	// Diffie-Hellman group is nil
+	err = ikesaKey.GenerateKeyForIKESA(concatenatedNonce, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
+	require.Error(t, err)
 
-	childsa = new(ChildSA)
-	if !childsa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
+	ikesaKey.DhInfo = dh.StrToType("DH_2048_BIT_MODP")
+	// Concatenated nonce is nil
+	err = ikesaKey.GenerateKeyForIKESA(nil, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
+	require.Error(t, err)
 
-	if childsa.dhInfo != dhType1 || childsa.encrKInfo != encrKType3 ||
-		childsa.integKInfo != integKType2 || childsa.esnInfo != esnType2 {
-		t.Fatal("SelectProposal selected a false result")
-	}
+	// Diffie-Hellman shared key is nil
+	err = ikesaKey.GenerateKeyForIKESA(concatenatedNonce, nil,
+		initiatorSPI, responderSPI)
+	require.Error(t, err)
 
-	// reset priority
-	newPriority = map[string]uint32{
-		"DH_1024_BIT_MODP": 0,
-		"DH_2048_BIT_MODP": 1,
-	}
-	if err := dh.SetPriority(newPriority); err != nil {
-		t.Fatalf("Set priority failed: %v", err)
-	}
+	// Normal case
+	err = ikesaKey.GenerateKeyForIKESA(concatenatedNonce, diffieHellmanSharedKey,
+		initiatorSPI, responderSPI)
+	require.NoError(t, err)
 
-	// Proposal 3
-	proposal = new(message.Proposal)
+	expectedSK_ai, err := hex.DecodeString("58a17edd463b4b5062359c1c98b1736d80219691")
+	require.NoError(t, err)
+	expectedInteg_i := ikesaKey.IntegInfo.Init(expectedSK_ai)
 
-	childsa = new(ChildSA)
-	if childsa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
+	expectedSK_ar, err := hex.DecodeString("eb2e18e9a8f9643ea0d0107a28cf5947ecd1597e")
+	require.NoError(t, err)
+	ecpectedInteg_r := ikesaKey.IntegInfo.Init(expectedSK_ar)
 
-	// Proposal 4
-	proposal = new(message.Proposal)
-	proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, t2)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t5)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t6)
-	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, t9)
-	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t12)
-	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t13)
-	proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, t14)
-	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, t15)
+	expectedSK_ei, err := hex.DecodeString("3dcbcbb2d71d1806d5e5356a5600727eb482101de1868ae9cf71c4117d22cddb")
+	require.NoError(t, err)
+	ecpectedEncr_i, err := ikesaKey.EncrInfo.NewCrypto(expectedSK_ei)
+	require.NoError(t, err)
 
-	childsa = new(ChildSA)
-	if childsa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
+	expectedSK_er, err := hex.DecodeString("ba3b43cf173435c449f3098c01944f2d9a66c2ca1d967f06a69f36e945a4754b")
+	require.NoError(t, err)
+	ecpectedEncr_r, err := ikesaKey.EncrInfo.NewCrypto(expectedSK_er)
+	require.NoError(t, err)
 
-	// Proposal 5
-	proposal = new(message.Proposal)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t5)
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, t6)
-	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, t15)
-	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, t16)
+	expectedSK_pi, err := hex.DecodeString("aff4def6c9113c6942f31fa2d8b74f6c054e0e73")
+	require.NoError(t, err)
+	ecpectedPrf_i := ikesaKey.PrfInfo.Init(expectedSK_pi)
 
-	childsa = new(ChildSA)
-	if !childsa.SelectProposal(proposal) {
-		t.Fatal("SelectProposal returned a false result")
-	}
+	expectedSK_pr, err := hex.DecodeString("c06bd0c0dd3e0b3f9c5b4cbe35c88fdd3948430f")
+	require.NoError(t, err)
+	ecpectedPrf_r := ikesaKey.PrfInfo.Init(expectedSK_pr)
 
-	if childsa.dhInfo != nil || childsa.encrKInfo != encrKType3 ||
-		childsa.integKInfo != nil || childsa.esnInfo != esnType2 {
-		t.Fatal("SelectProposal selected a false result")
-	}
+	expectedSK_d, err := hex.DecodeString("276e1a8f0d65dae5309da66277ff7c82d39a8956")
+	require.NoError(t, err)
+	expectedPrf_d := ikesaKey.PrfInfo.Init(expectedSK_d)
+
+	require.Equal(t, expectedPrf_d, ikesaKey.Prf_d, "SK_d does not match expected value")
+	require.Equal(t, expectedInteg_i, ikesaKey.Integ_i, "SK_ai does not match expected value")
+	require.Equal(t, ecpectedInteg_r, ikesaKey.Integ_r, "SK_ar does not match expected value")
+	require.Equal(t, ecpectedEncr_i, ikesaKey.Encr_i, "SK_ei does not match expected value")
+	require.Equal(t, ecpectedEncr_r, ikesaKey.Encr_r, "SK_er does not match expected value")
+	require.Equal(t, ecpectedPrf_i, ikesaKey.Prf_i, "SK_pi does not match expected value")
+	require.Equal(t, ecpectedPrf_r, ikesaKey.Prf_r, "SK_pr does not match expected value")
+}
+
+func TestGenerateKeyForChildSA(t *testing.T) {
+	// IKE Security Association is nil
+	childSAKey := &ChildSAKey{}
+	err := childSAKey.GenerateKeyForChildSA(nil, nil)
+	require.Error(t, err)
+
+	ikeSAKey := &IKESAKey{}
+
+	// Child SecurityAssociation is nil
+	var c *ChildSAKey
+	err = c.GenerateKeyForChildSA(ikeSAKey, nil)
+	require.Error(t, err)
+
+	// Pseudorandom function is nil
+	err = childSAKey.GenerateKeyForChildSA(ikeSAKey, nil)
+	require.Error(t, err)
+
+	ikeSAKey.PrfInfo = prf.StrToType("PRF_HMAC_SHA1")
+
+	// Encryption algorithm is nil
+	err = childSAKey.GenerateKeyForChildSA(ikeSAKey, nil)
+	require.Error(t, err)
+
+	childSAKey.EncrKInfo = encr.StrToKType("ENCR_AES_CBC_256")
+	childSAKey.IntegKInfo = integ.StrToKType("AUTH_HMAC_SHA1_96")
+
+	// Deriving key is nil
+	err = childSAKey.GenerateKeyForChildSA(ikeSAKey, nil)
+	require.Error(t, err)
+
+	sk_d, err := hex.DecodeString("276e1a8f0d65dae5309da66277ff7c82d39a8956")
+	require.NoError(t, err)
+	ikeSAKey.Prf_d = ikeSAKey.PrfInfo.Init(sk_d)
+
+	err = childSAKey.GenerateKeyForChildSA(ikeSAKey, nil)
+	require.NoError(t, err)
+
+	expectedInitiatorToResponderEncryptionKey, err := hex.DecodeString(
+		"8adf11fb9c3d575f9aff5ce58c4891533c44026dc537d68dcc8c08d453e9e6df")
+	require.NoError(t, err)
+	expectedInitiatorToResponderIntegrityKey, err := hex.DecodeString(
+		"1a04be51ae650581a546411d2dbe09507e49329f")
+	require.NoError(t, err)
+	expectedResponderToInitiatorEncryptionKey, err := hex.DecodeString(
+		"103318186d2f7837e2d8a28cf375c2552634bd610f5142f30dfb223892cdca13")
+	require.NoError(t, err)
+	expectedResponderToInitiatorIntegrityKey, err := hex.DecodeString(
+		"f3e8e1d3b1e0e1ce731b0d4f84dc05ac9456454c")
+	require.NoError(t, err)
+
+	require.Equal(t, expectedInitiatorToResponderEncryptionKey,
+		childSAKey.InitiatorToResponderEncryptionKey, "InitiatorToResponderEncryptionKey does not match expected value")
+	require.Equal(t, expectedInitiatorToResponderIntegrityKey,
+		childSAKey.InitiatorToResponderIntegrityKey, "InitiatorToResponderIntegrityKey does not match expected value")
+	require.Equal(t, expectedResponderToInitiatorEncryptionKey,
+		childSAKey.ResponderToInitiatorEncryptionKey, "ResponderToInitiatorEncryptionKey does not match expected value")
+	require.Equal(t, expectedResponderToInitiatorIntegrityKey,
+		childSAKey.ResponderToInitiatorIntegrityKey, "ResponderToInitiatorIntegrityKey does not match expected value")
 }
 
 func TestChildToProposal(t *testing.T) {
 	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrKType := encr.StrToKType("ENCR_AES_CBC_256")
 	integKType := integ.StrToKType("AUTH_HMAC_MD5_96")
-	esnType := esn.StrToType("ESN_ENABLE")
+	esnType, err := esn.StrToType("ESN_ENABLE")
+	require.NoError(t, err)
 
-	childsa := ChildSA{
-		dhInfo:     dhType,
-		encrKInfo:  encrKType,
-		integKInfo: integKType,
-		esnInfo:    esnType,
+	childsaKey := ChildSAKey{
+		DhInfo:     dhType,
+		EncrKInfo:  encrKType,
+		IntegKInfo: integKType,
+		EsnInfo:    esnType,
 	}
 
-	proposal := childsa.ToProposal()
+	proposal, err := childsaKey.ToProposal()
+	require.NoError(t, err)
 
 	if len(proposal.DiffieHellmanGroup) != 1 ||
 		len(proposal.EncryptionAlgorithm) != 1 ||
@@ -546,23 +305,24 @@ func TestChildSetProposal(t *testing.T) {
 	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrKType := encr.StrToKType("ENCR_AES_CBC_256")
 	integKType := integ.StrToKType("AUTH_HMAC_MD5_96")
-	esnType := esn.StrToType("ESN_ENABLE")
+	esnType, err := esn.StrToType("ESN_ENABLE")
+	require.NoError(t, err)
 
 	proposal := new(message.Proposal)
 
 	proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, dh.ToTransform(dhType))
-	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, encr.ToTransformChildSA(encrKType))
+	encrKTranform, err := encr.ToTransformChildSA(encrKType)
+	require.NoError(t, err)
+	proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, encrKTranform)
 	proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, integ.ToTransformChildSA(integKType))
 	proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, esn.ToTransform(esnType))
 
-	childsa := new(ChildSA)
+	childsaKey, err := NewChildSAKeyByProposal(proposal)
+	require.NoError(t, err)
 
-	childsa.SetProposal(proposal)
-
-	if childsa.dhInfo == nil ||
-		childsa.encrKInfo == nil ||
-		childsa.integKInfo == nil ||
-		childsa.esnInfo == nil {
+	if childsaKey.DhInfo == nil ||
+		childsaKey.EncrKInfo == nil ||
+		childsaKey.IntegKInfo == nil {
 		t.FailNow()
 	}
 }
