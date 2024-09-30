@@ -9,18 +9,18 @@ import (
 
 func (ikeMessage *IKEMessage) BuildIKEHeader(
 	initiatorSPI uint64,
-	responsorSPI uint64,
+	responderSPI uint64,
 	exchangeType uint8,
-	flags uint8,
+	initiator bool,
+	response bool,
 	messageID uint32,
 ) {
 	ikeMessage.IKEHeader = new(IKEHeader)
 	ikeMessage.InitiatorSPI = initiatorSPI
-	ikeMessage.ResponderSPI = responsorSPI
+	ikeMessage.ResponderSPI = responderSPI
 	ikeMessage.MajorVersion = 2
 	ikeMessage.MinorVersion = 0
 	ikeMessage.ExchangeType = exchangeType
-	ikeMessage.Flags = flags
 	ikeMessage.MessageID = messageID
 }
 

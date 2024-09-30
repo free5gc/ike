@@ -14,7 +14,8 @@ type IKEHeader struct {
 	MajorVersion uint8
 	MinorVersion uint8
 	ExchangeType uint8
-	Flags        uint8
+	Initiator    bool
+	Response     bool
 	MessageID    uint32
 	NextPayload  uint8
 }
@@ -51,7 +52,8 @@ func ParseIkeHeader(b []byte) (*IKEHeader, error) {
 	ikeHeader.MajorVersion = b[17] >> 4
 	ikeHeader.MinorVersion = b[17] & 0x0F
 	ikeHeader.ExchangeType = b[18]
-	ikeHeader.Flags = b[19]
+	ikeHeader.Initiator = (b[19] & InitiatorBitCheck) == InitiatorBitCheck
+	ikeHeader.Response = (b[19] & ResponseBitCheck) == ResponseBitCheck
 	ikeHeader.MessageID = binary.BigEndian.Uint32(b[20:24])
 	ikeHeader.NextPayload = b[16]
 
@@ -59,19 +61,24 @@ func ParseIkeHeader(b []byte) (*IKEHeader, error) {
 }
 
 func (ikeMessage *IKEMessage) Encode() ([]byte, error) {
-	ikeMessageData := make([]byte, IKE_HEADER_LEN)
+	b := make([]byte, IKE_HEADER_LEN)
 
-	binary.BigEndian.PutUint64(ikeMessageData[0:8], ikeMessage.InitiatorSPI)
-	binary.BigEndian.PutUint64(ikeMessageData[8:16], ikeMessage.ResponderSPI)
-	ikeMessageData[17] = (ikeMessage.MajorVersion << 4) | (ikeMessage.MinorVersion & 0x0F)
-	ikeMessageData[18] = ikeMessage.ExchangeType
-	ikeMessageData[19] = ikeMessage.Flags
-	binary.BigEndian.PutUint32(ikeMessageData[20:24], ikeMessage.MessageID)
+	binary.BigEndian.PutUint64(b[0:8], ikeMessage.InitiatorSPI)
+	binary.BigEndian.PutUint64(b[8:16], ikeMessage.ResponderSPI)
+	b[17] = (ikeMessage.MajorVersion << 4) | (ikeMessage.MinorVersion & 0x0F)
+	b[18] = ikeMessage.ExchangeType
+	if ikeMessage.Initiator {
+		b[19] |= InitiatorBitCheck
+	}
+	if ikeMessage.Response {
+		b[19] |= ResponseBitCheck
+	}
+	binary.BigEndian.PutUint32(b[20:24], ikeMessage.MessageID)
 
 	if len(ikeMessage.Payloads) > 0 {
-		ikeMessageData[16] = byte(ikeMessage.Payloads[0].Type())
+		b[16] = byte(ikeMessage.Payloads[0].Type())
 	} else {
-		ikeMessageData[16] = byte(NoNext)
+		b[16] = byte(NoNext)
 	}
 
 	ikeMessagePayloadData, err := ikeMessage.Payloads.Encode()
@@ -79,13 +86,13 @@ func (ikeMessage *IKEMessage) Encode() ([]byte, error) {
 		return nil, errors.Errorf("Encode(): EncodePayload failed: %+v", err)
 	}
 
-	ikeMessageData = append(ikeMessageData, ikeMessagePayloadData...)
-	ikeMsgDataLen := len(ikeMessageData)
+	b = append(b, ikeMessagePayloadData...)
+	ikeMsgDataLen := len(b)
 	if ikeMsgDataLen > 0xFFFFFFFF {
 		return nil, errors.Errorf("Encode(): ikeMessageData length exceeds uint32 limit: %d", ikeMsgDataLen)
 	}
-	binary.BigEndian.PutUint32(ikeMessageData[24:IKE_HEADER_LEN], uint32(ikeMsgDataLen))
-	return ikeMessageData, nil
+	binary.BigEndian.PutUint32(b[24:IKE_HEADER_LEN], uint32(ikeMsgDataLen))
+	return b, nil
 }
 
 func (ikeMessage *IKEMessage) Decode(b []byte) error {
