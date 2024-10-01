@@ -62,7 +62,7 @@ func TestEncodeDecode(t *testing.T) {
 			MajorVersion: 2,
 			MinorVersion: 0,
 			ExchangeType: message.IKE_AUTH,
-			Initiator:    true,
+			Flags:        message.InitiatorBitCheck,
 			MessageID:    0x03,
 			NextPayload:  uint8(message.TypeEAP),
 		},
@@ -92,7 +92,7 @@ func TestEncodeDecode(t *testing.T) {
 	b, err := EncodeEncrypt(expIkeMsg, ikeSAKey, message.Role_Initiator)
 	require.NoError(t, err)
 
-	ikehdr, err := message.ParseIkeHeader(b)
+	ikehdr, err := message.ParseHeader(b)
 	require.NoError(t, err)
 
 	ikeMsg, err := DecodeDecrypt(b, ikehdr, ikeSAKey, message.Role_Responder)
@@ -162,9 +162,21 @@ func TestDecodeDecrypt(t *testing.T) {
 					MajorVersion: 2,
 					MinorVersion: 0,
 					ExchangeType: message.IKE_AUTH,
-					Initiator:    true,
+					Flags:        message.InitiatorBitCheck,
 					MessageID:    0x03,
 					NextPayload:  uint8(message.TypeSK),
+					PayloadBytes: []byte{
+						0x30, 0x00, 0x00, 0x50, 0xec, 0x50, 0x31, 0x16,
+						0x2c, 0x69, 0x2f, 0xbb, 0xfc, 0x4d, 0x20, 0x64,
+						0x0c, 0x91, 0x21, 0xeb, 0xe9, 0x47, 0x5e, 0xf9,
+						0x4f, 0x9b, 0x02, 0x95, 0x9d, 0x31, 0x24, 0x2e,
+						0x53, 0x5e, 0x9c, 0x3c, 0x4d, 0xca, 0xec, 0xd1,
+						0xbf, 0xd6, 0xdd, 0x80, 0xaa, 0x81, 0x2b, 0x07,
+						0xde, 0x36, 0xde, 0xe9, 0xb7, 0x50, 0x94, 0x35,
+						0xf6, 0x35, 0xe1, 0xaa, 0xae, 0x1c, 0x38, 0x25,
+						0xf4, 0xea, 0xe3, 0x38, 0x49, 0x03, 0xf7, 0x24,
+						0xf4, 0x44, 0x17, 0x0c, 0x68, 0x45, 0xca, 0x80,
+					},
 				},
 				Payloads: message.IKEPayloadContainer{
 					&message.EAP{
@@ -415,7 +427,7 @@ func TestEncryptMsg(t *testing.T) {
 			MajorVersion: 2,
 			MinorVersion: 0,
 			ExchangeType: message.IKE_AUTH,
-			Initiator:    true,
+			Flags:        message.InitiatorBitCheck,
 			MessageID:    0x03,
 		},
 	}

@@ -174,13 +174,6 @@ const (
 	TypeESP
 )
 
-// Flags
-const (
-	ResponseBitCheck  = 0x20
-	VersionBitCheck   = 0x10
-	InitiatorBitCheck = 0x08
-)
-
 // Certificate encoding
 const (
 	PKCS7WrappedX509Certificate = 1

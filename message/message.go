@@ -6,114 +6,58 @@ import (
 	"github.com/pkg/errors"
 )
 
-const IKE_HEADER_LEN int = 28
-
-type IKEHeader struct {
-	InitiatorSPI uint64
-	ResponderSPI uint64
-	MajorVersion uint8
-	MinorVersion uint8
-	ExchangeType uint8
-	Initiator    bool
-	Response     bool
-	MessageID    uint32
-	NextPayload  uint8
-}
-
 type IKEMessage struct {
 	*IKEHeader
 	Payloads IKEPayloadContainer
 }
 
-func ParseIkeHeader(b []byte) (*IKEHeader, error) {
-	// IKE message packet format this implementation referenced is
-	// defined in RFC 7296, Section 3.1
-	// bounds checking
-	if len(b) < IKE_HEADER_LEN {
-		return nil, errors.Errorf("ParseIkeHeader(): Received broken IKE header")
+func NewMessage(
+	iSPI, rSPI uint64, exchgType uint8,
+	response, initiator bool, mId uint32,
+	payloads IKEPayloadContainer,
+) *IKEMessage {
+	m := &IKEMessage{
+		IKEHeader: NewHeader(iSPI, rSPI, exchgType,
+			response, initiator, mId, uint8(NoNext), nil),
+		Payloads: payloads,
 	}
-	ikeMessageLength := binary.BigEndian.Uint32(b[24:IKE_HEADER_LEN])
-	if ikeMessageLength < uint32(IKE_HEADER_LEN) {
-		return nil, errors.Errorf("ParseIkeHeader(): Illegal IKE message length %d < header length %d",
-			ikeMessageLength, IKE_HEADER_LEN)
-	}
-	// len() return int, which is 64 bit on 64-bit host and 32 bit
-	// on 32-bit host, so this implementation may potentially cause
-	// problem on 32-bit machine
-	if len(b) != int(ikeMessageLength) {
-		return nil, errors.Errorf("ParseIkeHeader(): The length of received message " +
-			"not matchs the length specified in header")
-	}
-
-	ikeHeader := new(IKEHeader)
-
-	ikeHeader.InitiatorSPI = binary.BigEndian.Uint64(b[:8])
-	ikeHeader.ResponderSPI = binary.BigEndian.Uint64(b[8:16])
-	ikeHeader.MajorVersion = b[17] >> 4
-	ikeHeader.MinorVersion = b[17] & 0x0F
-	ikeHeader.ExchangeType = b[18]
-	ikeHeader.Initiator = (b[19] & InitiatorBitCheck) == InitiatorBitCheck
-	ikeHeader.Response = (b[19] & ResponseBitCheck) == ResponseBitCheck
-	ikeHeader.MessageID = binary.BigEndian.Uint32(b[20:24])
-	ikeHeader.NextPayload = b[16]
-
-	return ikeHeader, nil
+	return m
 }
 
-func (ikeMessage *IKEMessage) Encode() ([]byte, error) {
-	b := make([]byte, IKE_HEADER_LEN)
-
-	binary.BigEndian.PutUint64(b[0:8], ikeMessage.InitiatorSPI)
-	binary.BigEndian.PutUint64(b[8:16], ikeMessage.ResponderSPI)
-	b[17] = (ikeMessage.MajorVersion << 4) | (ikeMessage.MinorVersion & 0x0F)
-	b[18] = ikeMessage.ExchangeType
-	if ikeMessage.Initiator {
-		b[19] |= InitiatorBitCheck
-	}
-	if ikeMessage.Response {
-		b[19] |= ResponseBitCheck
-	}
-	binary.BigEndian.PutUint32(b[20:24], ikeMessage.MessageID)
-
-	if len(ikeMessage.Payloads) > 0 {
-		b[16] = byte(ikeMessage.Payloads[0].Type())
+func (m *IKEMessage) Encode() ([]byte, error) {
+	if len(m.Payloads) > 0 {
+		m.IKEHeader.NextPayload = uint8(m.Payloads[0].Type())
 	} else {
-		b[16] = byte(NoNext)
+		m.IKEHeader.NextPayload = uint8(NoNext)
 	}
 
-	ikeMessagePayloadData, err := ikeMessage.Payloads.Encode()
+	var err error
+	m.IKEHeader.PayloadBytes, err = m.Payloads.Encode()
 	if err != nil {
 		return nil, errors.Errorf("Encode(): EncodePayload failed: %+v", err)
 	}
-
-	b = append(b, ikeMessagePayloadData...)
-	ikeMsgDataLen := len(b)
-	if ikeMsgDataLen > 0xFFFFFFFF {
-		return nil, errors.Errorf("Encode(): ikeMessageData length exceeds uint32 limit: %d", ikeMsgDataLen)
-	}
-	binary.BigEndian.PutUint32(b[24:IKE_HEADER_LEN], uint32(ikeMsgDataLen))
-	return b, nil
+	return m.IKEHeader.Marshal()
 }
 
-func (ikeMessage *IKEMessage) Decode(b []byte) error {
+func (m *IKEMessage) Decode(b []byte) error {
 	var err error
-	ikeMessage.IKEHeader, err = ParseIkeHeader(b)
+	m.IKEHeader, err = ParseHeader(b)
 	if err != nil {
 		return errors.Wrapf(err, "Decode()")
 	}
 
-	err = ikeMessage.DecodePayload(b[IKE_HEADER_LEN:])
+	err = m.DecodePayload(m.PayloadBytes)
 	if err != nil {
-		return errors.Errorf("Decode(): DecodePayload failed: %+v", err)
+		return errors.Errorf("Decode(): DecodePayload failed: %v", err)
 	}
 
 	return nil
 }
 
-func (ikeMessage *IKEMessage) DecodePayload(b []byte) error {
-	err := ikeMessage.Payloads.Decode(ikeMessage.NextPayload, b)
+func (m *IKEMessage) DecodePayload(b []byte) error {
+	err := m.Payloads.Decode(m.NextPayload, b)
 	if err != nil {
-		return errors.Errorf("DecodePayload(): DecodePayload failed: %+v", err)
+		return errors.Errorf("DecodePayload(): DecodePayload failed: %v", err)
 	}
 
 	return nil
