@@ -20,6 +20,8 @@ func (ikeMessage *IKEMessage) BuildIKEHeader(
 	ikeMessage.ResponderSPI = responderSPI
 	ikeMessage.MajorVersion = 2
 	ikeMessage.MinorVersion = 0
+	ikeMessage.Initiator = initiator
+	ikeMessage.Response = response
 	ikeMessage.ExchangeType = exchangeType
 	ikeMessage.MessageID = messageID
 }
