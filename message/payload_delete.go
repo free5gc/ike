@@ -12,14 +12,14 @@ type Delete struct {
 	ProtocolID  uint8
 	SPISize     uint8
 	NumberOfSPI uint16
-	SPIs        []byte
+	SPIs        []uint32
 }
 
 func (d *Delete) Type() IKEPayloadType { return TypeD }
 
 func (d *Delete) marshal() ([]byte, error) {
-	if len(d.SPIs) != (int(d.SPISize) * int(d.NumberOfSPI)) {
-		return nil, errors.Errorf("Total bytes of all SPIs not correct")
+	if len(d.SPIs) != int(d.NumberOfSPI) {
+		return nil, errors.Errorf("Number of SPI not correct")
 	}
 
 	deleteData := make([]byte, 4)
@@ -29,7 +29,11 @@ func (d *Delete) marshal() ([]byte, error) {
 	binary.BigEndian.PutUint16(deleteData[2:4], d.NumberOfSPI)
 
 	if int(d.NumberOfSPI) > 0 {
-		deleteData = append(deleteData, d.SPIs...)
+		byteSlice := make([]byte, d.SPISize)
+		for _, v := range d.SPIs {
+			binary.BigEndian.PutUint32(byteSlice, v)
+			deleteData = append(deleteData, byteSlice...)
+		}
 	}
 
 	return deleteData, nil
@@ -51,7 +55,12 @@ func (d *Delete) unmarshal(b []byte) error {
 		d.SPISize = spiSize
 		d.NumberOfSPI = numberOfSPI
 
-		d.SPIs = append(d.SPIs, b[4:]...)
+		b = b[4:]
+		var spi uint32
+		for i := 0; i < len(b); i += 4 {
+			spi = binary.BigEndian.Uint32(b[i : i+4])
+			d.SPIs = append(d.SPIs, spi)
+		}
 	}
 
 	return nil
