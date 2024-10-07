@@ -237,10 +237,7 @@ func encryptMsg(
 		return errors.Errorf("encryptMsg(): IKE SA is nil")
 	}
 	ikePayloads := ikeMsg.Payloads
-	// Check parameters
-	if len(ikePayloads) == 0 {
-		return errors.Errorf("encryptMsg(): No IKE payload to be encrypted")
-	}
+
 	// Check if the context contain needed data
 	if ikesaKey.IntegInfo == nil {
 		return errors.Errorf("encryptMsg(): No integrity algorithm specified")
@@ -271,7 +268,14 @@ func encryptMsg(
 
 	encryptedData = append(encryptedData, make([]byte, checksumLength)...)
 	ikeMsg.Payloads.Reset()
-	sk := ikeMsg.Payloads.BuildEncrypted(ikePayloads[0].Type(), encryptedData)
+
+	var nextPayloadType message.IKEPayloadType
+	if len(ikePayloads) == 0 {
+		nextPayloadType = message.NoNext
+	} else {
+		nextPayloadType = ikePayloads[0].Type()
+	}
+	sk := ikeMsg.Payloads.BuildEncrypted(nextPayloadType, encryptedData)
 
 	// Calculate checksum
 	ikeMsgData, err := ikeMsg.Encode()

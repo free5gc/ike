@@ -468,12 +468,6 @@ func TestEncryptMsg(t *testing.T) {
 	err = encryptMsg(ikeMessage, nil, message.Role_Initiator)
 	require.Error(t, err)
 
-	// No IKE payload to be encrypted
-	ikeMessage.Payloads.Reset()
-	err = encryptMsg(ikeMessage, ikeSAKey, message.Role_Initiator)
-	require.Error(t, err)
-	ikeMessage.Payloads = ikePayloads
-
 	// Response IKE Message is nil
 	err = encryptMsg(nil, ikeSAKey, message.Role_Initiator)
 	require.Error(t, err)
