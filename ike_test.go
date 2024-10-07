@@ -450,13 +450,27 @@ func TestEncryptMsg(t *testing.T) {
 			},
 		},
 	}
-	ikeMessage.Payloads = ikePayloads
 
-	// Successful encryption
+	// Successful encryption with nil payload
+	ikeMessage.Payloads = nil
 	err = encryptMsg(ikeMessage, ikeSAKey, message.Role_Initiator)
 	require.NoError(t, err)
 
 	rawMsg, err := ikeMessage.Encode()
+	require.NoError(t, err)
+
+	ikeMessage, err = decryptMsg(
+		rawMsg, ikeMessage, ikeSAKey, message.Role_Responder)
+	require.NoError(t, err)
+	var nilPayload message.IKEPayloadContainer
+	require.Equal(t, nilPayload, ikeMessage.Payloads)
+
+	// Successful encryption with not nil payload
+	ikeMessage.Payloads = ikePayloads
+	err = encryptMsg(ikeMessage, ikeSAKey, message.Role_Initiator)
+	require.NoError(t, err)
+
+	rawMsg, err = ikeMessage.Encode()
 	require.NoError(t, err)
 
 	ikeMessage, err = decryptMsg(

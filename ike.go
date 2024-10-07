@@ -269,13 +269,13 @@ func encryptMsg(
 	encryptedData = append(encryptedData, make([]byte, checksumLength)...)
 	ikeMsg.Payloads.Reset()
 
-	var nextPayloadType message.IKEPayloadType
+	var encrNextPayloadType message.IKEPayloadType
 	if len(ikePayloads) == 0 {
-		nextPayloadType = message.NoNext
+		encrNextPayloadType = message.NoNext
 	} else {
-		nextPayloadType = ikePayloads[0].Type()
+		encrNextPayloadType = ikePayloads[0].Type()
 	}
-	sk := ikeMsg.Payloads.BuildEncrypted(nextPayloadType, encryptedData)
+	sk := ikeMsg.Payloads.BuildEncrypted(encrNextPayloadType, encryptedData)
 
 	// Calculate checksum
 	ikeMsgData, err := ikeMsg.Encode()
