@@ -186,12 +186,12 @@ func TestGenerateKeyForIKESA(t *testing.T) {
 
 	expectedSK_ei, err := hex.DecodeString("3dcbcbb2d71d1806d5e5356a5600727eb482101de1868ae9cf71c4117d22cddb")
 	require.NoError(t, err)
-	ecpectedEncr_i, err := ikesaKey.EncrInfo.NewCrypto(expectedSK_ei)
+	ecpectedEncr_i, err := ikesaKey.EncrInfo.NewCrypto(expectedSK_ei, nil, nil)
 	require.NoError(t, err)
 
 	expectedSK_er, err := hex.DecodeString("ba3b43cf173435c449f3098c01944f2d9a66c2ca1d967f06a69f36e945a4754b")
 	require.NoError(t, err)
-	ecpectedEncr_r, err := ikesaKey.EncrInfo.NewCrypto(expectedSK_er)
+	ecpectedEncr_r, err := ikesaKey.EncrInfo.NewCrypto(expectedSK_er, nil, nil)
 	require.NoError(t, err)
 
 	expectedSK_pi, err := hex.DecodeString("aff4def6c9113c6942f31fa2d8b74f6c054e0e73")

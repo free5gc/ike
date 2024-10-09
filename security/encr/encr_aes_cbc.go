@@ -61,12 +61,15 @@ func (t *ENCR_AES_CBC) GetKeyLength() int {
 	return t.keyLength
 }
 
-func (t *ENCR_AES_CBC) NewCrypto(key []byte) (ikeCrypto.IKECrypto, error) {
+func (t *ENCR_AES_CBC) NewCrypto(key []byte, iv []byte, padding []byte) (ikeCrypto.IKECrypto, error) {
 	var err error
 	encr := new(ENCR_AES_CBC_Crypto)
 	if len(key) != t.keyLength {
 		return nil, errors.Errorf("ENCR_AES_CBC init error: Get unexpected key length")
 	}
+	encr.iv = iv
+	encr.padding = padding
+
 	if encr.block, err = aes.NewCipher(key); err != nil {
 		return nil, errors.Wrapf(err, "ENCR_AES_CBC init: Error occur when create new cipher: ")
 	} else {
@@ -77,22 +80,37 @@ func (t *ENCR_AES_CBC) NewCrypto(key []byte) (ikeCrypto.IKECrypto, error) {
 var _ ikeCrypto.IKECrypto = &ENCR_AES_CBC_Crypto{}
 
 type ENCR_AES_CBC_Crypto struct {
-	block cipher.Block
+	block   cipher.Block
+	iv      []byte // initializationVector
+	padding []byte
 }
 
 func (encr *ENCR_AES_CBC_Crypto) Encrypt(plainText []byte) ([]byte, error) {
+	var err error
+
 	// Padding message
-	plainText = lib.PKCS7Padding(plainText, aes.BlockSize)
-	plainText[len(plainText)-1]--
+	if encr.padding == nil {
+		plainText, err = lib.PKCS7Padding(plainText, aes.BlockSize)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Encr Encrypt()")
+		}
+	} else {
+		plainText = append(plainText, encr.padding...)
+	}
 
 	// Slice
 	cipherText := make([]byte, aes.BlockSize+len(plainText))
-	initializationVector := cipherText[:aes.BlockSize]
-
-	// IV
-	_, err := io.ReadFull(rand.Reader, initializationVector)
-	if err != nil {
-		return nil, errors.Errorf("Read random initialization vector failed")
+	var initializationVector []byte
+	if encr.iv == nil {
+		initializationVector = cipherText[:aes.BlockSize]
+		// IV
+		_, err = io.ReadFull(rand.Reader, initializationVector)
+		if err != nil {
+			return nil, errors.Errorf("Read random initialization vector failed")
+		}
+	} else {
+		copy(cipherText[:aes.BlockSize], encr.iv)
+		initializationVector = encr.iv
 	}
 
 	// Encryption
@@ -108,7 +126,13 @@ func (encr *ENCR_AES_CBC_Crypto) Decrypt(cipherText []byte) ([]byte, error) {
 		return nil, errors.Errorf("ENCR_AES_CBC_Crypto: Length of cipher text is too short to decrypt")
 	}
 
-	initializationVector := cipherText[:aes.BlockSize]
+	var initializationVector []byte
+	if encr.iv == nil {
+		initializationVector = cipherText[:aes.BlockSize]
+	} else {
+		initializationVector = encr.iv
+	}
+
 	encryptedMessage := cipherText[aes.BlockSize:]
 
 	if len(encryptedMessage)%aes.BlockSize != 0 {
@@ -123,7 +147,6 @@ func (encr *ENCR_AES_CBC_Crypto) Decrypt(cipherText []byte) ([]byte, error) {
 	cbcBlockMode.CryptBlocks(plainText, encryptedMessage)
 
 	// fmt.Printf("Decrypted content:\n%s", hex.Dump(plainText))
-
 	// Remove padding
 	padding := int(plainText[len(plainText)-1]) + 1
 	plainText = plainText[:len(plainText)-padding]
