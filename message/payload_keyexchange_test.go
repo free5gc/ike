@@ -8,7 +8,7 @@ import (
 
 var (
 	validDH1024 = KeyExchange{
-		DiffieHellmanGroup: DH_1024_BIT_MODP,
+		DiffieHellmanGroup: Dh1024BitModp,
 		KeyExchangeData: []byte{
 			0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
 		},
@@ -19,7 +19,7 @@ var (
 	}
 
 	validDH2048 = KeyExchange{
-		DiffieHellmanGroup: DH_2048_BIT_MODP,
+		DiffieHellmanGroup: DH2048BitModp,
 		KeyExchangeData: []byte{
 			0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
 		},

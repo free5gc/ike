@@ -134,7 +134,7 @@ var (
 						DiffieHellmanGroup: TransformContainer{
 							&Transform{
 								TransformType:    TypeDiffieHellmanGroup,
-								TransformID:      DH_1024_BIT_MODP,
+								TransformID:      Dh1024BitModp,
 								AttributePresent: false,
 								AttributeType:    0,
 								AttributeValue:   0,

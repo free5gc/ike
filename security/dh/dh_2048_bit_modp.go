@@ -7,7 +7,6 @@ import (
 )
 
 const (
-	String_DH_2048_BIT_MODP string = "DH_2048_BIT_MODP"
 	// Parameters
 	Group14PrimeString string = "FFFFFFFFFFFFFFFFC90FDAA22168C234" +
 		"C4C6628B80DC1CD129024E088A67CC74" +
@@ -29,33 +28,33 @@ const (
 )
 
 func toString_DH_2048_BIT_MODP(attrType uint16, intValue uint16, bytesValue []byte) string {
-	return String_DH_2048_BIT_MODP
+	return DH_2048_BIT_MODP
 }
 
-var _ DHType = &DH_2048_BIT_MODP{}
+var _ DHType = &DH2048BitModp{}
 
-type DH_2048_BIT_MODP struct {
+type DH2048BitModp struct {
 	factor            *big.Int
 	generator         *big.Int
 	factorBytesLength int
 }
 
-func (t *DH_2048_BIT_MODP) TransformID() uint16 {
-	return message.DH_2048_BIT_MODP
+func (t *DH2048BitModp) TransformID() uint16 {
+	return message.DH2048BitModp
 }
 
-func (t *DH_2048_BIT_MODP) getAttribute() (bool, uint16, uint16, []byte) {
+func (t *DH2048BitModp) getAttribute() (bool, uint16, uint16, []byte) {
 	return false, 0, 0, nil
 }
 
-func (t *DH_2048_BIT_MODP) GetSharedKey(secret, peerPublicValue *big.Int) []byte {
+func (t *DH2048BitModp) GetSharedKey(secret, peerPublicValue *big.Int) []byte {
 	sharedKey := new(big.Int).Exp(peerPublicValue, secret, t.factor).Bytes()
 	prependZero := make([]byte, t.factorBytesLength-len(sharedKey))
 	sharedKey = append(prependZero, sharedKey...)
 	return sharedKey
 }
 
-func (t *DH_2048_BIT_MODP) GetPublicValue(secret *big.Int) []byte {
+func (t *DH2048BitModp) GetPublicValue(secret *big.Int) []byte {
 	localPublicValue := new(big.Int).Exp(t.generator, secret, t.factor).Bytes()
 	prependZero := make([]byte, t.factorBytesLength-len(localPublicValue))
 	localPublicValue = append(prependZero, localPublicValue...)

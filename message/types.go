@@ -96,9 +96,9 @@ const (
 const (
 	DH_NONE          = 0
 	DH_768_BIT_MODP  = 1
-	DH_1024_BIT_MODP = 2
+	Dh1024BitModp    = 2
 	DH_1536_BIT_MODP = 5
-	DH_2048_BIT_MODP = iota + 10
+	DH2048BitModp    = iota + 10
 	DH_3072_BIT_MODP
 	DH_4096_BIT_MODP
 	DH_6144_BIT_MODP

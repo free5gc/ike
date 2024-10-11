@@ -14,20 +14,20 @@ import (
 )
 
 const (
-	String_ENCR_AES_CBC_128 string = "ENCR_AES_CBC_128"
-	String_ENCR_AES_CBC_192 string = "ENCR_AES_CBC_192"
-	String_ENCR_AES_CBC_256 string = "ENCR_AES_CBC_256"
+	ENCR_AES_CBC_128 string = "ENCR_AES_CBC_128"
+	ENCR_AES_CBC_192 string = "ENCR_AES_CBC_192"
+	ENCR_AES_CBC_256 string = "ENCR_AES_CBC_256"
 )
 
 func toString_ENCR_AES_CBC(attrType uint16, intValue uint16, bytesValue []byte) string {
 	if attrType == message.AttributeTypeKeyLength {
 		switch intValue {
 		case 128:
-			return String_ENCR_AES_CBC_128
+			return ENCR_AES_CBC_128
 		case 192:
-			return String_ENCR_AES_CBC_192
+			return ENCR_AES_CBC_192
 		case 256:
-			return String_ENCR_AES_CBC_256
+			return ENCR_AES_CBC_256
 		default:
 			return ""
 		}
@@ -37,19 +37,19 @@ func toString_ENCR_AES_CBC(attrType uint16, intValue uint16, bytesValue []byte) 
 }
 
 var (
-	_ ENCRType  = &ENCR_AES_CBC{}
-	_ ENCRKType = &ENCR_AES_CBC{}
+	_ ENCRType  = &EncrAesCbc{}
+	_ ENCRKType = &EncrAesCbc{}
 )
 
-type ENCR_AES_CBC struct {
+type EncrAesCbc struct {
 	keyLength int
 }
 
-func (t *ENCR_AES_CBC) TransformID() uint16 {
+func (t *EncrAesCbc) TransformID() uint16 {
 	return message.ENCR_AES_CBC
 }
 
-func (t *ENCR_AES_CBC) getAttribute() (bool, uint16, uint16, []byte, error) {
+func (t *EncrAesCbc) getAttribute() (bool, uint16, uint16, []byte, error) {
 	keyLengthBits := t.keyLength * 8
 	if keyLengthBits < 0 || keyLengthBits > 0xFFFF {
 		return false, 0, 0, nil, errors.Errorf("key length exceeds uint16 maximum value: %v", keyLengthBits)
@@ -57,33 +57,33 @@ func (t *ENCR_AES_CBC) getAttribute() (bool, uint16, uint16, []byte, error) {
 	return true, message.AttributeTypeKeyLength, uint16(keyLengthBits), nil, nil
 }
 
-func (t *ENCR_AES_CBC) GetKeyLength() int {
+func (t *EncrAesCbc) GetKeyLength() int {
 	return t.keyLength
 }
 
-func (t *ENCR_AES_CBC) NewCrypto(key []byte) (ikeCrypto.IKECrypto, error) {
+func (t *EncrAesCbc) NewCrypto(key []byte) (ikeCrypto.IKECrypto, error) {
 	var err error
-	encr := new(ENCR_AES_CBC_Crypto)
+	encr := new(EncrAesCbcCrypto)
 	if len(key) != t.keyLength {
-		return nil, errors.Errorf("ENCR_AES_CBC init error: Get unexpected key length")
+		return nil, errors.Errorf("EncrAesCbc init error: Get unexpected key length")
 	}
 
 	if encr.Block, err = aes.NewCipher(key); err != nil {
-		return nil, errors.Wrapf(err, "ENCR_AES_CBC init: Error occur when create new cipher: ")
+		return nil, errors.Wrapf(err, "EncrAesCbc init: Error occur when create new cipher: ")
 	} else {
 		return encr, nil
 	}
 }
 
-var _ ikeCrypto.IKECrypto = &ENCR_AES_CBC_Crypto{}
+var _ ikeCrypto.IKECrypto = &EncrAesCbcCrypto{}
 
-type ENCR_AES_CBC_Crypto struct {
+type EncrAesCbcCrypto struct {
 	Block   cipher.Block
 	Iv      []byte // initializationVector
 	Padding []byte
 }
 
-func (encr *ENCR_AES_CBC_Crypto) Encrypt(plainText []byte) ([]byte, error) {
+func (encr *EncrAesCbcCrypto) Encrypt(plainText []byte) ([]byte, error) {
 	var err error
 
 	// Padding message
@@ -118,10 +118,10 @@ func (encr *ENCR_AES_CBC_Crypto) Encrypt(plainText []byte) ([]byte, error) {
 	return cipherText, nil
 }
 
-func (encr *ENCR_AES_CBC_Crypto) Decrypt(cipherText []byte) ([]byte, error) {
+func (encr *EncrAesCbcCrypto) Decrypt(cipherText []byte) ([]byte, error) {
 	// Check
 	if len(cipherText) < aes.BlockSize {
-		return nil, errors.Errorf("ENCR_AES_CBC_Crypto: Length of cipher text is too short to decrypt")
+		return nil, errors.Errorf("EncrAesCbcCrypto: Length of cipher text is too short to decrypt")
 	}
 
 	var initializationVector []byte
@@ -134,7 +134,7 @@ func (encr *ENCR_AES_CBC_Crypto) Decrypt(cipherText []byte) ([]byte, error) {
 	encryptedMessage := cipherText[aes.BlockSize:]
 
 	if len(encryptedMessage)%aes.BlockSize != 0 {
-		return nil, errors.Errorf("ENCR_AES_CBC_Crypto: Cipher text is not a multiple of block size")
+		return nil, errors.Errorf("EncrAesCbcCrypto: Cipher text is not a multiple of block size")
 	}
 
 	// Slice

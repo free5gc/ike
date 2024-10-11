@@ -116,7 +116,7 @@ var (
 )
 
 func TestEncrypt_256(t *testing.T) {
-	var sk ENCR_AES_CBC_Crypto
+	var sk EncrAesCbcCrypto
 	var block cipher.Block
 	var err error
 	var cipher []byte
@@ -124,7 +124,7 @@ func TestEncrypt_256(t *testing.T) {
 	block, err = aes.NewCipher(sk_ei_256)
 	require.NoError(t, err)
 
-	sk = ENCR_AES_CBC_Crypto{
+	sk = EncrAesCbcCrypto{
 		Block:   block,
 		Iv:      iv_nil_256,
 		Padding: padding_nil_256,
@@ -133,7 +133,7 @@ func TestEncrypt_256(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, cipherText_nil_256, cipher)
 
-	sk = ENCR_AES_CBC_Crypto{
+	sk = EncrAesCbcCrypto{
 		Block:   block,
 		Iv:      iv_256,
 		Padding: padding_256,
@@ -144,7 +144,7 @@ func TestEncrypt_256(t *testing.T) {
 }
 
 func TestDecrypt_256(t *testing.T) {
-	var sk ENCR_AES_CBC_Crypto
+	var sk EncrAesCbcCrypto
 	var err error
 	var block cipher.Block
 	var plain []byte
@@ -152,7 +152,7 @@ func TestDecrypt_256(t *testing.T) {
 	block, err = aes.NewCipher(sk_ei_256)
 	require.NoError(t, err)
 
-	sk = ENCR_AES_CBC_Crypto{
+	sk = EncrAesCbcCrypto{
 		Block:   block,
 		Iv:      iv_nil_256,
 		Padding: padding_nil_256,
@@ -162,7 +162,7 @@ func TestDecrypt_256(t *testing.T) {
 	testnil := make([]byte, 0)
 	require.Equal(t, testnil, plain)
 
-	sk = ENCR_AES_CBC_Crypto{
+	sk = EncrAesCbcCrypto{
 		Block:   block,
 		Iv:      iv_256,
 		Padding: padding_256,

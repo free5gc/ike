@@ -376,7 +376,7 @@ func TestEncryptMsg(t *testing.T) {
 
 	block, err = aes.NewCipher(sk_ei)
 	require.NoError(t, err)
-	ikeSAKey.Encr_i = &encr.ENCR_AES_CBC_Crypto{
+	ikeSAKey.Encr_i = &encr.EncrAesCbcCrypto{
 		Block:   block,
 		Iv:      iv,
 		Padding: padding,
@@ -388,7 +388,7 @@ func TestEncryptMsg(t *testing.T) {
 
 	block, err = aes.NewCipher(sk_er)
 	require.NoError(t, err)
-	ikeSAKey.Encr_r = &encr.ENCR_AES_CBC_Crypto{
+	ikeSAKey.Encr_r = &encr.EncrAesCbcCrypto{
 		Block:   block,
 		Iv:      iv,
 		Padding: padding,
@@ -503,7 +503,7 @@ func TestEncryptMsg(t *testing.T) {
 	require.NoError(t, err)
 	block, err = aes.NewCipher(sk_ei)
 	require.NoError(t, err)
-	ikeSAKey.Encr_i = &encr.ENCR_AES_CBC_Crypto{
+	ikeSAKey.Encr_i = &encr.EncrAesCbcCrypto{
 		Block:   block,
 		Iv:      iv,
 		Padding: padding,
@@ -514,7 +514,7 @@ func TestEncryptMsg(t *testing.T) {
 	require.NoError(t, err)
 	block, err = aes.NewCipher(sk_er)
 	require.NoError(t, err)
-	ikeSAKey.Encr_r = &encr.ENCR_AES_CBC_Crypto{
+	ikeSAKey.Encr_r = &encr.EncrAesCbcCrypto{
 		Block:   block,
 		Iv:      iv,
 		Padding: padding,

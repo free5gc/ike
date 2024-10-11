@@ -6,6 +6,12 @@ import (
 	"github.com/free5gc/ike/message"
 )
 
+const (
+	AUTH_HMAC_MD5_96       string = "AUTH_HMAC_MD5_96"
+	AUTH_HMAC_SHA1_96      string = "AUTH_HMAC_SHA1_96"
+	AUTH_HMAC_SHA2_256_128 string = "AUTH_HMAC_SHA2_256_128"
+)
+
 var integString map[uint16]func(uint16, uint16, []byte) string
 
 var (
@@ -23,15 +29,15 @@ func init() {
 	// INTEG Types
 	integTypes = make(map[string]INTEGType)
 
-	integTypes[String_AUTH_HMAC_MD5_96] = &AUTH_HMAC_MD5_96{
+	integTypes[AUTH_HMAC_MD5_96] = &AuthHmacMd5_95{
 		keyLength:    16,
 		outputLength: 12,
 	}
-	integTypes[String_AUTH_HMAC_SHA1_96] = &AUTH_HMAC_SHA1_96{
+	integTypes[AUTH_HMAC_SHA1_96] = &AuthHmacSha1_96{
 		keyLength:    20,
 		outputLength: 12,
 	}
-	integTypes[String_AUTH_HMAC_SHA2_256_128] = &AUTH_HMAC_SHA2_256_128{
+	integTypes[AUTH_HMAC_SHA2_256_128] = &AuthHmacSha2_256_128{
 		keyLength:    32,
 		outputLength: 16,
 	}
@@ -39,15 +45,15 @@ func init() {
 	// INTEG Kernel Types
 	integKTypes = make(map[string]INTEGKType)
 
-	integKTypes[String_AUTH_HMAC_MD5_96] = &AUTH_HMAC_MD5_96{
+	integKTypes[AUTH_HMAC_MD5_96] = &AuthHmacMd5_95{
 		keyLength:    16,
 		outputLength: 12,
 	}
-	integKTypes[String_AUTH_HMAC_SHA1_96] = &AUTH_HMAC_SHA1_96{
+	integKTypes[AUTH_HMAC_SHA1_96] = &AuthHmacSha1_96{
 		keyLength:    20,
 		outputLength: 12,
 	}
-	integKTypes[String_AUTH_HMAC_SHA2_256_128] = &AUTH_HMAC_SHA2_256_128{
+	integKTypes[AUTH_HMAC_SHA2_256_128] = &AuthHmacSha2_256_128{
 		keyLength:    32,
 		outputLength: 16,
 	}

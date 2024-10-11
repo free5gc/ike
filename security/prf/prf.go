@@ -6,6 +6,12 @@ import (
 	"github.com/free5gc/ike/message"
 )
 
+const (
+	PRF_HMAC_MD5      string = "PRF_HMAC_MD5"
+	PRF_HMAC_SHA1     string = "PRF_HMAC_SHA1"
+	PRF_HMAC_SHA2_256 string = "PRF_HMAC_SHA2_256"
+)
+
 var (
 	prfString map[uint16]func(uint16, uint16, []byte) string
 	prfTypes  map[string]PRFType
@@ -21,15 +27,15 @@ func init() {
 	// PRF Types
 	prfTypes = make(map[string]PRFType)
 
-	prfTypes[String_PRF_HMAC_MD5] = &PRF_HMAC_MD5{
+	prfTypes[PRF_HMAC_MD5] = &PrfHmacMd5{
 		keyLength:    16,
 		outputLength: 16,
 	}
-	prfTypes[String_PRF_HMAC_SHA1] = &PRF_HMAC_SHA1{
+	prfTypes[PRF_HMAC_SHA1] = &PrfHmacSha1{
 		keyLength:    20,
 		outputLength: 20,
 	}
-	prfTypes[String_PRF_HMAC_SHA2_256] = &PRF_HMAC_SHA2_256{
+	prfTypes[PRF_HMAC_SHA2_256] = &PrfHmacSha2_256{
 		keyLength:    32,
 		outputLength: 32,
 	}
