@@ -8,10 +8,10 @@ import (
 	"github.com/free5gc/ike/message"
 )
 
-const string_PRF_HMAC_SHA2_256 string = "PRF_HMAC_SHA2_256"
+const String_PRF_HMAC_SHA2_256 string = "PRF_HMAC_SHA2_256"
 
 func toString_PRF_HMAC_SHA2_256(attrType uint16, intValue uint16, bytesValue []byte) string {
-	return string_PRF_HMAC_SHA2_256
+	return String_PRF_HMAC_SHA2_256
 }
 
 var _ PRFType = &PRF_HMAC_SHA2_256{}

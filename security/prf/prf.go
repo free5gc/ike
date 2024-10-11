@@ -21,15 +21,15 @@ func init() {
 	// PRF Types
 	prfTypes = make(map[string]PRFType)
 
-	prfTypes[string_PRF_HMAC_MD5] = &PRF_HMAC_MD5{
+	prfTypes[String_PRF_HMAC_MD5] = &PRF_HMAC_MD5{
 		keyLength:    16,
 		outputLength: 16,
 	}
-	prfTypes[string_PRF_HMAC_SHA1] = &PRF_HMAC_SHA1{
+	prfTypes[String_PRF_HMAC_SHA1] = &PRF_HMAC_SHA1{
 		keyLength:    20,
 		outputLength: 20,
 	}
-	prfTypes[string_PRF_HMAC_SHA2_256] = &PRF_HMAC_SHA2_256{
+	prfTypes[String_PRF_HMAC_SHA2_256] = &PRF_HMAC_SHA2_256{
 		keyLength:    32,
 		outputLength: 32,
 	}

@@ -28,7 +28,7 @@ func init() {
 		panic("IKE Diffie Hellman Group failed to init.")
 	}
 	generator = new(big.Int).SetUint64(Group2Generator)
-	dhTypes[string_DH_1024_BIT_MODP] = &DH_1024_BIT_MODP{
+	dhTypes[String_DH_1024_BIT_MODP] = &DH_1024_BIT_MODP{
 		factor:            factor,
 		generator:         generator,
 		factorBytesLength: len(factor.Bytes()),
@@ -40,7 +40,7 @@ func init() {
 		panic("IKE Diffie Hellman Group failed to init.")
 	}
 	generator = new(big.Int).SetUint64(Group14Generator)
-	dhTypes[string_DH_2048_BIT_MODP] = &DH_2048_BIT_MODP{
+	dhTypes[String_DH_2048_BIT_MODP] = &DH_2048_BIT_MODP{
 		factor:            factor,
 		generator:         generator,
 		factorBytesLength: len(factor.Bytes()),

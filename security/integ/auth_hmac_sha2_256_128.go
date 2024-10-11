@@ -8,10 +8,10 @@ import (
 	"github.com/free5gc/ike/message"
 )
 
-const string_AUTH_HMAC_SHA2_256_128 string = "AUTH_HMAC_SHA2_256_128"
+const String_AUTH_HMAC_SHA2_256_128 string = "AUTH_HMAC_SHA2_256_128"
 
 func toString_AUTH_HMAC_SHA2_256_128(attrType uint16, intValue uint16, bytesValue []byte) string {
-	return string_AUTH_HMAC_SHA2_256_128
+	return String_AUTH_HMAC_SHA2_256_128
 }
 
 var (

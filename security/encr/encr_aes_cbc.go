@@ -14,20 +14,20 @@ import (
 )
 
 const (
-	string_ENCR_AES_CBC_128 string = "ENCR_AES_CBC_128"
-	string_ENCR_AES_CBC_192 string = "ENCR_AES_CBC_192"
-	string_ENCR_AES_CBC_256 string = "ENCR_AES_CBC_256"
+	String_ENCR_AES_CBC_128 string = "ENCR_AES_CBC_128"
+	String_ENCR_AES_CBC_192 string = "ENCR_AES_CBC_192"
+	String_ENCR_AES_CBC_256 string = "ENCR_AES_CBC_256"
 )
 
 func toString_ENCR_AES_CBC(attrType uint16, intValue uint16, bytesValue []byte) string {
 	if attrType == message.AttributeTypeKeyLength {
 		switch intValue {
 		case 128:
-			return string_ENCR_AES_CBC_128
+			return String_ENCR_AES_CBC_128
 		case 192:
-			return string_ENCR_AES_CBC_192
+			return String_ENCR_AES_CBC_192
 		case 256:
-			return string_ENCR_AES_CBC_256
+			return String_ENCR_AES_CBC_256
 		default:
 			return ""
 		}

@@ -8,10 +8,10 @@ import (
 	"github.com/free5gc/ike/message"
 )
 
-const string_AUTH_HMAC_MD5_96 string = "AUTH_HMAC_MD5_96"
+const String_AUTH_HMAC_MD5_96 string = "AUTH_HMAC_MD5_96"
 
 func toString_AUTH_HMAC_MD5_96(attrType uint16, intValue uint16, bytesValue []byte) string {
-	return string_AUTH_HMAC_MD5_96
+	return String_AUTH_HMAC_MD5_96
 }
 
 var (

@@ -23,15 +23,15 @@ func init() {
 	// INTEG Types
 	integTypes = make(map[string]INTEGType)
 
-	integTypes[string_AUTH_HMAC_MD5_96] = &AUTH_HMAC_MD5_96{
+	integTypes[String_AUTH_HMAC_MD5_96] = &AUTH_HMAC_MD5_96{
 		keyLength:    16,
 		outputLength: 12,
 	}
-	integTypes[string_AUTH_HMAC_SHA1_96] = &AUTH_HMAC_SHA1_96{
+	integTypes[String_AUTH_HMAC_SHA1_96] = &AUTH_HMAC_SHA1_96{
 		keyLength:    20,
 		outputLength: 12,
 	}
-	integTypes[string_AUTH_HMAC_SHA2_256_128] = &AUTH_HMAC_SHA2_256_128{
+	integTypes[String_AUTH_HMAC_SHA2_256_128] = &AUTH_HMAC_SHA2_256_128{
 		keyLength:    32,
 		outputLength: 16,
 	}
@@ -39,15 +39,15 @@ func init() {
 	// INTEG Kernel Types
 	integKTypes = make(map[string]INTEGKType)
 
-	integKTypes[string_AUTH_HMAC_MD5_96] = &AUTH_HMAC_MD5_96{
+	integKTypes[String_AUTH_HMAC_MD5_96] = &AUTH_HMAC_MD5_96{
 		keyLength:    16,
 		outputLength: 12,
 	}
-	integKTypes[string_AUTH_HMAC_SHA1_96] = &AUTH_HMAC_SHA1_96{
+	integKTypes[String_AUTH_HMAC_SHA1_96] = &AUTH_HMAC_SHA1_96{
 		keyLength:    20,
 		outputLength: 12,
 	}
-	integKTypes[string_AUTH_HMAC_SHA2_256_128] = &AUTH_HMAC_SHA2_256_128{
+	integKTypes[String_AUTH_HMAC_SHA2_256_128] = &AUTH_HMAC_SHA2_256_128{
 		keyLength:    32,
 		outputLength: 16,
 	}
