@@ -288,12 +288,12 @@ func (ikesaKey *IKESAKey) GenerateKeyForIKESA(
 	ikesaKey.Integ_r = ikesaKey.IntegInfo.Init(ikesaKey.SK_ar)
 
 	var err error
-	ikesaKey.Encr_i, err = ikesaKey.EncrInfo.NewCrypto(ikesaKey.SK_ei, nil, nil)
+	ikesaKey.Encr_i, err = ikesaKey.EncrInfo.NewCrypto(ikesaKey.SK_ei)
 	if err != nil {
 		return err
 	}
 
-	ikesaKey.Encr_r, err = ikesaKey.EncrInfo.NewCrypto(ikesaKey.SK_er, nil, nil)
+	ikesaKey.Encr_r, err = ikesaKey.EncrInfo.NewCrypto(ikesaKey.SK_er)
 	if err != nil {
 		return err
 	}

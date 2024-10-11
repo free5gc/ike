@@ -1,11 +1,11 @@
 package encr
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	ikeCrypto "github.com/free5gc/ike/security/IKECrypto"
 )
 
 var (
@@ -115,45 +115,57 @@ var (
 )
 
 func TestEncrypt_196(t *testing.T) {
-	aes_cbc_196 := ENCR_AES_CBC{
-		keyLength: 24,
-	}
-
-	var sk ikeCrypto.IKECrypto
+	var sk ENCR_AES_CBC_Crypto
+	var block cipher.Block
 	var err error
 	var cipher []byte
 
-	sk, err = aes_cbc_196.NewCrypto(sk_ei_196, iv_nil_196, padding_nil_196)
+	block, err = aes.NewCipher(sk_ei_196)
 	require.NoError(t, err)
+
+	sk = ENCR_AES_CBC_Crypto{
+		Block:   block,
+		Iv:      iv_nil_196,
+		Padding: padding_nil_196,
+	}
 	cipher, err = sk.Encrypt(nil)
 	require.NoError(t, err)
 	require.Equal(t, cipherText_nil_196, cipher)
 
-	sk, err = aes_cbc_196.NewCrypto(sk_ei_196, iv_196, padding_196)
-	require.NoError(t, err)
+	sk = ENCR_AES_CBC_Crypto{
+		Block:   block,
+		Iv:      iv_196,
+		Padding: padding_196,
+	}
 	cipher, err = sk.Encrypt(plainText_196)
 	require.NoError(t, err)
 	require.Equal(t, cipherText_196, cipher)
 }
 
 func TestDecrypt_196(t *testing.T) {
-	aes_cbc_196 := ENCR_AES_CBC{
-		keyLength: 24,
-	}
-
-	var sk ikeCrypto.IKECrypto
+	var sk ENCR_AES_CBC_Crypto
 	var err error
+	var block cipher.Block
 	var plain []byte
 
-	sk, err = aes_cbc_196.NewCrypto(sk_ei_196, iv_nil_196, padding_nil_196)
+	block, err = aes.NewCipher(sk_ei_196)
 	require.NoError(t, err)
+
+	sk = ENCR_AES_CBC_Crypto{
+		Block:   block,
+		Iv:      iv_nil_196,
+		Padding: padding_nil_196,
+	}
 	plain, err = sk.Decrypt(cipherText_nil_196)
 	require.NoError(t, err)
 	testnil := make([]byte, 0)
 	require.Equal(t, testnil, plain)
 
-	sk, err = aes_cbc_196.NewCrypto(sk_ei_196, iv_196, padding_196)
-	require.NoError(t, err)
+	sk = ENCR_AES_CBC_Crypto{
+		Block:   block,
+		Iv:      iv_196,
+		Padding: padding_196,
+	}
 	plain, err = sk.Decrypt(cipherText_196)
 	require.NoError(t, err)
 	require.Equal(t, plainText_196, plain)

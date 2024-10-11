@@ -1,6 +1,8 @@
 package ike
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"encoding/hex"
 	"testing"
 
@@ -90,7 +92,7 @@ func TestEncodeDecode(t *testing.T) {
 			"b9f0b5777ea18b50" +
 			"f8a671fd3b2daa99")
 	require.NoError(t, err)
-	ikeSAKey.Encr_i, err = ikeSAKey.EncrInfo.NewCrypto(ikeSAKey.SK_ei, nil, nil)
+	ikeSAKey.Encr_i, err = ikeSAKey.EncrInfo.NewCrypto(ikeSAKey.SK_ei)
 	require.NoError(t, err)
 
 	ikeSAKey.SK_er, err = hex.DecodeString(
@@ -99,7 +101,7 @@ func TestEncodeDecode(t *testing.T) {
 			"8e94deef05b6a05d" +
 			"7eb3dba075d81c6f")
 	require.NoError(t, err)
-	ikeSAKey.Encr_r, err = ikeSAKey.EncrInfo.NewCrypto(ikeSAKey.SK_er, nil, nil)
+	ikeSAKey.Encr_r, err = ikeSAKey.EncrInfo.NewCrypto(ikeSAKey.SK_er)
 	require.NoError(t, err)
 
 	ikeSAKey.SK_ai, err = hex.DecodeString(
@@ -325,12 +327,12 @@ func TestDecodeDecrypt(t *testing.T) {
 			}
 
 			if len(tc.sk_ei) > 0 {
-				tc.ikeSAKey.Encr_i, err = tc.ikeSAKey.EncrInfo.NewCrypto(tc.sk_ei, nil, nil)
+				tc.ikeSAKey.Encr_i, err = tc.ikeSAKey.EncrInfo.NewCrypto(tc.sk_ei)
 				require.NoError(t, err)
 			}
 
 			if len(tc.sk_er) > 0 {
-				tc.ikeSAKey.Encr_r, err = tc.ikeSAKey.EncrInfo.NewCrypto(tc.sk_er, nil, nil)
+				tc.ikeSAKey.Encr_r, err = tc.ikeSAKey.EncrInfo.NewCrypto(tc.sk_er)
 				require.NoError(t, err)
 			}
 
@@ -348,7 +350,6 @@ func TestDecodeDecrypt(t *testing.T) {
 
 func TestEncryptMsg(t *testing.T) {
 	encryptionAlgorithm := encr.StrToType("ENCR_AES_CBC_256")
-
 	integrityAlgorithm := integ.StrToType("AUTH_HMAC_SHA1_96")
 
 	ikeSAKey := &security.IKESAKey{
@@ -359,6 +360,7 @@ func TestEncryptMsg(t *testing.T) {
 	var err error
 	var iv, padding, sk_ei, sk_er, sk_ai, sk_ar []byte
 	var ikeMsg *message.IKEMessage
+	var block cipher.Block
 
 	iv = []byte{
 		0xa2, 0xfb, 0xbc, 0xdd, 0xd3, 0x9a, 0xda, 0xdd,
@@ -371,14 +373,26 @@ func TestEncryptMsg(t *testing.T) {
 	sk_ei, err = hex.DecodeString(
 		"b2e0279136e0477624e635e53e561c0b241d1388f3ea0873496e835b48c17508")
 	require.NoError(t, err)
-	ikeSAKey.Encr_i, err = ikeSAKey.EncrInfo.NewCrypto(sk_ei, iv, padding)
+
+	block, err = aes.NewCipher(sk_ei)
 	require.NoError(t, err)
+	ikeSAKey.Encr_i = &encr.ENCR_AES_CBC_Crypto{
+		Block:   block,
+		Iv:      iv,
+		Padding: padding,
+	}
 
 	sk_er, err = hex.DecodeString(
 		"71919fd9d651da48fe141d0e6735d9a2ffc4512354db293c7b4c35f0fab62242")
 	require.NoError(t, err)
-	ikeSAKey.Encr_r, err = ikeSAKey.EncrInfo.NewCrypto(sk_er, iv, padding)
+
+	block, err = aes.NewCipher(sk_er)
 	require.NoError(t, err)
+	ikeSAKey.Encr_r = &encr.ENCR_AES_CBC_Crypto{
+		Block:   block,
+		Iv:      iv,
+		Padding: padding,
+	}
 
 	sk_ai, err = hex.DecodeString(
 		"f63878f3236929f870fe5e4f58621084b8be0c86")
@@ -487,14 +501,24 @@ func TestEncryptMsg(t *testing.T) {
 	sk_ei, err = hex.DecodeString(
 		"3d3c6a1f1c693acf223aedf30ac81ae4fcd21c7e6fcefdd74280842d7feefd10")
 	require.NoError(t, err)
-	ikeSAKey.Encr_i, err = ikeSAKey.EncrInfo.NewCrypto(sk_ei, iv, padding)
+	block, err = aes.NewCipher(sk_ei)
 	require.NoError(t, err)
+	ikeSAKey.Encr_i = &encr.ENCR_AES_CBC_Crypto{
+		Block:   block,
+		Iv:      iv,
+		Padding: padding,
+	}
 
 	sk_er, err = hex.DecodeString(
 		"577462e5d72cced94747c2742866d3ec5ed2ca53cf05eb59bfb88998a66c279a")
 	require.NoError(t, err)
-	ikeSAKey.Encr_r, err = ikeSAKey.EncrInfo.NewCrypto(sk_er, iv, padding)
+	block, err = aes.NewCipher(sk_er)
 	require.NoError(t, err)
+	ikeSAKey.Encr_r = &encr.ENCR_AES_CBC_Crypto{
+		Block:   block,
+		Iv:      iv,
+		Padding: padding,
+	}
 
 	sk_ai, err = hex.DecodeString(
 		"89a2b8789cc33333b01d26eaf4529f22a3420e24")
