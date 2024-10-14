@@ -12,16 +12,16 @@ var (
 )
 
 const (
-	string_ESN_ENABLE  string = "ESN_ENABLE"
-	string_ESN_DISABLE string = "ESN_DISABLE"
+	String_ESN_ENABLE  string = "ESN_ENABLE"
+	String_ESN_DISABLE string = "ESN_DISABLE"
 )
 
 func toString_ESN_ENABLE(attrType uint16, intValue uint16, bytesValue []byte) string {
-	return string_ESN_ENABLE
+	return String_ESN_ENABLE
 }
 
 func toString_ESN_DISABLE(attrType uint16, intValue uint16, bytesValue []byte) string {
-	return string_ESN_DISABLE
+	return String_ESN_DISABLE
 }
 
 func init() {
@@ -33,10 +33,10 @@ func init() {
 	// ESN Types
 	esnTypes = make(map[string]ESN)
 
-	esnTypes[string_ESN_ENABLE] = ESN{
+	esnTypes[String_ESN_ENABLE] = ESN{
 		needESN: true,
 	}
-	esnTypes[string_ESN_DISABLE] = ESN{
+	esnTypes[String_ESN_DISABLE] = ESN{
 		needESN: false,
 	}
 }

@@ -8,39 +8,37 @@ import (
 	"github.com/free5gc/ike/message"
 )
 
-const string_AUTH_HMAC_MD5_96 string = "AUTH_HMAC_MD5_96"
-
 func toString_AUTH_HMAC_MD5_96(attrType uint16, intValue uint16, bytesValue []byte) string {
-	return string_AUTH_HMAC_MD5_96
+	return AUTH_HMAC_MD5_96
 }
 
 var (
-	_ INTEGType  = &AUTH_HMAC_MD5_96{}
-	_ INTEGKType = &AUTH_HMAC_MD5_96{}
+	_ INTEGType  = &AuthHmacMd5_95{}
+	_ INTEGKType = &AuthHmacMd5_95{}
 )
 
-type AUTH_HMAC_MD5_96 struct {
+type AuthHmacMd5_95 struct {
 	keyLength    int
 	outputLength int
 }
 
-func (t *AUTH_HMAC_MD5_96) TransformID() uint16 {
+func (t *AuthHmacMd5_95) TransformID() uint16 {
 	return message.AUTH_HMAC_MD5_96
 }
 
-func (t *AUTH_HMAC_MD5_96) getAttribute() (bool, uint16, uint16, []byte) {
+func (t *AuthHmacMd5_95) getAttribute() (bool, uint16, uint16, []byte) {
 	return false, 0, 0, nil
 }
 
-func (t *AUTH_HMAC_MD5_96) GetKeyLength() int {
+func (t *AuthHmacMd5_95) GetKeyLength() int {
 	return t.keyLength
 }
 
-func (t *AUTH_HMAC_MD5_96) GetOutputLength() int {
+func (t *AuthHmacMd5_95) GetOutputLength() int {
 	return t.outputLength
 }
 
-func (t *AUTH_HMAC_MD5_96) Init(key []byte) hash.Hash {
+func (t *AuthHmacMd5_95) Init(key []byte) hash.Hash {
 	if len(key) == 16 {
 		return hmac.New(md5.New, key)
 	} else {

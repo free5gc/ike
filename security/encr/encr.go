@@ -22,26 +22,26 @@ func init() {
 	// ENCR Types
 	encrTypes = make(map[string]ENCRType)
 
-	encrTypes[string_ENCR_AES_CBC_128] = &ENCR_AES_CBC{
+	encrTypes[ENCR_AES_CBC_128] = &EncrAesCbc{
 		keyLength: 16,
 	}
-	encrTypes[string_ENCR_AES_CBC_192] = &ENCR_AES_CBC{
+	encrTypes[ENCR_AES_CBC_192] = &EncrAesCbc{
 		keyLength: 24,
 	}
-	encrTypes[string_ENCR_AES_CBC_256] = &ENCR_AES_CBC{
+	encrTypes[ENCR_AES_CBC_256] = &EncrAesCbc{
 		keyLength: 32,
 	}
 
 	// ENCR Kernel Types
 	encrKTypes = make(map[string]ENCRKType)
 
-	encrKTypes[string_ENCR_AES_CBC_128] = &ENCR_AES_CBC{
+	encrKTypes[ENCR_AES_CBC_128] = &EncrAesCbc{
 		keyLength: 16,
 	}
-	encrKTypes[string_ENCR_AES_CBC_192] = &ENCR_AES_CBC{
+	encrKTypes[ENCR_AES_CBC_192] = &EncrAesCbc{
 		keyLength: 24,
 	}
-	encrKTypes[string_ENCR_AES_CBC_256] = &ENCR_AES_CBC{
+	encrKTypes[ENCR_AES_CBC_256] = &EncrAesCbc{
 		keyLength: 32,
 	}
 }
