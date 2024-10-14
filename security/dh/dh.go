@@ -19,8 +19,8 @@ var (
 func init() {
 	// DH String
 	dhString = make(map[uint16]func(uint16, uint16, []byte) string)
-	dhString[message.Dh1024BitModp] = toString_DH_1024_BIT_MODP
-	dhString[message.DH2048BitModp] = toString_DH_2048_BIT_MODP
+	dhString[message.DH_1024_BIT_MODP] = toString_DH_1024_BIT_MODP
+	dhString[message.DH_2048_BIT_MODP] = toString_DH_2048_BIT_MODP
 
 	// DH Types
 	dhTypes = make(map[string]DHType)

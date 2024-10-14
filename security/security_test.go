@@ -68,7 +68,7 @@ func TestConcatenateNonceAndSPI(t *testing.T) {
 }
 
 func TestIKEToProposal(t *testing.T) {
-	dhType := dh.StrToType("Dh1024BitModp")
+	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrType := encr.StrToType("ENCR_AES_CBC_256")
 	integType := integ.StrToType("AUTH_HMAC_MD5_96")
 	prfType := prf.StrToType("PRF_HMAC_SHA1")
@@ -93,7 +93,7 @@ func TestIKEToProposal(t *testing.T) {
 }
 
 func TestIKESetProposal(t *testing.T) {
-	dhType := dh.StrToType("Dh1024BitModp")
+	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrType := encr.StrToType("ENCR_AES_CBC_256")
 	integType := integ.StrToType("AUTH_HMAC_MD5_96")
 	prfType := prf.StrToType("PRF_HMAC_SHA1")
@@ -160,7 +160,7 @@ func TestGenerateKeyForIKESA(t *testing.T) {
 		initiatorSPI, responderSPI)
 	require.Error(t, err)
 
-	ikesaKey.DhInfo = dh.StrToType("DH2048BitModp")
+	ikesaKey.DhInfo = dh.StrToType("DH_2048_BIT_MODP")
 	// Concatenated nonce is nil
 	err = ikesaKey.GenerateKeyForIKESA(nil, diffieHellmanSharedKey,
 		initiatorSPI, responderSPI)
@@ -276,7 +276,7 @@ func TestGenerateKeyForChildSA(t *testing.T) {
 }
 
 func TestChildToProposal(t *testing.T) {
-	dhType := dh.StrToType("Dh1024BitModp")
+	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrKType := encr.StrToKType("ENCR_AES_CBC_256")
 	integKType := integ.StrToKType("AUTH_HMAC_MD5_96")
 	esnType, err := esn.StrToType("ESN_ENABLE")
@@ -302,7 +302,7 @@ func TestChildToProposal(t *testing.T) {
 }
 
 func TestChildSetProposal(t *testing.T) {
-	dhType := dh.StrToType("Dh1024BitModp")
+	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrKType := encr.StrToKType("ENCR_AES_CBC_256")
 	integKType := integ.StrToKType("AUTH_HMAC_MD5_96")
 	esnType, err := esn.StrToType("ESN_ENABLE")

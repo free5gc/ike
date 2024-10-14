@@ -40,7 +40,7 @@ type DH2048BitModp struct {
 }
 
 func (t *DH2048BitModp) TransformID() uint16 {
-	return message.DH2048BitModp
+	return message.DH_2048_BIT_MODP
 }
 
 func (t *DH2048BitModp) getAttribute() (bool, uint16, uint16, []byte) {
