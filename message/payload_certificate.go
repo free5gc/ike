@@ -1,6 +1,10 @@
 package message
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+
+	ike_types "github.com/free5gc/ike/types"
+)
 
 var _ IKEPayload = &Certificate{}
 
@@ -9,16 +13,16 @@ type Certificate struct {
 	CertificateData     []byte
 }
 
-func (certificate *Certificate) Type() IKEPayloadType { return TypeCERT }
+func (certificate *Certificate) Type() ike_types.IkePayloadType { return ike_types.TypeCERT }
 
-func (certificate *Certificate) marshal() ([]byte, error) {
+func (certificate *Certificate) Marshal() ([]byte, error) {
 	certificateData := make([]byte, 1)
 	certificateData[0] = certificate.CertificateEncoding
 	certificateData = append(certificateData, certificate.CertificateData...)
 	return certificateData, nil
 }
 
-func (certificate *Certificate) unmarshal(b []byte) error {
+func (certificate *Certificate) Unmarshal(b []byte) error {
 	if len(b) > 0 {
 		// bounds checking
 		if len(b) <= 1 {

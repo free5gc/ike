@@ -3,12 +3,13 @@ package message
 import (
 	"testing"
 
+	ike_types "github.com/free5gc/ike/types"
 	"github.com/stretchr/testify/require"
 )
 
 var (
 	validAuthentication = Authentication{
-		AuthenticationMethod: SharedKeyMesageIntegrityCode,
+		AuthenticationMethod: ike_types.SharedKeyMesageIntegrityCode,
 		AuthenticationData: []byte{
 			0x7d, 0x09, 0x18, 0x42, 0x60, 0x9c, 0x9e, 0x20,
 			0x56, 0x9f, 0xc0, 0x39, 0xda, 0x3f, 0x22, 0x2a,
@@ -38,7 +39,7 @@ func TestAuthenticationMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.authentication.marshal()
+			result, err := tc.authentication.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, result)
 		})
@@ -69,7 +70,7 @@ func TestAuthenticationUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var authentication Authentication
-			err := authentication.unmarshal(tc.b)
+			err := authentication.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

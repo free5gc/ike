@@ -4,6 +4,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/free5gc/ike/message"
+	ike_types "github.com/free5gc/ike/types"
 )
 
 var (
@@ -13,7 +14,7 @@ var (
 
 const (
 	String_ESN_ENABLE  string = "ESN_ENABLE"
-	String_ESN_DISABLE string = "ESN_DISABLE"
+	String_ESN_DISABLE string = "ike_types.ESN_DISABLE"
 )
 
 func toString_ESN_ENABLE(attrType uint16, intValue uint16, bytesValue []byte) string {
@@ -27,8 +28,8 @@ func toString_ESN_DISABLE(attrType uint16, intValue uint16, bytesValue []byte) s
 func init() {
 	// ESN String
 	esnString = make(map[uint16]func(uint16, uint16, []byte) string)
-	esnString[message.ESN_ENABLE] = toString_ESN_ENABLE
-	esnString[message.ESN_DISABLE] = toString_ESN_DISABLE
+	esnString[ike_types.ESN_ENABLE] = toString_ESN_ENABLE
+	esnString[ike_types.ESN_DISABLE] = toString_ESN_DISABLE
 
 	// ESN Types
 	esnTypes = make(map[string]ESN)
@@ -51,9 +52,9 @@ func (e *ESN) GetNeedESN() bool {
 
 func (e *ESN) TransformID() uint16 {
 	if e.needESN {
-		return message.ESN_ENABLE
+		return ike_types.ESN_ENABLE
 	} else {
-		return message.ESN_DISABLE
+		return ike_types.ESN_DISABLE
 	}
 }
 
@@ -88,11 +89,11 @@ func DecodeTransform(transform *message.Transform) (ESN, error) {
 
 func ToTransform(esnType ESN) *message.Transform {
 	t := new(message.Transform)
-	t.TransformType = message.TypeExtendedSequenceNumbers
+	t.TransformType = ike_types.TypeExtendedSequenceNumbers
 	t.TransformID = esnType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = esnType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
-		t.AttributeFormat = message.AttributeFormatUseTV
+		t.AttributeFormat = ike_types.AttributeFormatUseTV
 	}
 	return t
 }

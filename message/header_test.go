@@ -3,23 +3,24 @@ package message
 import (
 	"testing"
 
+	ike_types "github.com/free5gc/ike/types"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewAndMarshalIKEHeader(t *testing.T) {
 	ikeHdr := NewHeader(
-		0x000000000006f708, 0xc9e2e31f8b64053d, IKE_AUTH,
-		false, true, 0x03, uint8(NoNext), nil,
+		0x000000000006f708, 0xc9e2e31f8b64053d, ike_types.IKE_AUTH,
+		false, true, 0x03, uint8(ike_types.NoNext), nil,
 	)
 	require.Equal(t, &IKEHeader{
 		InitiatorSPI: 0x000000000006f708,
 		ResponderSPI: 0xc9e2e31f8b64053d,
 		MajorVersion: 2,
 		MinorVersion: 0,
-		ExchangeType: IKE_AUTH,
+		ExchangeType: ike_types.IKE_AUTH,
 		Flags:        InitiatorBitCheck,
 		MessageID:    0x03,
-		NextPayload:  uint8(NoNext),
+		NextPayload:  uint8(ike_types.NoNext),
 	}, ikeHdr)
 	require.True(t, ikeHdr.IsInitiator())
 	require.False(t, ikeHdr.IsResponse())
@@ -50,10 +51,10 @@ func TestParseIKEHeader(t *testing.T) {
 		ResponderSPI: 0xc9e2e31f8b64053d,
 		MajorVersion: 2,
 		MinorVersion: 0,
-		ExchangeType: IKE_AUTH,
+		ExchangeType: ike_types.IKE_AUTH,
 		Flags:        InitiatorBitCheck,
 		MessageID:    0x03,
-		NextPayload:  uint8(NoNext),
+		NextPayload:  uint8(ike_types.NoNext),
 		PayloadBytes: []byte{},
 	}, ikeHdr)
 	require.True(t, ikeHdr.IsInitiator())

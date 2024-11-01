@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	ike_types "github.com/free5gc/ike/types"
 )
 
 func TestIdentificationResponderMarshal(t *testing.T) {
@@ -15,7 +17,7 @@ func TestIdentificationResponderMarshal(t *testing.T) {
 		{
 			description: "IdentificationResponder marshal",
 			id: IdentificationResponder{
-				IDType: ID_KEY_ID,
+				IDType: ike_types.ID_KEY_ID,
 				IDData: []byte{
 					0x55, 0x45,
 				},
@@ -28,7 +30,7 @@ func TestIdentificationResponderMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.id.marshal()
+			result, err := tc.id.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, result)
 		})
@@ -55,7 +57,7 @@ func TestIdentificationResponderUnmarshal(t *testing.T) {
 				0xb, 0x0, 0x0, 0x0, 0x55, 0x45,
 			},
 			expMarshal: IdentificationResponder{
-				IDType: ID_KEY_ID,
+				IDType: ike_types.ID_KEY_ID,
 				IDData: []byte{
 					0x55, 0x45,
 				},
@@ -66,7 +68,7 @@ func TestIdentificationResponderUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var id IdentificationResponder
-			err := id.unmarshal(tc.b)
+			err := id.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

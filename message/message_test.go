@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	ike_types "github.com/free5gc/ike/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -82,10 +83,10 @@ var (
 			ResponderSPI: 0xc9e2e31f8b64053d,
 			MajorVersion: 2,
 			MinorVersion: 0,
-			ExchangeType: IKE_SA_INIT,
+			ExchangeType: ike_types.IKE_SA_INIT,
 			Flags:        InitiatorBitCheck,
 			MessageID:    0x00,
-			NextPayload:  uint8(TypeSA),
+			NextPayload:  uint8(ike_types.TypeSA),
 			PayloadBytes: []byte{
 				0x29, 0x00, 0x00, 0x3b, 0x00, 0x00, 0x00, 0x37,
 				0x02, 0x01, 0x03, 0x05, 0x01, 0x02, 0x03, 0x03,
@@ -114,18 +115,18 @@ var (
 						SPI:            []byte{1, 2, 3},
 						EncryptionAlgorithm: TransformContainer{
 							&Transform{
-								TransformType:    TypeEncryptionAlgorithm,
-								TransformID:      ENCR_AES_CBC,
+								TransformType:    ike_types.TypeEncryptionAlgorithm,
+								TransformID:      ike_types.ENCR_AES_CBC,
 								AttributePresent: true,
-								AttributeFormat:  AttributeFormatUseTV,
-								AttributeType:    AttributeTypeKeyLength,
+								AttributeFormat:  ike_types.AttributeFormatUseTV,
+								AttributeType:    ike_types.AttributeTypeKeyLength,
 								AttributeValue:   128,
 							},
 						},
 						IntegrityAlgorithm: TransformContainer{
 							&Transform{
-								TransformType:    TypeIntegrityAlgorithm,
-								TransformID:      AUTH_HMAC_SHA2_256_128,
+								TransformType:    ike_types.TypeIntegrityAlgorithm,
+								TransformID:      ike_types.AUTH_HMAC_SHA2_256_128,
 								AttributePresent: false,
 								AttributeType:    0,
 								AttributeValue:   0,
@@ -133,8 +134,8 @@ var (
 						},
 						DiffieHellmanGroup: TransformContainer{
 							&Transform{
-								TransformType:    TypeDiffieHellmanGroup,
-								TransformID:      DH_1024_BIT_MODP,
+								TransformType:    ike_types.TypeDiffieHellmanGroup,
+								TransformID:      ike_types.DH_1024_BIT_MODP,
 								AttributePresent: false,
 								AttributeType:    0,
 								AttributeValue:   0,
@@ -142,8 +143,8 @@ var (
 						},
 						PseudorandomFunction: TransformContainer{
 							&Transform{
-								TransformType:    TypePseudorandomFunction,
-								TransformID:      PRF_HMAC_SHA2_256,
+								TransformType:    ike_types.TypePseudorandomFunction,
+								TransformID:      ike_types.PRF_HMAC_SHA2_256,
 								AttributePresent: false,
 								AttributeType:    0,
 								AttributeValue:   0,
@@ -151,8 +152,8 @@ var (
 						},
 						ExtendedSequenceNumbers: TransformContainer{
 							&Transform{
-								TransformType:    TypeExtendedSequenceNumbers,
-								TransformID:      ESN_DISABLE,
+								TransformType:    ike_types.TypeExtendedSequenceNumbers,
+								TransformID:      ike_types.ESN_DISABLE,
 								AttributePresent: false,
 								AttributeType:    0,
 								AttributeValue:   0,
@@ -162,8 +163,8 @@ var (
 				},
 			},
 			&Notification{
-				ProtocolID:        TypeNone,
-				NotifyMessageType: NAT_DETECTION_SOURCE_IP,
+				ProtocolID:        ike_types.TypeNone,
+				NotifyMessageType: ike_types.NAT_DETECTION_SOURCE_IP,
 				SPI:               []byte{0x01, 0x02, 0x03},
 				NotificationData: []byte{
 					0x50, 0xc4, 0xc2, 0xbe, 0x8e, 0x3f, 0xd9, 0x16,
@@ -172,8 +173,8 @@ var (
 				},
 			},
 			&Notification{
-				ProtocolID:        TypeNone,
-				NotifyMessageType: NAT_DETECTION_DESTINATION_IP,
+				ProtocolID:        ike_types.TypeNone,
+				NotifyMessageType: ike_types.NAT_DETECTION_DESTINATION_IP,
 				SPI:               []byte{0x01, 0x02, 0x03},
 				NotificationData: []byte{
 					0x50, 0xc4, 0xc2, 0xbe, 0x8e, 0x3f, 0xd9, 0x16,
@@ -212,9 +213,9 @@ var (
 			ResponderSPI: 0xc9e2e31f8b64053d,
 			MajorVersion: 2,
 			MinorVersion: 0,
-			ExchangeType: CREATE_CHILD_SA,
+			ExchangeType: ike_types.CREATE_CHILD_SA,
 			MessageID:    0x00,
-			NextPayload:  uint8(TypeTSi),
+			NextPayload:  uint8(ike_types.TypeTSi),
 			PayloadBytes: []byte{
 				0x2d, 0x00, 0x00, 0x18, 0x01, 0x00, 0x00, 0x00,
 				0x07, 0x00, 0x00, 0x10, 0x00, 0x00, 0xff, 0xff,
@@ -230,8 +231,8 @@ var (
 			&TrafficSelectorInitiator{
 				IndividualTrafficSelectorContainer{
 					&IndividualTrafficSelector{
-						TSType:       TS_IPV4_ADDR_RANGE,
-						IPProtocolID: IPProtocolAll,
+						TSType:       ike_types.TS_IPV4_ADDR_RANGE,
+						IPProtocolID: ike_types.IPProtocolAll,
 						StartPort:    0,
 						EndPort:      65535,
 						StartAddress: []byte{0x0a, 0x00, 0x00, 0x01},
@@ -242,8 +243,8 @@ var (
 			&TrafficSelectorResponder{
 				IndividualTrafficSelectorContainer{
 					&IndividualTrafficSelector{
-						TSType:       TS_IPV4_ADDR_RANGE,
-						IPProtocolID: IPProtocolAll,
+						TSType:       ike_types.TS_IPV4_ADDR_RANGE,
+						IPProtocolID: ike_types.IPProtocolAll,
 						StartPort:    0,
 						EndPort:      65535,
 						StartAddress: []byte{0x0a, 0x00, 0x00, 0x01},
@@ -252,7 +253,7 @@ var (
 				},
 			},
 			&Notification{
-				NotifyMessageType: Vendor3GPPNotifyType5G_QOS_INFO,
+				NotifyMessageType: ike_types.Vendor3GPPNotifyType5G_QOS_INFO,
 				NotificationData:  []byte{0x05, 0x01, 0x01, 0x01, 0x02},
 			},
 		},
@@ -279,10 +280,10 @@ var (
 			ResponderSPI: 0xc9e2e31f8b64053d,
 			MajorVersion: 2,
 			MinorVersion: 0,
-			ExchangeType: INFORMATIONAL,
+			ExchangeType: ike_types.INFORMATIONAL,
 			Flags:        InitiatorBitCheck | ResponseBitCheck,
 			MessageID:    0x07,
-			NextPayload:  uint8(TypeN),
+			NextPayload:  uint8(ike_types.TypeN),
 			PayloadBytes: []byte{
 				0x29, 0x00, 0x00, 0x1f, 0x00, 0x03, 0x40, 0x04,
 				0x01, 0x02, 0x03, 0x50, 0xc4, 0xc2, 0xbe, 0x8e,
@@ -296,8 +297,8 @@ var (
 		},
 		Payloads: IKEPayloadContainer{
 			&Notification{
-				ProtocolID:        TypeNone,
-				NotifyMessageType: NAT_DETECTION_SOURCE_IP,
+				ProtocolID:        ike_types.TypeNone,
+				NotifyMessageType: ike_types.NAT_DETECTION_SOURCE_IP,
 				SPI:               []byte{0x01, 0x02, 0x03},
 				NotificationData: []byte{
 					0x50, 0xc4, 0xc2, 0xbe, 0x8e, 0x3f, 0xd9, 0x16,
@@ -306,8 +307,8 @@ var (
 				},
 			},
 			&Notification{
-				ProtocolID:        TypeNone,
-				NotifyMessageType: NAT_DETECTION_DESTINATION_IP,
+				ProtocolID:        ike_types.TypeNone,
+				NotifyMessageType: ike_types.NAT_DETECTION_DESTINATION_IP,
 				SPI:               []byte{0x01, 0x02, 0x03},
 				NotificationData: []byte{
 					0xc4, 0xc2, 0xbe, 0x8e, 0x3f, 0xd9, 0x16, 0x19,
@@ -337,10 +338,10 @@ var (
 			ResponderSPI: 0xc9e2e31f8b64053d,
 			MajorVersion: 2,
 			MinorVersion: 0,
-			ExchangeType: IKE_AUTH,
+			ExchangeType: ike_types.IKE_AUTH,
 			Flags:        ResponseBitCheck,
 			MessageID:    0x03,
-			NextPayload:  uint8(TypeSK),
+			NextPayload:  uint8(ike_types.TypeSK),
 			PayloadBytes: []byte{
 				0x30, 0x00, 0x00, 0x50, 0xec, 0x50, 0x31, 0x16,
 				0x2c, 0x69, 0x2f, 0xbb, 0xfc, 0x4d, 0x20, 0x64,
@@ -356,7 +357,7 @@ var (
 		},
 		Payloads: IKEPayloadContainer{
 			&Encrypted{
-				NextPayload: uint8(TypeEAP),
+				NextPayload: uint8(ike_types.TypeEAP),
 				EncryptedData: []byte{
 					0xec, 0x50, 0x31, 0x16, 0x2c, 0x69, 0x2f, 0xbb,
 					0xfc, 0x4d, 0x20, 0x64, 0x0c, 0x91, 0x21, 0xeb,
@@ -416,7 +417,7 @@ func TestDecode(t *testing.T) {
 			expErr:      false,
 		},
 		{
-			description: "decode IKE_AUTH",
+			description: "decode ike_types.IKE_AUTH",
 			b:           validIKEAUTHByte,
 			expIkeMsg:   validIKEAUTH,
 			expErr:      false,
@@ -459,13 +460,13 @@ func TestEncode(t *testing.T) {
 			expByte:     validIKEINITByte,
 		},
 		{
-			description: "IKE_AUTH encode",
+			description: "ike_types.IKE_AUTH encode",
 			ikeMsg:      validIKEAUTH,
 			expErr:      false,
 			expByte:     validIKEAUTHByte,
 		},
 		{
-			description: "INFORMATIONAL encode",
+			description: "ike_types.INFORMATIONAL encode",
 			ikeMsg:      validInformation,
 			expErr:      false,
 			expByte:     validInformationByte,
@@ -493,10 +494,10 @@ func TestEncode(t *testing.T) {
 
 func TestNewAndEncodeIKEHeader(t *testing.T) {
 	m := NewMessage(
-		0x000000000006f708, 0xc9e2e31f8b64053d, IKE_AUTH,
+		0x000000000006f708, 0xc9e2e31f8b64053d, ike_types.IKE_AUTH,
 		true, false, 0x03, IKEPayloadContainer{
 			&Encrypted{
-				NextPayload: uint8(TypeEAP),
+				NextPayload: uint8(ike_types.TypeEAP),
 				EncryptedData: []byte{
 					0xec, 0x50, 0x31, 0x16, 0x2c, 0x69, 0x2f, 0xbb,
 					0xfc, 0x4d, 0x20, 0x64, 0x0c, 0x91, 0x21, 0xeb,
@@ -518,14 +519,14 @@ func TestNewAndEncodeIKEHeader(t *testing.T) {
 			ResponderSPI: 0xc9e2e31f8b64053d,
 			MajorVersion: 2,
 			MinorVersion: 0,
-			ExchangeType: IKE_AUTH,
+			ExchangeType: ike_types.IKE_AUTH,
 			Flags:        ResponseBitCheck,
 			MessageID:    0x03,
-			NextPayload:  uint8(NoNext),
+			NextPayload:  uint8(ike_types.NoNext),
 		},
 		Payloads: IKEPayloadContainer{
 			&Encrypted{
-				NextPayload: uint8(TypeEAP),
+				NextPayload: uint8(ike_types.TypeEAP),
 				EncryptedData: []byte{
 					0xec, 0x50, 0x31, 0x16, 0x2c, 0x69, 0x2f, 0xbb,
 					0xfc, 0x4d, 0x20, 0x64, 0x0c, 0x91, 0x21, 0xeb,

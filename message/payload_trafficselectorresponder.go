@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 
 	"github.com/pkg/errors"
+
+	ike_types "github.com/free5gc/ike/types"
 )
 
 var _ IKEPayload = &TrafficSelectorResponder{}
@@ -12,9 +14,11 @@ type TrafficSelectorResponder struct {
 	TrafficSelectors IndividualTrafficSelectorContainer
 }
 
-func (trafficSelector *TrafficSelectorResponder) Type() IKEPayloadType { return TypeTSr }
+func (trafficSelector *TrafficSelectorResponder) Type() ike_types.IkePayloadType {
+	return ike_types.TypeTSr
+}
 
-func (trafficSelector *TrafficSelectorResponder) marshal() ([]byte, error) {
+func (trafficSelector *TrafficSelectorResponder) Marshal() ([]byte, error) {
 	if len(trafficSelector.TrafficSelectors) > 0 {
 		trafficSelectorData := make([]byte, 4)
 		selectorCount := len(trafficSelector.TrafficSelectors)
@@ -26,7 +30,7 @@ func (trafficSelector *TrafficSelectorResponder) marshal() ([]byte, error) {
 		trafficSelectorData[0] = uint8(selectorCount)
 
 		for _, individualTrafficSelector := range trafficSelector.TrafficSelectors {
-			if individualTrafficSelector.TSType == TS_IPV4_ADDR_RANGE {
+			if individualTrafficSelector.TSType == ike_types.TS_IPV4_ADDR_RANGE {
 				// Address length checking
 				if len(individualTrafficSelector.StartAddress) != 4 {
 					return nil, errors.Errorf("TrafficSelector: Start IPv4 address length is not correct")
@@ -53,7 +57,7 @@ func (trafficSelector *TrafficSelectorResponder) marshal() ([]byte, error) {
 				binary.BigEndian.PutUint16(individualTrafficSelectorData[2:4], uint16(dataLen))
 
 				trafficSelectorData = append(trafficSelectorData, individualTrafficSelectorData...)
-			} else if individualTrafficSelector.TSType == TS_IPV6_ADDR_RANGE {
+			} else if individualTrafficSelector.TSType == ike_types.TS_IPV6_ADDR_RANGE {
 				// Address length checking
 				if len(individualTrafficSelector.StartAddress) != 16 {
 					return nil, errors.Errorf("TrafficSelector: Start IPv6 address length is not correct")
@@ -91,7 +95,7 @@ func (trafficSelector *TrafficSelectorResponder) marshal() ([]byte, error) {
 	}
 }
 
-func (trafficSelector *TrafficSelectorResponder) unmarshal(b []byte) error {
+func (trafficSelector *TrafficSelectorResponder) Unmarshal(b []byte) error {
 	if len(b) > 0 {
 		// bounds checking
 		if len(b) < 4 {
@@ -108,10 +112,10 @@ func (trafficSelector *TrafficSelectorResponder) unmarshal(b []byte) error {
 					"TrafficSelector: No sufficient bytes to decode next individual traffic selector length in header")
 			}
 			trafficSelectorType := b[0]
-			if trafficSelectorType == TS_IPV4_ADDR_RANGE {
+			if trafficSelectorType == ike_types.TS_IPV4_ADDR_RANGE {
 				selectorLength := binary.BigEndian.Uint16(b[2:4])
 				if selectorLength != 16 {
-					return errors.Errorf("TrafficSelector: A TS_IPV4_ADDR_RANGE type traffic selector should has length 16 bytes")
+					return errors.Errorf("TrafficSelector: A ike_types.TS_IPV4_ADDR_RANGE type traffic selector should has length 16 bytes")
 				}
 				if len(b) < int(selectorLength) {
 					return errors.Errorf("TrafficSelector: No sufficient bytes to decode next individual traffic selector")
@@ -130,7 +134,7 @@ func (trafficSelector *TrafficSelectorResponder) unmarshal(b []byte) error {
 				trafficSelector.TrafficSelectors = append(trafficSelector.TrafficSelectors, individualTrafficSelector)
 
 				b = b[16:]
-			} else if trafficSelectorType == TS_IPV6_ADDR_RANGE {
+			} else if trafficSelectorType == ike_types.TS_IPV6_ADDR_RANGE {
 				selectorLength := binary.BigEndian.Uint16(b[2:4])
 				if selectorLength != 40 {
 					return errors.Errorf("TrafficSelector: A TS_IPV6_ADDR_RANGE type traffic selector should has length 40 bytes")

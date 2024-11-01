@@ -1,6 +1,10 @@
 package message
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+
+	ike_types "github.com/free5gc/ike/types"
+)
 
 var _ IKEPayload = &Authentication{}
 
@@ -9,16 +13,16 @@ type Authentication struct {
 	AuthenticationData   []byte
 }
 
-func (authentication *Authentication) Type() IKEPayloadType { return TypeAUTH }
+func (authentication *Authentication) Type() ike_types.IkePayloadType { return ike_types.TypeAUTH }
 
-func (authentication *Authentication) marshal() ([]byte, error) {
+func (authentication *Authentication) Marshal() ([]byte, error) {
 	authenticationData := make([]byte, 4)
 	authenticationData[0] = authentication.AuthenticationMethod
 	authenticationData = append(authenticationData, authentication.AuthenticationData...)
 	return authenticationData, nil
 }
 
-func (authentication *Authentication) unmarshal(b []byte) error {
+func (authentication *Authentication) Unmarshal(b []byte) error {
 	if len(b) > 0 {
 		// bounds checking
 		if len(b) <= 4 {

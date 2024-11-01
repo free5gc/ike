@@ -3,6 +3,8 @@ package message
 import (
 	"encoding/binary"
 
+	eap_message "github.com/free5gc/ike/message/eap"
+	ike_types "github.com/free5gc/ike/types"
 	"github.com/pkg/errors"
 )
 
@@ -18,7 +20,7 @@ func NewMessage(
 ) *IKEMessage {
 	m := &IKEMessage{
 		IKEHeader: NewHeader(iSPI, rSPI, exchgType,
-			response, initiator, mId, uint8(NoNext), nil),
+			response, initiator, mId, uint8(ike_types.NoNext), nil),
 		Payloads: payloads,
 	}
 	return m
@@ -28,7 +30,7 @@ func (m *IKEMessage) Encode() ([]byte, error) {
 	if len(m.Payloads) > 0 {
 		m.IKEHeader.NextPayload = uint8(m.Payloads[0].Type())
 	} else {
-		m.IKEHeader.NextPayload = uint8(NoNext)
+		m.IKEHeader.NextPayload = uint8(ike_types.NoNext)
 	}
 
 	var err error
@@ -73,14 +75,14 @@ func (container *IKEPayloadContainer) Encode() ([]byte, error) {
 		if (index + 1) < len(*container) { // if it has next payload
 			payloadData[0] = uint8((*container)[index+1].Type())
 		} else {
-			if payload.Type() == TypeSK {
+			if payload.Type() == ike_types.TypeSK {
 				payloadData[0] = payload.(*Encrypted).NextPayload
 			} else {
-				payloadData[0] = byte(NoNext)
+				payloadData[0] = byte(ike_types.NoNext)
 			}
 		}
 
-		data, err := payload.marshal()
+		data, err := payload.Marshal()
 		if err != nil {
 			return nil, errors.Errorf("EncodePayload(): Failed to marshal payload: %+v", err)
 		}
@@ -117,41 +119,41 @@ func (container *IKEPayloadContainer) Decode(nextPayload uint8, b []byte) error 
 
 		var payload IKEPayload
 
-		switch IKEPayloadType(nextPayload) {
-		case TypeSA:
+		switch ike_types.IkePayloadType(nextPayload) {
+		case ike_types.TypeSA:
 			payload = new(SecurityAssociation)
-		case TypeKE:
+		case ike_types.ESN_DISABLE:
 			payload = new(KeyExchange)
-		case TypeIDi:
+		case ike_types.TypeIDi:
 			payload = new(IdentificationInitiator)
-		case TypeIDr:
+		case ike_types.TypeIDr:
 			payload = new(IdentificationResponder)
-		case TypeCERT:
+		case ike_types.TypeCERT:
 			payload = new(Certificate)
-		case TypeCERTreq:
+		case ike_types.TypeCERTreq:
 			payload = new(CertificateRequest)
-		case TypeAUTH:
+		case ike_types.TypeAUTH:
 			payload = new(Authentication)
-		case TypeNiNr:
+		case ike_types.TypeNiNr:
 			payload = new(Nonce)
-		case TypeN:
+		case ike_types.TypeN:
 			payload = new(Notification)
-		case TypeD:
+		case ike_types.TypeD:
 			payload = new(Delete)
-		case TypeV:
+		case ike_types.TypeV:
 			payload = new(VendorID)
-		case TypeTSi:
+		case ike_types.TypeTSi:
 			payload = new(TrafficSelectorInitiator)
-		case TypeTSr:
+		case ike_types.TypeTSr:
 			payload = new(TrafficSelectorResponder)
-		case TypeSK:
+		case ike_types.TypeSK:
 			encryptedPayload := new(Encrypted)
 			encryptedPayload.NextPayload = b[0]
 			payload = encryptedPayload
-		case TypeCP:
+		case ike_types.TypeCP:
 			payload = new(Configuration)
-		case TypeEAP:
-			payload = new(EAP)
+		case ike_types.TypeEAP:
+			payload = new(eap_message.EAP)
 		default:
 			if criticalBit == 0 {
 				// Skip this payload
@@ -164,7 +166,7 @@ func (container *IKEPayloadContainer) Decode(nextPayload uint8, b []byte) error 
 			}
 		}
 
-		if err := payload.unmarshal(b[4:payloadLength]); err != nil {
+		if err := payload.Unmarshal(b[4:payloadLength]); err != nil {
 			return errors.Errorf("DecodePayload(): Unmarshal payload failed: %+v", err)
 		}
 
@@ -179,9 +181,9 @@ func (container *IKEPayloadContainer) Decode(nextPayload uint8, b []byte) error 
 
 type IKEPayload interface {
 	// Type specifies the IKE payload types
-	Type() IKEPayloadType
+	Type() ike_types.IkePayloadType
 
 	// Called by Encode() or Decode()
-	marshal() ([]byte, error)
-	unmarshal(b []byte) error
+	Marshal() ([]byte, error)
+	Unmarshal(b []byte) error
 }

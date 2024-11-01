@@ -46,7 +46,7 @@ func TestEncryptedMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.encrypted.marshal()
+			result, err := tc.encrypted.Marshal()
 			if tc.expErr {
 				require.Error(t, err)
 			} else {
@@ -73,7 +73,7 @@ func TestEncryptedUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var encrypted Encrypted
-			err := encrypted.unmarshal(tc.b)
+			err := encrypted.Unmarshal(tc.b)
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, encrypted)
 		})

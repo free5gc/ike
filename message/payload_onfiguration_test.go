@@ -4,14 +4,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	ike_types "github.com/free5gc/ike/types"
 )
 
 var (
 	validConfiguration = Configuration{
-		ConfigurationType: CFG_REQUEST,
+		ConfigurationType: ike_types.CFG_REQUEST,
 		ConfigurationAttribute: ConfigurationAttributeContainer{
 			&IndividualConfigurationAttribute{
-				Type: INTERNAL_IP4_ADDRESS,
+				Type: ike_types.INTERNAL_IP4_ADDRESS,
 				Value: []byte{
 					0x7d, 0x09, 0x18, 0x42, 0x60, 0x9c, 0x9e, 0x20,
 					0x56, 0x9f, 0xc0, 0x39, 0xda, 0x3f, 0x22, 0x2a,
@@ -44,7 +46,7 @@ func TestConfigurationMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.cfg.marshal()
+			result, err := tc.cfg.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, result)
 		})
@@ -84,7 +86,7 @@ func TestConfigurationUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var cfg Configuration
-			err := cfg.unmarshal(tc.b)
+			err := cfg.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

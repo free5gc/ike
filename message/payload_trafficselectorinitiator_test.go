@@ -4,14 +4,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	ike_types "github.com/free5gc/ike/types"
 )
 
 var (
 	validTSIIPv4 = TrafficSelectorInitiator{
 		IndividualTrafficSelectorContainer{
 			&IndividualTrafficSelector{
-				TSType:       TS_IPV4_ADDR_RANGE,
-				IPProtocolID: IPProtocolAll,
+				TSType:       ike_types.TS_IPV4_ADDR_RANGE,
+				IPProtocolID: ike_types.IPProtocolAll,
 				StartPort:    0,
 				EndPort:      65535,
 				StartAddress: []byte{0x0a, 0x00, 0x00, 0x01},
@@ -28,8 +30,8 @@ var (
 	validTSIIPv6 = TrafficSelectorInitiator{
 		IndividualTrafficSelectorContainer{
 			&IndividualTrafficSelector{
-				TSType:       TS_IPV6_ADDR_RANGE,
-				IPProtocolID: IPProtocolAll,
+				TSType:       ike_types.TS_IPV6_ADDR_RANGE,
+				IPProtocolID: ike_types.IPProtocolAll,
 				StartPort:    0,
 				EndPort:      65535,
 				StartAddress: []byte{
@@ -82,7 +84,7 @@ func TestTrafficSelectorInitiatorMarshal(t *testing.T) {
 			tsi: TrafficSelectorInitiator{
 				IndividualTrafficSelectorContainer{
 					&IndividualTrafficSelector{
-						TSType:       TS_IPV4_ADDR_RANGE,
+						TSType:       ike_types.TS_IPV4_ADDR_RANGE,
 						StartAddress: []byte{0x01, 0x02, 0x03},
 					},
 				},
@@ -94,7 +96,7 @@ func TestTrafficSelectorInitiatorMarshal(t *testing.T) {
 			tsi: TrafficSelectorInitiator{
 				IndividualTrafficSelectorContainer{
 					&IndividualTrafficSelector{
-						TSType:       TS_IPV4_ADDR_RANGE,
+						TSType:       ike_types.TS_IPV4_ADDR_RANGE,
 						StartAddress: []byte{0x01, 0x02, 0x03, 0x04},
 						EndAddress:   []byte{0x01, 0x02, 0x03},
 					},
@@ -118,7 +120,7 @@ func TestTrafficSelectorInitiatorMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.tsi.marshal()
+			result, err := tc.tsi.Marshal()
 			if tc.expErr {
 				require.Error(t, err)
 			} else {
@@ -147,7 +149,7 @@ func TestTrafficSelectorInitiatorUnmarshal(t *testing.T) {
 			expErr:      true,
 		},
 		{
-			description: "A TS_IPV4_ADDR_RANGE type traffic selector should has length 16 bytes",
+			description: "A ike_types.TS_IPV4_ADDR_RANGE type traffic selector should has length 16 bytes",
 			b: []byte{
 				0x01, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x05,
 				0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00,
@@ -156,7 +158,7 @@ func TestTrafficSelectorInitiatorUnmarshal(t *testing.T) {
 			expErr: true,
 		},
 		{
-			description: "TS_IPV4_ADDR_RANGE No sufficient bytes to decode next individual traffic selector",
+			description: "ike_types.TS_IPV4_ADDR_RANGE No sufficient bytes to decode next individual traffic selector",
 			b: []byte{
 				0x01, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x10,
 				0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00,
@@ -210,7 +212,7 @@ func TestTrafficSelectorInitiatorUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var tsi TrafficSelectorInitiator
-			err := tsi.unmarshal(tc.b)
+			err := tsi.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

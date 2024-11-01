@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 
 	"github.com/pkg/errors"
+
+	ike_types "github.com/free5gc/ike/types"
 )
 
 var _ IKEPayload = &SecurityAssociation{}
@@ -37,9 +39,11 @@ type Transform struct {
 	VariableLengthAttributeValue []byte
 }
 
-func (securityAssociation *SecurityAssociation) Type() IKEPayloadType { return TypeSA }
+func (securityAssociation *SecurityAssociation) Type() ike_types.IkePayloadType {
+	return ike_types.TypeSA
+}
 
-func (securityAssociation *SecurityAssociation) marshal() ([]byte, error) {
+func (securityAssociation *SecurityAssociation) Marshal() ([]byte, error) {
 	securityAssociationData := make([]byte, 0)
 
 	for proposalIndex, proposal := range securityAssociation.Proposals {
@@ -142,7 +146,7 @@ func (securityAssociation *SecurityAssociation) marshal() ([]byte, error) {
 	return securityAssociationData, nil
 }
 
-func (securityAssociation *SecurityAssociation) unmarshal(b []byte) error {
+func (securityAssociation *SecurityAssociation) Unmarshal(b []byte) error {
 	for len(b) > 0 {
 		// bounds checking
 		if len(b) < 8 {
@@ -209,15 +213,15 @@ func (securityAssociation *SecurityAssociation) unmarshal(b []byte) error {
 			}
 
 			switch transform.TransformType {
-			case TypeEncryptionAlgorithm:
+			case ike_types.TypeEncryptionAlgorithm:
 				proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, transform)
-			case TypePseudorandomFunction:
+			case ike_types.TypePseudorandomFunction:
 				proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, transform)
-			case TypeIntegrityAlgorithm:
+			case ike_types.TypeIntegrityAlgorithm:
 				proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, transform)
-			case TypeDiffieHellmanGroup:
+			case ike_types.TypeDiffieHellmanGroup:
 				proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, transform)
-			case TypeExtendedSequenceNumbers:
+			case ike_types.TypeExtendedSequenceNumbers:
 				proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, transform)
 			}
 

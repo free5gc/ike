@@ -1,11 +1,11 @@
-package message
+package types
 
 // IKE types
-type IKEPayloadType uint8
+type IkePayloadType uint8
 
 const (
-	NoNext IKEPayloadType = 0
-	TypeSA IKEPayloadType = iota + 32
+	NoNext IkePayloadType = 0
+	TypeSA IkePayloadType = iota + 32
 	TypeKE
 	TypeIDi
 	TypeIDr
@@ -21,23 +21,6 @@ const (
 	TypeSK
 	TypeCP
 	TypeEAP
-)
-
-// EAP types
-type EAPType uint8
-
-const (
-	EAPTypeIdentity EAPType = iota + 1
-	EAPTypeNotification
-	EAPTypeNak
-	EAPTypeExpanded EAPType = 254
-)
-
-const (
-	EAPCodeRequest = iota + 1
-	EAPCodeResponse
-	EAPCodeSuccess
-	EAPCodeFailure
 )
 
 // used for SecurityAssociation-Proposal-Transform TransformType
@@ -239,13 +222,6 @@ const (
 	IPProtocolUDP  = 17
 	IPProtocolGRE  = 47
 )
-
-// Types for EAP-5G
-// Used in IKE EAP expanded for vendor ID
-const VendorID3GPP = 10415
-
-// Used in IKE EAP expanded for vendor data
-const VendorTypeEAP5G = 3
 
 // Used in EAP-5G for message ID
 const (

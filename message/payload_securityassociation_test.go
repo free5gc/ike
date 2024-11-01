@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	ike_types "github.com/free5gc/ike/types"
 )
 
 var (
@@ -15,33 +17,33 @@ var (
 				SPI:            []byte{1, 2, 3},
 				EncryptionAlgorithm: TransformContainer{
 					&Transform{
-						TransformType:    TypeEncryptionAlgorithm,
-						TransformID:      ENCR_AES_CBC,
+						TransformType:    ike_types.TypeEncryptionAlgorithm,
+						TransformID:      ike_types.ENCR_AES_CBC,
 						AttributePresent: true,
-						AttributeFormat:  AttributeFormatUseTV,
-						AttributeType:    AttributeTypeKeyLength,
+						AttributeFormat:  ike_types.AttributeFormatUseTV,
+						AttributeType:    ike_types.AttributeTypeKeyLength,
 						AttributeValue:   256,
 					},
 					&Transform{
-						TransformType:    TypeEncryptionAlgorithm,
-						TransformID:      ENCR_AES_CBC,
+						TransformType:    ike_types.TypeEncryptionAlgorithm,
+						TransformID:      ike_types.ENCR_AES_CBC,
 						AttributePresent: true,
-						AttributeFormat:  AttributeFormatUseTV,
-						AttributeType:    AttributeTypeKeyLength,
+						AttributeFormat:  ike_types.AttributeFormatUseTV,
+						AttributeType:    ike_types.AttributeTypeKeyLength,
 						AttributeValue:   192,
 					},
 				},
 				IntegrityAlgorithm: TransformContainer{
 					&Transform{
-						TransformType:    TypeIntegrityAlgorithm,
-						TransformID:      AUTH_HMAC_MD5_96,
+						TransformType:    ike_types.TypeIntegrityAlgorithm,
+						TransformID:      ike_types.AUTH_HMAC_MD5_96,
 						AttributePresent: false,
 						AttributeType:    0,
 						AttributeValue:   0,
 					},
 					&Transform{
-						TransformType:    TypeIntegrityAlgorithm,
-						TransformID:      AUTH_HMAC_SHA1_96,
+						TransformType:    ike_types.TypeIntegrityAlgorithm,
+						TransformID:      ike_types.AUTH_HMAC_SHA1_96,
 						AttributePresent: false,
 						AttributeType:    0,
 						AttributeValue:   0,
@@ -49,15 +51,15 @@ var (
 				},
 				DiffieHellmanGroup: TransformContainer{
 					&Transform{
-						TransformType:    TypeDiffieHellmanGroup,
-						TransformID:      DH_1024_BIT_MODP,
+						TransformType:    ike_types.TypeDiffieHellmanGroup,
+						TransformID:      ike_types.DH_1024_BIT_MODP,
 						AttributePresent: false,
 						AttributeType:    0,
 						AttributeValue:   0,
 					},
 					&Transform{
-						TransformType:    TypeDiffieHellmanGroup,
-						TransformID:      DH_2048_BIT_MODP,
+						TransformType:    ike_types.TypeDiffieHellmanGroup,
+						TransformID:      ike_types.DH_2048_BIT_MODP,
 						AttributePresent: false,
 						AttributeType:    0,
 						AttributeValue:   0,
@@ -65,15 +67,15 @@ var (
 				},
 				PseudorandomFunction: TransformContainer{
 					&Transform{
-						TransformType:    TypePseudorandomFunction,
-						TransformID:      PRF_HMAC_MD5,
+						TransformType:    ike_types.TypePseudorandomFunction,
+						TransformID:      ike_types.PRF_HMAC_MD5,
 						AttributePresent: false,
 						AttributeType:    0,
 						AttributeValue:   0,
 					},
 					&Transform{
-						TransformType:    TypePseudorandomFunction,
-						TransformID:      PRF_HMAC_SHA1,
+						TransformType:    ike_types.TypePseudorandomFunction,
+						TransformID:      ike_types.PRF_HMAC_SHA1,
 						AttributePresent: false,
 						AttributeType:    0,
 						AttributeValue:   0,
@@ -81,8 +83,8 @@ var (
 				},
 				ExtendedSequenceNumbers: TransformContainer{
 					&Transform{
-						TransformType:    TypeExtendedSequenceNumbers,
-						TransformID:      ESN_DISABLE,
+						TransformType:    ike_types.TypeExtendedSequenceNumbers,
+						TransformID:      ike_types.ESN_DISABLE,
 						AttributePresent: false,
 						AttributeType:    0,
 						AttributeValue:   0,
@@ -95,18 +97,18 @@ var (
 				SPI:            []byte{1, 2, 3},
 				EncryptionAlgorithm: TransformContainer{
 					&Transform{
-						TransformType:    TypeEncryptionAlgorithm,
-						TransformID:      ENCR_AES_CBC,
+						TransformType:    ike_types.TypeEncryptionAlgorithm,
+						TransformID:      ike_types.ENCR_AES_CBC,
 						AttributePresent: true,
-						AttributeFormat:  AttributeFormatUseTV,
-						AttributeType:    AttributeTypeKeyLength,
+						AttributeFormat:  ike_types.AttributeFormatUseTV,
+						AttributeType:    ike_types.AttributeTypeKeyLength,
 						AttributeValue:   128,
 					},
 				},
 				IntegrityAlgorithm: TransformContainer{
 					&Transform{
-						TransformType:    TypeIntegrityAlgorithm,
-						TransformID:      AUTH_HMAC_SHA2_256_128,
+						TransformType:    ike_types.TypeIntegrityAlgorithm,
+						TransformID:      ike_types.AUTH_HMAC_SHA2_256_128,
 						AttributePresent: false,
 						AttributeType:    0,
 						AttributeValue:   0,
@@ -114,8 +116,8 @@ var (
 				},
 				DiffieHellmanGroup: TransformContainer{
 					&Transform{
-						TransformType:    TypeDiffieHellmanGroup,
-						TransformID:      DH_1024_BIT_MODP,
+						TransformType:    ike_types.TypeDiffieHellmanGroup,
+						TransformID:      ike_types.DH_1024_BIT_MODP,
 						AttributePresent: false,
 						AttributeType:    0,
 						AttributeValue:   0,
@@ -123,8 +125,8 @@ var (
 				},
 				PseudorandomFunction: TransformContainer{
 					&Transform{
-						TransformType:    TypePseudorandomFunction,
-						TransformID:      PRF_HMAC_SHA2_256,
+						TransformType:    ike_types.TypePseudorandomFunction,
+						TransformID:      ike_types.PRF_HMAC_SHA2_256,
 						AttributePresent: false,
 						AttributeType:    0,
 						AttributeValue:   0,
@@ -132,8 +134,8 @@ var (
 				},
 				ExtendedSequenceNumbers: TransformContainer{
 					&Transform{
-						TransformType:    TypeExtendedSequenceNumbers,
-						TransformID:      ESN_DISABLE,
+						TransformType:    ike_types.TypeExtendedSequenceNumbers,
+						TransformID:      ike_types.ESN_DISABLE,
 						AttributePresent: false,
 						AttributeType:    0,
 						AttributeValue:   0,
@@ -196,11 +198,11 @@ func TestSecurityAssociationMarshal(t *testing.T) {
 						SPI:            []byte{1, 2, 3},
 						EncryptionAlgorithm: TransformContainer{
 							&Transform{
-								TransformType:    TypeEncryptionAlgorithm,
-								TransformID:      ENCR_AES_CBC,
+								TransformType:    ike_types.TypeEncryptionAlgorithm,
+								TransformID:      ike_types.ENCR_AES_CBC,
 								AttributePresent: true,
 								AttributeFormat:  0,
-								AttributeType:    AttributeTypeKeyLength,
+								AttributeType:    ike_types.AttributeTypeKeyLength,
 							},
 						},
 					},
@@ -218,7 +220,7 @@ func TestSecurityAssociationMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.securityAssociation.marshal()
+			result, err := tc.securityAssociation.Marshal()
 			if tc.expErr {
 				require.Error(t, err)
 			} else {
@@ -279,7 +281,7 @@ func TestSecurityAssociationUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var sa SecurityAssociation
-			err := sa.unmarshal(tc.b)
+			err := sa.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

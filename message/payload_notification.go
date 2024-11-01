@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 
 	"github.com/pkg/errors"
+
+	ike_types "github.com/free5gc/ike/types"
 )
 
 var _ IKEPayload = &Notification{}
@@ -15,9 +17,9 @@ type Notification struct {
 	NotificationData  []byte
 }
 
-func (notification *Notification) Type() IKEPayloadType { return TypeN }
+func (notification *Notification) Type() ike_types.IkePayloadType { return ike_types.TypeN }
 
-func (notification *Notification) marshal() ([]byte, error) {
+func (notification *Notification) Marshal() ([]byte, error) {
 	notificationData := make([]byte, 4)
 
 	notificationData[0] = notification.ProtocolID
@@ -33,7 +35,7 @@ func (notification *Notification) marshal() ([]byte, error) {
 	return notificationData, nil
 }
 
-func (notification *Notification) unmarshal(b []byte) error {
+func (notification *Notification) Unmarshal(b []byte) error {
 	if len(b) > 0 {
 		// bounds checking
 		if len(b) < 4 {

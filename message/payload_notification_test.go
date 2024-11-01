@@ -4,12 +4,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	ike_types "github.com/free5gc/ike/types"
 )
 
 var (
 	validNotification = Notification{
-		ProtocolID:        TypeNone,
-		NotifyMessageType: NAT_DETECTION_SOURCE_IP,
+		ProtocolID:        ike_types.TypeNone,
+		NotifyMessageType: ike_types.NAT_DETECTION_SOURCE_IP,
 		SPI:               []byte{0x01, 0x02, 0x03},
 		NotificationData: []byte{
 			0x50, 0xc4, 0xc2, 0xbe, 0x8e, 0x3f, 0xd9, 0x16,
@@ -41,7 +43,7 @@ func TestNotification(t *testing.T) {
 
 	for _, tc := range testcasesMarshal {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.notification.marshal()
+			result, err := tc.notification.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, result)
 		})
@@ -74,7 +76,7 @@ func TestNotification(t *testing.T) {
 	for _, tc := range testcasesUnmarshal {
 		t.Run(tc.description, func(t *testing.T) {
 			var notification Notification
-			err := notification.unmarshal(tc.b)
+			err := notification.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

@@ -9,9 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/free5gc/ike/message"
+	eap_message "github.com/free5gc/ike/message/eap"
 	"github.com/free5gc/ike/security"
 	"github.com/free5gc/ike/security/encr"
 	"github.com/free5gc/ike/security/integ"
+	ike_types "github.com/free5gc/ike/types"
 )
 
 var (
@@ -21,10 +23,10 @@ var (
 			ResponderSPI: 0xc9e2e31f8b64053d,
 			MajorVersion: 2,
 			MinorVersion: 0,
-			ExchangeType: message.IKE_AUTH,
+			ExchangeType: ike_types.IKE_AUTH,
 			Flags:        message.InitiatorBitCheck,
 			MessageID:    0x03,
-			NextPayload:  uint8(message.TypeSK),
+			NextPayload:  uint8(ike_types.TypeSK),
 			PayloadBytes: []byte{
 				0x30, 0x00, 0x00, 0x50, 0xec, 0x50, 0x31, 0x16,
 				0x2c, 0x69, 0x2f, 0xbb, 0xfc, 0x4d, 0x20, 0x64,
@@ -39,19 +41,17 @@ var (
 			},
 		},
 		Payloads: message.IKEPayloadContainer{
-			&message.EAP{
+			&eap_message.EAP{
 				Code:       0x02,
 				Identifier: 0x3b,
-				EAPTypeData: []message.EAPTypeFormat{
-					&message.EAPExpanded{
-						VendorID:   0x28af,
-						VendorType: 0x03,
-						VendorData: []byte{
-							0x02, 0x00, 0x00, 0x00, 0x00, 0x15, 0x7e, 0x00,
-							0x57, 0x2d, 0x10, 0xf5, 0x07, 0x36, 0x2e, 0x32,
-							0x2d, 0xe3, 0x68, 0x57, 0x93, 0x65, 0xd2, 0x86,
-							0x2b, 0x50, 0xed,
-						},
+				EapTypeData: &eap_message.EapExpanded{
+					VendorID:   0x28af,
+					VendorType: 0x03,
+					VendorData: []byte{
+						0x02, 0x00, 0x00, 0x00, 0x00, 0x15, 0x7e, 0x00,
+						0x57, 0x2d, 0x10, 0xf5, 0x07, 0x36, 0x2e, 0x32,
+						0x2d, 0xe3, 0x68, 0x57, 0x93, 0x65, 0xd2, 0x86,
+						0x2b, 0x50, 0xed,
 					},
 				},
 			},
@@ -124,27 +124,25 @@ func TestEncodeDecode(t *testing.T) {
 			ResponderSPI: 0xc9e2e31f8b64053d,
 			MajorVersion: 2,
 			MinorVersion: 0,
-			ExchangeType: message.IKE_AUTH,
+			ExchangeType: ike_types.IKE_AUTH,
 			Flags:        message.InitiatorBitCheck,
 			MessageID:    0x03,
-			NextPayload:  uint8(message.TypeEAP),
+			NextPayload:  uint8(ike_types.TypeEAP),
 		},
 	}
 
 	expIkePayloads := message.IKEPayloadContainer{
-		&message.EAP{
+		&eap_message.EAP{
 			Code:       0x02,
 			Identifier: 0x3b,
-			EAPTypeData: message.EAPTypeDataContainer{
-				&message.EAPExpanded{
-					VendorID:   0x28af,
-					VendorType: 0x03,
-					VendorData: []byte{
-						0x02, 0x00, 0x00, 0x00, 0x00, 0x15, 0x7e, 0x00,
-						0x57, 0x2d, 0x10, 0xf5, 0x07, 0x36, 0x2e, 0x32,
-						0x2d, 0xe3, 0x68, 0x57, 0x93, 0x65, 0xd2, 0x86,
-						0x2b, 0x50, 0xed,
-					},
+			EapTypeData: &eap_message.EapExpanded{
+				VendorID:   0x28af,
+				VendorType: 0x03,
+				VendorData: []byte{
+					0x02, 0x00, 0x00, 0x00, 0x00, 0x15, 0x7e, 0x00,
+					0x57, 0x2d, 0x10, 0xf5, 0x07, 0x36, 0x2e, 0x32,
+					0x2d, 0xe3, 0x68, 0x57, 0x93, 0x65, 0xd2, 0x86,
+					0x2b, 0x50, 0xed,
 				},
 			},
 		},
@@ -152,13 +150,13 @@ func TestEncodeDecode(t *testing.T) {
 
 	expIkeMsg.Payloads = append(expIkeMsg.Payloads, expIkePayloads...)
 
-	b, err := EncodeEncrypt(expIkeMsg, ikeSAKey, message.Role_Initiator)
+	b, err := EncodeEncrypt(expIkeMsg, ikeSAKey, ike_types.Role_Initiator)
 	require.NoError(t, err)
 
 	ikehdr, err := message.ParseHeader(b)
 	require.NoError(t, err)
 
-	ikeMsg, err := DecodeDecrypt(b, ikehdr, ikeSAKey, message.Role_Responder)
+	ikeMsg, err := DecodeDecrypt(b, ikehdr, ikeSAKey, ike_types.Role_Responder)
 	require.NoError(t, err)
 
 	require.Equal(t, expIkePayloads, ikeMsg.Payloads)
@@ -336,7 +334,7 @@ func TestDecodeDecrypt(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			ikeMsg, err = DecodeDecrypt(tc.b, nil, tc.ikeSAKey, message.Role_Responder)
+			ikeMsg, err = DecodeDecrypt(tc.b, nil, tc.ikeSAKey, ike_types.Role_Responder)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {
@@ -411,35 +409,33 @@ func TestEncryptMsg(t *testing.T) {
 			ResponderSPI: 0x8ea9e2fc844bfaaf,
 			MajorVersion: 2,
 			MinorVersion: 0,
-			ExchangeType: message.IKE_AUTH,
+			ExchangeType: ike_types.IKE_AUTH,
 			Flags:        0x20,
 			MessageID:    0x03,
-			NextPayload:  uint8(message.TypeEAP),
+			NextPayload:  uint8(ike_types.TypeEAP),
 		},
 		Payloads: message.IKEPayloadContainer{
-			&message.EAP{
+			&eap_message.EAP{
 				Code:       0x01,
 				Identifier: 0xd9,
-				EAPTypeData: []message.EAPTypeFormat{
-					&message.EAPExpanded{
-						VendorID:   0x28af,
-						VendorType: 0x03,
-						VendorData: []byte{
-							0x02, 0x00, 0x00, 0x13, 0x7e, 0x03, 0x22, 0xe7,
-							0x63, 0xcb, 0x00, 0x7e, 0x00, 0x5d, 0x02, 0x00,
-							0x02, 0x80, 0x20, 0xe1, 0x36, 0x01, 0x02,
-						},
+				EapTypeData: &eap_message.EapExpanded{
+					VendorID:   0x28af,
+					VendorType: 0x03,
+					VendorData: []byte{
+						0x02, 0x00, 0x00, 0x13, 0x7e, 0x03, 0x22, 0xe7,
+						0x63, 0xcb, 0x00, 0x7e, 0x00, 0x5d, 0x02, 0x00,
+						0x02, 0x80, 0x20, 0xe1, 0x36, 0x01, 0x02,
 					},
 				},
 			},
 		},
 	}
 	// Successful encryption with not nil payload
-	err = encryptMsg(ikeMsg, ikeSAKey, message.Role_Responder)
+	err = encryptMsg(ikeMsg, ikeSAKey, ike_types.Role_Responder)
 	require.NoError(t, err)
 	expectPayload := message.IKEPayloadContainer{
 		&message.Encrypted{
-			NextPayload: uint8(message.NoNext),
+			NextPayload: uint8(ike_types.NoNext),
 			EncryptedData: []byte{
 				0xa2, 0xfb, 0xbc, 0xdd, 0xd3, 0x9a, 0xda, 0xdd,
 				0x67, 0x10, 0xbc, 0x38, 0x33, 0xc0, 0x23, 0x72,
@@ -458,37 +454,37 @@ func TestEncryptMsg(t *testing.T) {
 		ikeMsg.Payloads[0].(*message.Encrypted).EncryptedData)
 
 	// IKE Security Association is nil
-	err = encryptMsg(ikeMsg, nil, message.Role_Initiator)
+	err = encryptMsg(ikeMsg, nil, ike_types.Role_Initiator)
 	require.Error(t, err)
 
 	// Response IKE Message is nil
-	err = encryptMsg(nil, ikeSAKey, message.Role_Initiator)
+	err = encryptMsg(nil, ikeSAKey, ike_types.Role_Initiator)
 	require.Error(t, err)
 
 	// No integrity algorithm specified
 	ikeSAKey.IntegInfo = nil
-	err = encryptMsg(ikeMsg, ikeSAKey, message.Role_Initiator)
+	err = encryptMsg(ikeMsg, ikeSAKey, ike_types.Role_Initiator)
 	require.Error(t, err)
 
 	ikeSAKey.IntegInfo = integrityAlgorithm
 
 	// No encryption algorithm specified
 	ikeSAKey.EncrInfo = nil
-	err = encryptMsg(ikeMsg, ikeSAKey, message.Role_Initiator)
+	err = encryptMsg(ikeMsg, ikeSAKey, ike_types.Role_Initiator)
 	require.Error(t, err)
 
 	ikeSAKey.EncrInfo = encryptionAlgorithm
 
 	// No responder's integrity key
 	ikeSAKey.Integ_r = nil
-	err = encryptMsg(ikeMsg, ikeSAKey, message.Role_Initiator)
+	err = encryptMsg(ikeMsg, ikeSAKey, ike_types.Role_Initiator)
 	require.Error(t, err)
 
 	ikeSAKey.Integ_r = integ_r
 
 	// No responder's encryption key
 	ikeSAKey.Encr_r = nil
-	err = encryptMsg(ikeMsg, ikeSAKey, message.Role_Initiator)
+	err = encryptMsg(ikeMsg, ikeSAKey, ike_types.Role_Initiator)
 	require.Error(t, err)
 
 	// Successful encryption with nil payload
@@ -533,21 +529,21 @@ func TestEncryptMsg(t *testing.T) {
 		IKEHeader: &message.IKEHeader{
 			InitiatorSPI: 0x172eb78b61479973,
 			ResponderSPI: 0x7fff512ecf965300,
-			NextPayload:  uint8(message.NoNext),
+			NextPayload:  uint8(ike_types.NoNext),
 			MajorVersion: 0x2,
 			MinorVersion: 0x0,
-			ExchangeType: message.INFORMATIONAL,
+			ExchangeType: ike_types.INFORMATIONAL,
 			Flags:        0x08,
 			MessageID:    0x02,
 		},
 		Payloads: message.IKEPayloadContainer{},
 	}
-	err = encryptMsg(ikeMsg, ikeSAKey, message.Role_Initiator)
+	err = encryptMsg(ikeMsg, ikeSAKey, ike_types.Role_Initiator)
 	require.NoError(t, err)
 
 	nilPayload := message.IKEPayloadContainer{
 		&message.Encrypted{
-			NextPayload: uint8(message.NoNext),
+			NextPayload: uint8(ike_types.NoNext),
 			EncryptedData: []byte{
 				0x95, 0xb0, 0xf4, 0x84, 0x49, 0x80, 0xf4, 0xaa,
 				0x28, 0x86, 0x1a, 0x0f, 0x11, 0x25, 0x30, 0x61,
@@ -569,7 +565,7 @@ func TestVerifyIntegrity(t *testing.T) {
 		originData    []byte
 		checksum      string
 		ikeSAKey      *security.IKESAKey
-		role          message.Role
+		role          ike_types.Role
 		expectedValid bool
 	}{
 		{
@@ -580,7 +576,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSAKey: &security.IKESAKey{
 				IntegInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
 			},
-			role:          message.Role_Responder,
+			role:          ike_types.Role_Responder,
 			expectedValid: true,
 		},
 		{
@@ -591,7 +587,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSAKey: &security.IKESAKey{
 				IntegInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
 			},
-			role:          message.Role_Responder,
+			role:          ike_types.Role_Responder,
 			expectedValid: false,
 		},
 		{
@@ -601,7 +597,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSAKey: &security.IKESAKey{
 				IntegInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
 			},
-			role:          message.Role_Responder,
+			role:          ike_types.Role_Responder,
 			expectedValid: false,
 		},
 		{
@@ -612,7 +608,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSAKey: &security.IKESAKey{
 				IntegInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
 			},
-			role:          message.Role_Initiator,
+			role:          ike_types.Role_Initiator,
 			expectedValid: true,
 		},
 		{
@@ -623,7 +619,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSAKey: &security.IKESAKey{
 				IntegInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
 			},
-			role:          message.Role_Initiator,
+			role:          ike_types.Role_Initiator,
 			expectedValid: false,
 		},
 		{
@@ -633,7 +629,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			ikeSAKey: &security.IKESAKey{
 				IntegInfo: integ.StrToType("AUTH_HMAC_SHA1_96"),
 			},
-			role:          message.Role_Initiator,
+			role:          ike_types.Role_Initiator,
 			expectedValid: false,
 		},
 		{
@@ -642,9 +638,9 @@ func TestVerifyIntegrity(t *testing.T) {
 			originData: []byte("hello world"),
 			checksum:   "a64166565bc1f48eb3edd4109fcaeb72",
 			ikeSAKey: &security.IKESAKey{
-				IntegInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
+				IntegInfo: integ.StrToType("ike_types.AUTH_HMAC_SHA2_256_128"),
 			},
-			role:          message.Role_Initiator,
+			role:          ike_types.Role_Initiator,
 			expectedValid: true,
 		},
 		{
@@ -653,9 +649,9 @@ func TestVerifyIntegrity(t *testing.T) {
 			originData: []byte("hello world"),
 			checksum:   "01231875aa",
 			ikeSAKey: &security.IKESAKey{
-				IntegInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
+				IntegInfo: integ.StrToType("ike_types.AUTH_HMAC_SHA2_256_128"),
 			},
-			role:          message.Role_Initiator,
+			role:          ike_types.Role_Initiator,
 			expectedValid: false,
 		},
 		{
@@ -663,9 +659,9 @@ func TestVerifyIntegrity(t *testing.T) {
 			key:        "0123",
 			originData: []byte("hello world"),
 			ikeSAKey: &security.IKESAKey{
-				IntegInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
+				IntegInfo: integ.StrToType("ike_types.AUTH_HMAC_SHA2_256_128"),
 			},
-			role:          message.Role_Initiator,
+			role:          ike_types.Role_Initiator,
 			expectedValid: false,
 		},
 	}
@@ -681,7 +677,7 @@ func TestVerifyIntegrity(t *testing.T) {
 
 			integ := tt.ikeSAKey.IntegInfo.Init(key)
 
-			if tt.role == message.Role_Initiator {
+			if tt.role == ike_types.Role_Initiator {
 				tt.ikeSAKey.Integ_i = integ
 			} else {
 				tt.ikeSAKey.Integ_r = integ

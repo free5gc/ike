@@ -5,7 +5,7 @@ import (
 	"crypto/md5" // #nosec G501
 	"hash"
 
-	"github.com/free5gc/ike/message"
+	ike_types "github.com/free5gc/ike/types"
 )
 
 func toString_PRF_HMAC_MD5(attrType uint16, intValue uint16, bytesValue []byte) string {
@@ -20,7 +20,7 @@ type PrfHmacMd5 struct {
 }
 
 func (t *PrfHmacMd5) TransformID() uint16 {
-	return message.PRF_HMAC_MD5
+	return ike_types.PRF_HMAC_MD5
 }
 
 func (t *PrfHmacMd5) getAttribute() (bool, uint16, uint16, []byte) {
