@@ -1,0 +1,150 @@
+package eap
+
+import (
+	"encoding/binary"
+	"fmt"
+
+	"github.com/pkg/errors"
+
+	ike_types "github.com/free5gc/ike/types"
+)
+
+// EAP related spec
+// RFC 3748 - Extensible Authentication Protocol (EAP)
+
+// EAP types
+type EapType uint8
+
+const (
+	EapTypeIdentity EapType = iota + 1
+	EapTypeNotification
+	EapTypeNak
+	EapTypeAkaPrime EapType = 50
+	EapTypeExpanded EapType = 254
+)
+
+// Length of Attribute field
+const (
+	EapHeaderLen            = 5
+	EapAkaHeaderSubtypeLen  = 1
+	EapAkaHeaderReservedLen = 2
+	EapAkaAttrTypeLen       = 1
+	EapAkaAttrLengthLen     = 1
+	EapAkaAttrReservedLen   = 2
+)
+
+const (
+	// 	0                   1                   2                   3
+	//     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+	//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	//    |     Code      |  Identifier   |            Length             |
+	//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	//    |     Type      |  Type-Data ...
+	//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
+
+	EapCodeRequest = iota + 1
+	EapCodeResponse
+	//     0                   1                   2                   3
+	//     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+	//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	//    |     Code      |  Identifier   |            Length             |
+	//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+	EapCodeSuccess
+	EapCodeFailure
+)
+
+type EapTypeFormat interface {
+	// Type specifies EAP types
+	Type() EapType
+
+	// Called by EAP.Marshal() or EAP.Unmarshal()
+	Marshal() ([]byte, error)
+	Unmarshal(b []byte) error
+}
+
+// 0                   1                   2                   3
+// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |     Code      |  Identifier   |            Length             |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |    Data ...
+// +-+-+-+-+
+
+type EAP struct {
+	Code        uint8
+	Identifier  uint8
+	EapTypeData EapTypeFormat
+}
+
+func (eap *EAP) Type() ike_types.IkePayloadType { return ike_types.TypeEAP }
+
+func (eap *EAP) Marshal() ([]byte, error) {
+	eapData := make([]byte, 4)
+
+	eapData[0] = eap.Code
+	eapData[1] = eap.Identifier
+
+	if eap.EapTypeData != nil {
+		eapTypeData, err := eap.EapTypeData.Marshal()
+		if err != nil {
+			return nil, fmt.Errorf("EAP: EAP type data Marshal failed: %+v", err)
+		}
+
+		eapData = append(eapData, eapTypeData...)
+	}
+
+	binary.BigEndian.PutUint16(eapData[2:4], uint16(len(eapData)))
+
+	return eapData, nil
+}
+
+func (eap *EAP) Unmarshal(b []byte) error {
+	if len(b) > 0 {
+		// bounds checking
+		if len(b) < 4 {
+			return errors.New("EAP: No sufficient bytes to decode next EAP payload")
+		}
+		eapPayloadLength := binary.BigEndian.Uint16(b[2:4])
+		if eapPayloadLength < 4 {
+			return errors.New("EAP: Payload length specified in the header is too small for EAP")
+		}
+		if len(b) != int(eapPayloadLength) {
+			return errors.New("EAP: Received payload length not matches the length specified in header")
+		}
+
+		eap.Code = b[0]
+		eap.Identifier = b[1]
+
+		// EAP Success or Failed
+		if eapPayloadLength == 4 {
+			return nil
+		}
+
+		eapType := EapType(b[4])
+		var eapTypeData EapTypeFormat
+
+		switch eapType {
+		case EapTypeIdentity:
+			eapTypeData = new(EapIdentity)
+		case EapTypeNotification:
+			eapTypeData = new(EapNotification)
+		case EapTypeNak:
+			eapTypeData = new(EapNak)
+		case EapTypeAkaPrime:
+			eapTypeData = new(EapAkaPrime)
+		case EapTypeExpanded:
+			eapTypeData = new(EapExpanded)
+		default:
+			return errors.Errorf("EAP: Not supported EAP type[%d]", eapType)
+		}
+
+		if err := eapTypeData.Unmarshal(b[4:]); err != nil {
+			return fmt.Errorf("EAP: Unamrshal EAP type data failed: %+v", err)
+		}
+
+		eap.EapTypeData = eapTypeData
+	}
+
+	return nil
+}
