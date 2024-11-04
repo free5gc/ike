@@ -10,47 +10,6 @@ import (
 	eap_util "github.com/free5gc/ike/message/eap/util"
 )
 
-func TestDeriveAtRes(t *testing.T) {
-	tcs := []struct {
-		name           string
-		opc            string
-		k              string
-		rand           string
-		autn           string
-		snName         string
-		expectedResult string // namely, RES
-	}{
-		{
-			name:           "correct",
-			opc:            "8e27b6af0e692e750f32667a3b14605d",
-			k:              "8baf473f2f8fd09487cccbd7097c6862",
-			rand:           "a836f3e33b7205648d8127a318faeb70",
-			autn:           "bbe7f35481d18000770e130f66e98861",
-			snName:         "5G:mnc093.mcc208.3gppnetwork.org",
-			expectedResult: "e2f5c0ab3685b3b4",
-		},
-	}
-
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			opc, err := hex.DecodeString(tc.opc)
-			require.NoError(t, err)
-			k, err := hex.DecodeString(tc.k)
-			require.NoError(t, err)
-			rand, err := hex.DecodeString(tc.rand)
-			require.NoError(t, err)
-			autn, err := hex.DecodeString(tc.autn)
-			require.NoError(t, err)
-
-			resStar, err := eap_util.DeriveAtRes(opc, k, rand, autn, tc.snName)
-			require.NoError(t, err)
-			expectedResult, err := hex.DecodeString(tc.expectedResult)
-			require.NoError(t, err)
-			require.Equal(t, expectedResult, resStar)
-		})
-	}
-}
-
 func TestEapAkaPrimePrf(t *testing.T) {
 	tcs := []struct {
 		name           string

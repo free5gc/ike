@@ -7,17 +7,7 @@ import (
 	"github.com/pkg/errors"
 
 	eap_message "github.com/free5gc/ike/message/eap"
-	"github.com/free5gc/util/milenage"
 )
-
-func DeriveAtRes(opc, k, rand, autn []byte, snName string) ([]byte, error) {
-	_, _, _, _, res, err := milenage.GenerateKeysWithAUTN(opc, k, rand, autn) // nolint:dogsled
-	if err != nil {
-		return nil, errors.Wrap(err, "GenerateKeysWithAUTN error")
-	}
-
-	return res, nil
-}
 
 // RFC 9048 - 3.4.1. PRF'
 func EapAkaPrimePRF(
