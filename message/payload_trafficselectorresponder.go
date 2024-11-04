@@ -115,10 +115,12 @@ func (trafficSelector *TrafficSelectorResponder) Unmarshal(b []byte) error {
 			if trafficSelectorType == ike_types.TS_IPV4_ADDR_RANGE {
 				selectorLength := binary.BigEndian.Uint16(b[2:4])
 				if selectorLength != 16 {
-					return errors.Errorf("TrafficSelector: A ike_types.TS_IPV4_ADDR_RANGE type traffic selector should has length 16 bytes")
+					return errors.Errorf("TrafficSelector: " +
+						"A TS_IPV4_ADDR_RANGE type traffic selector should has length 16 bytes")
 				}
 				if len(b) < int(selectorLength) {
-					return errors.Errorf("TrafficSelector: No sufficient bytes to decode next individual traffic selector")
+					return errors.Errorf("TrafficSelector: " +
+						"No sufficient bytes to decode next individual traffic selector")
 				}
 
 				individualTrafficSelector := &IndividualTrafficSelector{}
@@ -137,10 +139,12 @@ func (trafficSelector *TrafficSelectorResponder) Unmarshal(b []byte) error {
 			} else if trafficSelectorType == ike_types.TS_IPV6_ADDR_RANGE {
 				selectorLength := binary.BigEndian.Uint16(b[2:4])
 				if selectorLength != 40 {
-					return errors.Errorf("TrafficSelector: A TS_IPV6_ADDR_RANGE type traffic selector should has length 40 bytes")
+					return errors.Errorf("TrafficSelector: " +
+						"A TS_IPV6_ADDR_RANGE type traffic selector should has length 40 bytes")
 				}
 				if len(b) < int(selectorLength) {
-					return errors.Errorf("TrafficSelector: No sufficient bytes to decode next individual traffic selector")
+					return errors.Errorf("TrafficSelector: " +
+						"No sufficient bytes to decode next individual traffic selector")
 				}
 
 				individualTrafficSelector := &IndividualTrafficSelector{}

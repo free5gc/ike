@@ -20,14 +20,30 @@ func DeriveAtRes(opc, k, rand, autn []byte, snName string) ([]byte, error) {
 	return res, nil
 }
 
+// MK = PRF'(IK'|CK',"EAP-AKA'"|Identity)
+// K_encr = MK[0..127]
+// K_aut  = MK[128..383]
+// K_re   = MK[384..639]
+// MSK    = MK[640..1151]
+// EMSK   = MK[1152..1663]
 func EapAkaPrimePrf(
 	ikPrime, ckPrime []byte,
 	identity string,
 ) (k_encr []byte, k_aut []byte, k_re []byte, msk []byte, emsk []byte) {
+	// RFC 9048: 3.4.1. PRF'
+	// PRF'(K,S) = T1 | T2 | T3 | T4 | ...
+	// where:
+	// T1 = HMAC-SHA-256 (K, S | 0x01)
+	// T2 = HMAC-SHA-256 (K, T1 | S | 0x02)
+	// T3 = HMAC-SHA-256 (K, T2 | S | 0x03)
+	// T4 = HMAC-SHA-256 (K, T3 | S | 0x04)
+	// ...
+
 	key := make([]byte, 0)
 	key = append(key, ikPrime...)
 	key = append(key, ckPrime...)
 	sBase := []byte("EAP-AKA'" + identity)
+	sBaseLen := len(sBase)
 
 	MK := []byte("")
 	prev := []byte("")
@@ -35,10 +51,15 @@ func EapAkaPrimePrf(
 	for i := 0; i < prfRounds; i++ {
 		// Create a new HMAC by defining the hash type and the key (as byte array)
 		h := hmac.New(sha256.New, key)
-
 		hexNum := (byte)(i + 1)
-		ap := append(sBase, hexNum)
-		s := append(prev, ap...)
+
+		sBaseWithNum := make([]byte, sBaseLen+1)
+		copy(sBaseWithNum, sBase)
+		sBaseWithNum[sBaseLen] = hexNum
+
+		s := make([]byte, len(prev))
+		copy(s, prev)
+		s = append(s, sBaseWithNum...)
 
 		// Write Data to it
 		if _, err := h.Write(s); err != nil {

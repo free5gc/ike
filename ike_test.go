@@ -638,7 +638,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			originData: []byte("hello world"),
 			checksum:   "a64166565bc1f48eb3edd4109fcaeb72",
 			ikeSAKey: &security.IKESAKey{
-				IntegInfo: integ.StrToType("ike_types.AUTH_HMAC_SHA2_256_128"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
 			},
 			role:          ike_types.Role_Initiator,
 			expectedValid: true,
@@ -649,7 +649,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			originData: []byte("hello world"),
 			checksum:   "01231875aa",
 			ikeSAKey: &security.IKESAKey{
-				IntegInfo: integ.StrToType("ike_types.AUTH_HMAC_SHA2_256_128"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
 			},
 			role:          ike_types.Role_Initiator,
 			expectedValid: false,
@@ -659,7 +659,7 @@ func TestVerifyIntegrity(t *testing.T) {
 			key:        "0123",
 			originData: []byte("hello world"),
 			ikeSAKey: &security.IKESAKey{
-				IntegInfo: integ.StrToType("ike_types.AUTH_HMAC_SHA2_256_128"),
+				IntegInfo: integ.StrToType("AUTH_HMAC_SHA2_256_128"),
 			},
 			role:          ike_types.Role_Initiator,
 			expectedValid: false,

@@ -3,9 +3,10 @@ package message
 import (
 	"encoding/binary"
 
+	"github.com/pkg/errors"
+
 	eap_message "github.com/free5gc/ike/message/eap"
 	ike_types "github.com/free5gc/ike/types"
-	"github.com/pkg/errors"
 )
 
 type IKEMessage struct {
@@ -122,7 +123,7 @@ func (container *IKEPayloadContainer) Decode(nextPayload uint8, b []byte) error 
 		switch ike_types.IkePayloadType(nextPayload) {
 		case ike_types.TypeSA:
 			payload = new(SecurityAssociation)
-		case ike_types.ESN_DISABLE:
+		case ike_types.TypeKE:
 			payload = new(KeyExchange)
 		case ike_types.TypeIDi:
 			payload = new(IdentificationInitiator)

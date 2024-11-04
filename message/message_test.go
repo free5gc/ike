@@ -1,11 +1,11 @@
 package message
 
 import (
-	"bytes"
 	"testing"
 
-	ike_types "github.com/free5gc/ike/types"
 	"github.com/stretchr/testify/require"
+
+	ike_types "github.com/free5gc/ike/types"
 )
 
 // TestEncodeDecodeUsingPublicData tests the Encode() and Decode() function
@@ -63,17 +63,15 @@ func TestEncodeDecodeUsingPublicData(t *testing.T) {
 	ikeMsg := new(IKEMessage)
 	err := ikeMsg.Decode(data)
 	if err != nil {
-		t.Fatalf("Decode failed: %+v", err)
+		require.NoError(t, err, "Decode failed")
 	}
 
 	verifyData, err := ikeMsg.Encode()
 	if err != nil {
-		t.Fatalf("Encode failed: %+v", err)
+		require.NoError(t, err, "Encode failed")
 	}
 
-	if !bytes.Equal(data, verifyData) {
-		t.FailNow()
-	}
+	require.Equal(t, data, verifyData)
 }
 
 var (

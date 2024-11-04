@@ -14,7 +14,7 @@ var (
 
 const (
 	String_ESN_ENABLE  string = "ESN_ENABLE"
-	String_ESN_DISABLE string = "ike_types.ESN_DISABLE"
+	String_ESN_DISABLE string = "ESN_DISABLE"
 )
 
 func toString_ESN_ENABLE(attrType uint16, intValue uint16, bytesValue []byte) string {

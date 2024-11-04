@@ -15,7 +15,7 @@ type KeyExchange struct {
 	KeyExchangeData    []byte
 }
 
-func (keyExchange *KeyExchange) Type() ike_types.IkePayloadType { return ike_types.ESN_DISABLE }
+func (keyExchange *KeyExchange) Type() ike_types.IkePayloadType { return ike_types.TypeKE }
 
 func (keyExchange *KeyExchange) Marshal() ([]byte, error) {
 	keyExchangeData := make([]byte, 4)

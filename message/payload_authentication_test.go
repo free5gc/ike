@@ -3,8 +3,9 @@ package message
 import (
 	"testing"
 
-	ike_types "github.com/free5gc/ike/types"
 	"github.com/stretchr/testify/require"
+
+	ike_types "github.com/free5gc/ike/types"
 )
 
 var (
