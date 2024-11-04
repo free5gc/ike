@@ -83,7 +83,7 @@ func TestEapAkaPrimePrf(t *testing.T) {
 			ckPrime, err := hex.DecodeString(tc.ckPrime)
 			require.NoError(t, err)
 
-			k_encr, k_aut, k_re, msk, emsk := eap_util.EapAkaPrimePrf(ikPrime, ckPrime, tc.identity)
+			k_encr, k_aut, k_re, msk, emsk := eap_util.EapAkaPrimePRF(ikPrime, ckPrime, tc.identity)
 			actualResult := [][]byte{k_encr, k_aut, k_re, msk, emsk}
 
 			for i := 0; i < len(actualResult); i++ {
@@ -163,13 +163,13 @@ func TestEapAkaMac(t *testing.T) {
 			require.NoError(t, err)
 
 			// Test MAC
-			eapAkaPrime.MacInput, err = eap_util.GenMacInput(eapPkt)
+			macInput, err := eap_util.GenMacInput(eapPkt)
 			require.NoError(t, err)
 
 			key, err := hex.DecodeString(tc.key)
 			require.NoError(t, err)
 
-			mac, err := eap_util.CalculateAtMAC(key, eapAkaPrime.MacInput)
+			mac, err := eap_util.CalculateAtMAC(key, macInput)
 			require.NoError(t, err)
 
 			require.Equal(t, expectResult, mac)

@@ -2,9 +2,7 @@ package eap
 
 import "github.com/pkg/errors"
 
-// Definition of EAP Notification
-
-var _ EapTypeFormat = &EapNotification{}
+var _ EapTypeData = &EapNotification{}
 
 type EapNotification struct {
 	NotificationData []byte

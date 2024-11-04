@@ -2,9 +2,7 @@ package eap
 
 import "github.com/pkg/errors"
 
-// Definition of EAP Nak
-
-var _ EapTypeFormat = &EapNak{}
+var _ EapTypeData = &EapNak{}
 
 type EapNak struct {
 	NakData []byte

@@ -2,7 +2,6 @@ package eap
 
 import (
 	"encoding/binary"
-	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -23,15 +22,30 @@ const (
 	EapTypeExpanded EapType = 254
 )
 
-// Length of Attribute field
+// Length of EAP header
 const (
-	EapHeaderLen            = 5
+	EapHeaderCodeLen       = 1
+	EapHeaderIdentifierLen = 1
+	EapHeaderLengthLen     = 2
+	EapHeaderTypeLen       = 1
+)
+
+// Length of EAP-AKA' header
+const (
 	EapAkaHeaderSubtypeLen  = 1
 	EapAkaHeaderReservedLen = 2
-	EapAkaAttrTypeLen       = 1
-	EapAkaAttrLengthLen     = 1
-	EapAkaAttrReservedLen   = 2
+
+	EapAkaAttrTypeLen     = 1
+	EapAkaAttrLengthLen   = 1
+	EapAkaAttrReservedLen = 2
 )
+
+// Types for EAP-5G
+// Used in IKE EAP expanded for vendor ID
+const VendorId3GPP = 10415
+
+// Used in IKE EAP expanded for vendor data
+const VendorTypeEAP5G = 3
 
 const (
 	// 	0                   1                   2                   3
@@ -54,7 +68,7 @@ const (
 	EapCodeFailure
 )
 
-type EapTypeFormat interface {
+type EapTypeData interface {
 	// Type specifies EAP types
 	Type() EapType
 
@@ -74,7 +88,7 @@ type EapTypeFormat interface {
 type EAP struct {
 	Code        uint8
 	Identifier  uint8
-	EapTypeData EapTypeFormat
+	EapTypeData EapTypeData
 }
 
 func (eap *EAP) Type() ike_types.IkePayloadType { return ike_types.TypeEAP }
@@ -88,7 +102,7 @@ func (eap *EAP) Marshal() ([]byte, error) {
 	if eap.EapTypeData != nil {
 		eapTypeData, err := eap.EapTypeData.Marshal()
 		if err != nil {
-			return nil, fmt.Errorf("EAP: EAP type data Marshal failed: %+v", err)
+			return nil, errors.Errorf("EAP: EAP type data marshal failed: %+v", err)
 		}
 
 		eapData = append(eapData, eapTypeData...)
@@ -116,13 +130,13 @@ func (eap *EAP) Unmarshal(b []byte) error {
 		eap.Code = b[0]
 		eap.Identifier = b[1]
 
-		// EAP Success or Failed
+		// EAP Success or Failure
 		if eapPayloadLength == 4 {
 			return nil
 		}
 
 		eapType := EapType(b[4])
-		var eapTypeData EapTypeFormat
+		var eapTypeData EapTypeData
 
 		switch eapType {
 		case EapTypeIdentity:
@@ -136,11 +150,11 @@ func (eap *EAP) Unmarshal(b []byte) error {
 		case EapTypeExpanded:
 			eapTypeData = new(EapExpanded)
 		default:
-			return errors.Errorf("EAP: Not supported EAP type[%d]", eapType)
+			return errors.Errorf("EAP: EAP type[%d] is not supported", eapType)
 		}
 
 		if err := eapTypeData.Unmarshal(b[4:]); err != nil {
-			return fmt.Errorf("EAP: Unamrshal EAP type data failed: %+v", err)
+			return errors.Wrapf(err, "EAP: EAP type data unamrshal failed")
 		}
 
 		eap.EapTypeData = eapTypeData

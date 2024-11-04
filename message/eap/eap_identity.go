@@ -2,9 +2,7 @@ package eap
 
 import "github.com/pkg/errors"
 
-// Definition of EAP Identity
-
-var _ EapTypeFormat = &EapIdentity{}
+var _ EapTypeData = &EapIdentity{}
 
 type EapIdentity struct {
 	IdentityData []byte

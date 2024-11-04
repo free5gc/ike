@@ -276,6 +276,9 @@ const (
 	EAP5GType5GStop  = 4
 )
 
+// Spare
+const EAP5GSpareValue = 0
+
 // Used in AN-Parameter field for IE types
 const (
 	ANParametersTypeGUAMI              = 1
@@ -300,9 +303,6 @@ const (
 	EstablishmentCauseMPS_PriorityAccess = 8
 	EstablishmentCauseMCS_PriorityAccess = 9
 )
-
-// Spare
-const EAP5GSpareValue = 0
 
 // 3GPP specified IKE Notify Message Types
 const (

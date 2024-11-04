@@ -3,7 +3,6 @@ package util
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -20,17 +19,11 @@ func DeriveAtRes(opc, k, rand, autn []byte, snName string) ([]byte, error) {
 	return res, nil
 }
 
-// MK = PRF'(IK'|CK',"EAP-AKA'"|Identity)
-// K_encr = MK[0..127]
-// K_aut  = MK[128..383]
-// K_re   = MK[384..639]
-// MSK    = MK[640..1151]
-// EMSK   = MK[1152..1663]
-func EapAkaPrimePrf(
+// RFC 9048 - 3.4.1. PRF'
+func EapAkaPrimePRF(
 	ikPrime, ckPrime []byte,
 	identity string,
 ) (k_encr []byte, k_aut []byte, k_re []byte, msk []byte, emsk []byte) {
-	// RFC 9048: 3.4.1. PRF'
 	// PRF'(K,S) = T1 | T2 | T3 | T4 | ...
 	// where:
 	// T1 = HMAC-SHA-256 (K, S | 0x01)
@@ -45,7 +38,7 @@ func EapAkaPrimePrf(
 	sBase := []byte("EAP-AKA'" + identity)
 	sBaseLen := len(sBase)
 
-	MK := []byte("")
+	MK := []byte("") // MK = PRF'(IK'|CK',"EAP-AKA'"|Identity)
 	prev := []byte("")
 	const prfRounds = 208/32 + 1
 	for i := 0; i < prfRounds; i++ {
@@ -72,22 +65,28 @@ func EapAkaPrimePrf(
 		prev = sha
 	}
 
-	k_encr = MK[0:16]  // 0..127
-	k_aut = MK[16:48]  // 128..383
-	k_re = MK[48:80]   // 384..639
-	msk = MK[80:144]   // 640..1151
-	emsk = MK[144:208] // 1152..1663
+	k_encr = MK[0:16]  // K_encr = MK[0..127]
+	k_aut = MK[16:48]  // K_aut  = MK[128..383]
+	k_re = MK[48:80]   // K_re   = MK[384..639]
+	msk = MK[80:144]   // MSK    = MK[640..1151]
+	emsk = MK[144:208] // EMSK   = MK[1152..1663]
 
 	return k_encr, k_aut, k_re, msk, emsk
 }
 
-// TODO: Consider this function if is need
+// The EAP packet(eapPkt) includes the EAP header that begins with the Code field,
+// the EAP-AKA header that begins with the Subtype field, and all the attributes.
 func GenMacInput(eapPkt []byte) ([]byte, error) {
 	pktLen := len(eapPkt)
 	data := make([]byte, pktLen)
 	copy(data, eapPkt)
 
-	hdrLen := eap_message.EapHeaderLen + eap_message.EapAkaHeaderSubtypeLen + eap_message.EapAkaHeaderReservedLen
+	hdrLen := eap_message.EapHeaderCodeLen +
+		eap_message.EapHeaderIdentifierLen +
+		eap_message.EapHeaderLengthLen +
+		eap_message.EapHeaderTypeLen +
+		eap_message.EapAkaHeaderSubtypeLen +
+		eap_message.EapAkaHeaderReservedLen
 
 	// decode attributes
 	var attrLen int
@@ -98,14 +97,14 @@ func GenMacInput(eapPkt []byte) ([]byte, error) {
 		// The length includes the Attribute Type and Length bytes.
 		attrLen = int(data[i+eap_message.EapAkaAttrTypeLen]) * 4
 		if attrLen == 0 {
-			return nil, fmt.Errorf("attribute length equal to zero")
+			return nil, errors.Errorf("attribute length equal to zero")
 		}
 
 		if attrType == eap_message.AT_MAC.Value() {
 			macExist = true
 
 			if attrLen != 20 {
-				return nil, fmt.Errorf("attribute AT_MAC decode err")
+				return nil, errors.Errorf("attribute AT_MAC decode err")
 			}
 
 			attrHdrLen := eap_message.EapAkaAttrTypeLen +
@@ -119,16 +118,14 @@ func GenMacInput(eapPkt []byte) ([]byte, error) {
 	}
 
 	if !macExist {
-		return nil, fmt.Errorf("EAP-AKA' has no AT_MAC field")
+		return nil, errors.Errorf("EAP-AKA' has no AT_MAC field")
 	}
 
 	return data, nil
 }
 
-/*
-key is k_aut;
-input is the whole EAP packet;
-*/
+// key is k_aut;
+// input is the whole EAP packet;
 func CalculateAtMAC(key []byte, input []byte) ([]byte, error) {
 	// keyed with k_aut
 	h := hmac.New(sha256.New, key)

@@ -14,22 +14,24 @@ import (
 
 // Definition of EAP-AKA'
 
+// RFC 4187 - Section 11:
 // EAP-AKA' SubType
-// RFC 4187 - Section 11
+type EapAkaSubtype uint8
+
 const (
-	SubtypeAkaChallenge              = 1
-	SubtypeAkaAuthenticationReject   = 2
-	SubtypeAkaSynchronizationFailure = 4
-	SubtypeAkaIdentity               = 5
-	SubtypeAkaNotification           = 12
-	SubtypeAkaReauthentication       = 13
-	SubtypeAkaClientError            = 14
+	SubtypeAkaChallenge              EapAkaSubtype = 1
+	SubtypeAkaAuthenticationReject   EapAkaSubtype = 2
+	SubtypeAkaSynchronizationFailure EapAkaSubtype = 4
+	SubtypeAkaIdentity               EapAkaSubtype = 5
+	SubtypeAkaNotification           EapAkaSubtype = 12
+	SubtypeAkaReauthentication       EapAkaSubtype = 13
+	SubtypeAkaClientError            EapAkaSubtype = 14
 )
 
 // Attribute Types for EAP-AKA'
 type EapAkaPrimeAttrType uint8
 
-var (
+const (
 	AT_RAND              EapAkaPrimeAttrType = 1
 	AT_AUTN              EapAkaPrimeAttrType = 2
 	AT_RES               EapAkaPrimeAttrType = 3
@@ -70,7 +72,7 @@ func (t EapAkaPrimeAttrType) String() string {
 	case AT_CHECKCODE:
 		s = "AT_CHECKCODE"
 	default:
-		s = "Unsupported type"
+		s = fmt.Sprintf("Unsupported type[%d]", t.Value())
 	}
 
 	return s
@@ -78,20 +80,45 @@ func (t EapAkaPrimeAttrType) String() string {
 
 func (t EapAkaPrimeAttrType) Value() uint8 { return uint8(t) }
 
-var _ EapTypeFormat = &EapAkaPrime{}
+var _ EapTypeData = &EapAkaPrime{}
 
 type EapAkaPrime struct {
-	SubType    uint8
-	Reserved   uint16
-	Attributes map[EapAkaPrimeAttrType]*EapAkaPrimeAttr
-	MacInput   []byte // TODO: Consider the field if is needed
+	subType    EapAkaSubtype
+	reserved   uint16
+	attributes map[EapAkaPrimeAttrType]*EapAkaPrimeAttr
 }
 
 func (eapAkaPrime *EapAkaPrime) Type() EapType { return EapTypeAkaPrime }
 
-func (eapAkaPrime *EapAkaPrime) Init(subType uint8) {
-	eapAkaPrime.SubType = subType
-	eapAkaPrime.Attributes = make(map[EapAkaPrimeAttrType]*EapAkaPrimeAttr)
+func (eapAkaPrime *EapAkaPrime) Init(subType EapAkaSubtype) {
+	eapAkaPrime.subType = subType
+	eapAkaPrime.attributes = make(map[EapAkaPrimeAttrType]*EapAkaPrimeAttr)
+}
+
+func (eapAkaPrime *EapAkaPrime) SetAttr(attrType EapAkaPrimeAttrType, value []byte) error {
+	attr := new(EapAkaPrimeAttr)
+
+	err := attr.setAttr(attrType, value)
+	if err != nil {
+		return errors.Wrapf(err, "EAP-AKA' SetAttr failed")
+	}
+
+	eapAkaPrime.attributes[attr.attrType] = attr
+	return nil
+}
+
+func (eapAkaPrime *EapAkaPrime) GetAttr(attrType EapAkaPrimeAttrType) (EapAkaPrimeAttr, error) {
+	for _, attr := range eapAkaPrime.attributes {
+		if attr.attrType == attrType {
+			return *attr, nil
+		}
+	}
+	return EapAkaPrimeAttr{}, errors.Errorf("EAP-AKA' attribute[%s] is not found", attrType)
+}
+
+func (eapAkaPrime *EapAkaPrime) InitMac() error {
+	zeros := make([]byte, 16)
+	return eapAkaPrime.SetAttr(AT_MAC, zeros)
 }
 
 func (eapAkaPrime *EapAkaPrime) Marshal() ([]byte, error) {
@@ -102,38 +129,38 @@ func (eapAkaPrime *EapAkaPrime) Marshal() ([]byte, error) {
 		return nil, errors.Wrapf(err, "EAP-AKA' Marshal(): write type failed")
 	}
 
-	err = binary.Write(buffer, binary.BigEndian, eapAkaPrime.SubType)
+	err = binary.Write(buffer, binary.BigEndian, eapAkaPrime.subType)
 	if err != nil {
 		return nil, errors.Wrapf(err, "EAP-AKA' Marshal(): write subtype failed")
 	}
-	err = binary.Write(buffer, binary.BigEndian, eapAkaPrime.Reserved)
+	err = binary.Write(buffer, binary.BigEndian, eapAkaPrime.reserved)
 	if err != nil {
 		return nil, errors.Wrapf(err, "EAP-AKA' Marshal(): write reserved failed")
 	}
 
 	for _, key := range eapAkaPrime.getAttrsKeys() {
-		attr := eapAkaPrime.Attributes[key]
+		attr := eapAkaPrime.attributes[key]
 
-		err = binary.Write(buffer, binary.BigEndian, attr.typeData.Value())
+		err = binary.Write(buffer, binary.BigEndian, attr.attrType.Value())
 		if err != nil {
-			return nil, errors.Wrapf(err, "EAP-AKA' Marshal(): write payload/type failed")
+			return nil, errors.Wrapf(err, "EAP-AKA' Marshal(): write attribute/type failed")
 		}
 
 		err = binary.Write(buffer, binary.BigEndian, attr.length)
 		if err != nil {
-			return nil, errors.Wrapf(err, "EAP-AKA' Marshal(): write payload/length failed")
+			return nil, errors.Wrapf(err, "EAP-AKA' Marshal(): write attribute/length failed")
 		}
 
-		if attr.typeData != AT_KDF {
+		if attr.attrType != AT_KDF {
 			err = binary.Write(buffer, binary.BigEndian, attr.reserved)
 			if err != nil {
-				return nil, errors.Wrapf(err, "EAP-AKA' Marshal(): write payload/reserved failed")
+				return nil, errors.Wrapf(err, "EAP-AKA' Marshal(): write attribute/reserved failed")
 			}
 		}
 
 		err = binary.Write(buffer, binary.BigEndian, attr.value)
 		if err != nil {
-			return nil, errors.Wrapf(err, "EAP-AKA' Marshal(): write payload/value failed")
+			return nil, errors.Wrapf(err, "EAP-AKA' Marshal(): write attribute/value failed")
 		}
 	}
 
@@ -144,48 +171,49 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 	var err error
 
 	if len(rawData) < 4 {
-		return errors.New("EapAkaPrime: No sufficient bytes to decode the EAP AKA' type")
+		return errors.New("EAP-AKA' Unmarshal(): no sufficient bytes to decode the EAP-AKA' type")
 	}
 	bufReader := bufio.NewReader(bytes.NewReader(rawData))
 
 	code, err := bufReader.ReadByte()
 	if err != nil {
-		return errors.Wrapf(err, "Read EAP-AKA' Type filead")
+		return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read EAP type failed")
 	}
 	typeCode := EapType(code)
 	if typeCode != EapTypeAkaPrime {
-		return errors.Errorf("EapTypeAkaPrime: expect %d but got %d", EapTypeAkaPrime, typeCode)
+		return errors.Errorf("EAP-AKA' Unmarshal(): expect EAP type is %d but got %d", EapTypeAkaPrime, typeCode)
 	}
 
-	eapAkaPrime.SubType, err = bufReader.ReadByte()
+	subType, err := bufReader.ReadByte()
 	if err != nil {
-		return errors.Wrapf(err, "Read EAP-AKA' SubType failed")
+		return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read subtype failed")
 	}
+	eapAkaPrime.subType = EapAkaSubtype(subType)
 
-	buf := make([]byte, unsafe.Sizeof(eapAkaPrime.Reserved))
+	buf := make([]byte, unsafe.Sizeof(eapAkaPrime.reserved))
 	_, err = io.ReadFull(bufReader, buf)
 	if err != nil {
-		return errors.Wrapf(err, "Read EAP-AKA' Reserved failed")
+		return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read reserved failed")
 	}
-	binary.BigEndian.PutUint16(buf, eapAkaPrime.Reserved)
+	binary.BigEndian.PutUint16(buf, eapAkaPrime.reserved)
 
-	if eapAkaPrime.Attributes == nil {
-		eapAkaPrime.Attributes = map[EapAkaPrimeAttrType]*EapAkaPrimeAttr{}
+	if eapAkaPrime.attributes == nil {
+		eapAkaPrime.attributes = map[EapAkaPrimeAttrType]*EapAkaPrimeAttr{}
 	}
 
 	for {
 		attr := new(EapAkaPrimeAttr)
-		var typeData uint8
+		var attrType uint8
 
-		// Read EAP-AKA' Attribute type
-		typeData, err = bufReader.ReadByte()
+		// Read EAP-AKA' attribute type
+		attrType, err = bufReader.ReadByte()
 		if err != nil {
 			if err == io.EOF {
 				break
 			}
-			return errors.Wrapf(err, "Read EAP-AKA' Attribute type failed")
+			return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read attribute/type failed")
 		}
-		attr.typeData = EapAkaPrimeAttrType(typeData)
+		attr.attrType = EapAkaPrimeAttrType(attrType)
 
 		// Read EAP-AKA' Attribute length
 		attr.length, err = bufReader.ReadByte()
@@ -193,10 +221,10 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 			if err == io.EOF {
 				break
 			}
-			return errors.Wrapf(err, "Read EAP-AKA' Attribute length failed")
+			return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read attribute/length failed")
 		}
 
-		switch attr.typeData {
+		switch attr.attrType {
 		case AT_MAC:
 			fallthrough
 		case AT_RAND:
@@ -209,7 +237,7 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 				if err == io.EOF {
 					break
 				}
-				return errors.Wrapf(err, "Read EAP-AKA' %s reserved failed", attr.typeData)
+				return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read %s attribute/reserved failed", attr.attrType)
 			}
 
 			valLen := 4*attr.length - EapAkaAttrTypeLen - EapAkaAttrLengthLen - EapAkaAttrReservedLen
@@ -219,7 +247,7 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 				if err == io.EOF {
 					break
 				}
-				return errors.Wrapf(err, "Read EAP-AKA' %s value failed", attr.typeData)
+				return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read %s attribute/value failed", attr.attrType)
 			}
 		case AT_KDF_INPUT:
 			fallthrough
@@ -231,7 +259,7 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 				if err == io.EOF {
 					break
 				}
-				return errors.Wrapf(err, "Read EAP-AKA' %s reserved failed", attr.typeData)
+				return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read %s attribute/reserved failed", attr.attrType)
 			}
 			valBitsLen := binary.BigEndian.Uint16(reserved)
 			attr.reserved = valBitsLen
@@ -243,7 +271,7 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 				if err == io.EOF {
 					break
 				}
-				return errors.Wrapf(err, "Read EAP-AKA' %s value failed", attr.typeData)
+				return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read %s attribute/value failed", attr.attrType)
 			}
 			// TODO: AT_RES may have padding
 		case AT_KDF:
@@ -254,46 +282,20 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 				if err == io.EOF {
 					break
 				}
-				return errors.Wrapf(err, "Read EAP-AKA' %s value failed", attr.typeData)
+				return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read %s attribute/value failed", attr.attrType)
 			}
 		}
 
-		eapAkaPrime.Attributes[attr.typeData] = attr
+		eapAkaPrime.attributes[attr.attrType] = attr
 	}
 
 	return nil
-}
-
-func (eapAkaPrime *EapAkaPrime) SetAttr(typeData EapAkaPrimeAttrType, value []byte) error {
-	attr := new(EapAkaPrimeAttr)
-
-	err := attr.setAttr(typeData, value)
-	if err != nil {
-		return err
-	}
-
-	eapAkaPrime.Attributes[attr.typeData] = attr
-	return nil
-}
-
-func (eapAkaPrime *EapAkaPrime) GetAttr(typeData EapAkaPrimeAttrType) (EapAkaPrimeAttr, error) {
-	for _, attr := range eapAkaPrime.Attributes {
-		if attr.typeData == typeData {
-			return *attr, nil
-		}
-	}
-	return EapAkaPrimeAttr{}, fmt.Errorf("EapAkaPrimeAttr[%s] not found", typeData)
-}
-
-func (eapAkaPrime *EapAkaPrime) InitMac() error {
-	zeros := make([]byte, 16)
-	return eapAkaPrime.SetAttr(AT_MAC, zeros)
 }
 
 func (eapAkaPrime *EapAkaPrime) getAttrsKeys() []EapAkaPrimeAttrType {
-	result := make([]EapAkaPrimeAttrType, 0, len(eapAkaPrime.Attributes))
+	result := make([]EapAkaPrimeAttrType, 0, len(eapAkaPrime.attributes))
 
-	for key := range eapAkaPrime.Attributes {
+	for key := range eapAkaPrime.attributes {
 		result = append(result, key)
 	}
 
@@ -304,130 +306,117 @@ func (eapAkaPrime *EapAkaPrime) getAttrsKeys() []EapAkaPrimeAttrType {
 	return result
 }
 
-// Len(EapAkaPrimeAttr) = EapAkaPrimeAttr.Length * 4
+// Len(EapAkaPrimeAttr) = EapAkaPrimeAttr.length * 4
 type EapAkaPrimeAttr struct {
-	typeData EapAkaPrimeAttrType
+	attrType EapAkaPrimeAttrType
 	length   uint8
 	reserved uint16
 	value    []byte
 }
 
-func (attr *EapAkaPrimeAttr) setAttr(typeData EapAkaPrimeAttrType, value []byte) error {
+func (attr *EapAkaPrimeAttr) setAttr(attrType EapAkaPrimeAttrType, value []byte) error {
 	var err error
 
-	attr.typeData = typeData
+	attr.attrType = attrType
 
-	switch typeData {
+	switch attrType {
 	case AT_MAC:
-		/*
-			RFC 5448:
-			   When used within EAP-AKA', the AT_MAC attribute is changed as
-			   follows.  The MAC algorithm is HMAC-SHA-256-128, a keyed hash value.
-			   The HMAC-SHA-256-128 value is obtained from the 32-byte HMAC-SHA-256
-			   value by truncating the output to the first 16 bytes.  Hence, the
-			   length of the MAC is 16 bytes.
-		*/
-		/*
-		    0                   1                   2                   3
-		    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		   |     AT_MAC    | Length = 5    |           Reserved            |
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		   |                                                               |
-		   |                           MAC                                 |
-		   |                                                               |
-		   |                                                               |
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		*/
+		// RFC 5448:
+		//    When used within EAP-AKA', the AT_MAC attribute is changed as
+		//    follows.  The MAC algorithm is HMAC-SHA-256-128, a keyed hash value.
+		//    The HMAC-SHA-256-128 value is obtained from the 32-byte HMAC-SHA-256
+		//    value by truncating the output to the first 16 bytes.  Hence, the
+		//    length of the MAC is 16 bytes.
+
+		// 0                   1                   2                   3
+		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |     AT_MAC    | Length = 5    |           Reserved            |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |                                                               |
+		// |                           MAC                                 |
+		// |                                                               |
+		// |                                                               |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 		fallthrough
 	case AT_RAND:
-		/*
-			RFC 4187:
-			   The value field of this attribute contains two reserved bytes
-			   followed by the AKA RAND parameter, 16 bytes (128 bits).
-		*/
-		/*
-		    0                   1                   2                   3
-		    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		   |    AT_RAND    | Length = 5    |           Reserved            |
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		   |                                                               |
-		   |                             RAND                              |
-		   |                                                               |
-		   |                                                               |
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		*/
+		// RFC 4187:
+		//    The value field of this attribute contains two reserved bytes
+		//    followed by the AKA RAND parameter, 16 bytes (128 bits).
+
+		// 0                   1                   2                   3
+		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |    AT_RAND    | Length = 5    |           Reserved            |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |                                                               |
+		// |                             RAND                              |
+		// |                                                               |
+		// |                                                               |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 		fallthrough
 	case AT_AUTN:
-		/*
-			RFC 4187:
-			   The value field of this attribute contains two reserved bytes
-			   followed by the AKA AUTN parameter, 16 bytes (128 bits).
-		*/
-		/*
-		    0                   1                   2                   3
-		    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		   |    AT_AUTN    | Length = 5    |           Reserved            |
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		   |                                                               |
-		   |                        AUTN                                   |
-		   |                                                               |
-		   |                                                               |
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		*/
+		// RFC 4187:
+		//    The value field of this attribute contains two reserved bytes
+		//    followed by the AKA AUTN parameter, 16 bytes (128 bits).
+
+		// 0                   1                   2                   3
+		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |    AT_AUTN    | Length = 5    |           Reserved            |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |                                                               |
+		// |                        AUTN                                   |
+		// |                                                               |
+		// |                                                               |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 		attr.reserved = 0
 		valLen := len(value)
 		if valLen != 16 {
-			return fmt.Errorf("Set %s failed: expect 16 bytes, but got %d bytes", typeData, valLen)
+			return errors.Errorf("Set %s failed: expect 16 bytes, but got %d bytes", attrType, valLen)
 		}
 		attr.length = uint8((EapAkaAttrTypeLen + EapAkaAttrTypeLen + EapAkaAttrReservedLen + valLen) / 4)
 		attr.value = make([]byte, valLen)
 		copy(attr.value, value)
 	case AT_KDF_INPUT:
-		/*
-		    0                   1                   2                   3
-		    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		   | AT_KDF_INPUT  | Length        | Actual Network Name Length    |
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		   |                                                               |
-		   .                        Network Name                           .
-		   .                                                               .
-		   |                                                               |
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		*/
+		// 0                   1                   2                   3
+		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// | AT_KDF_INPUT  | Length        | Actual Network Name Length    |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |                                                               |
+		// .                        Network Name                           .
+		// .                                                               .
+		// |                                                               |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 		fallthrough
 	case AT_RES:
-		/*
-			RFC 4187:
-			   The value field of this attribute begins with the 2-byte RES Length,
-			   which identifies the exact length of the RES in bits.  The RES length
-			   is followed by the AKA RES parameter.  According to [TS33.105], the
-			   length of the AKA RES can vary between 32 and 128 bits.  Because the
-			   length of the AT_RES attribute must be a multiple of 4 bytes, the
-			   sender pads the RES with zero bits where necessary.
-		*/
-		/*
-		    0                   1                   2                   3
-		    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		   |     AT_RES    |    Length     |          RES Length           |
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
-		   |                                                               |
-		   |                             RES                               |
-		   |                                                               |
-		   |                                                               |
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		*/
+		// RFC 4187:
+		//    The value field of this attribute begins with the 2-byte RES Length,
+		//    which identifies the exact length of the RES in bits.  The RES length
+		//    is followed by the AKA RES parameter.  According to [TS33.105], the
+		//    length of the AKA RES can vary between 32 and 128 bits.  Because the
+		//    length of the AT_RES attribute must be a multiple of 4 bytes, the
+		//    sender pads the RES with zero bits where necessary.
+
+		// 0                   1                   2                   3
+		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |     AT_RES    |    Length     |          RES Length           |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
+		// |                                                               |
+		// |                             RES                               |
+		// |                                                               |
+		// |                                                               |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
 		// TODO: Add padding
 		valBytesLen := len(value)
 		valBitsLen := valBytesLen * 8
 
-		if typeData == AT_RES {
+		if attrType == AT_RES {
 			if valBitsLen > 128 || valBitsLen < 32 {
-				return fmt.Errorf("%s needs between 32 and 128 bits, but got %d bits", typeData, valBitsLen)
+				return errors.Errorf("%s needs between 32 and 128 bits, but got %d bits", attrType, valBitsLen)
 			}
 		}
 
@@ -436,55 +425,48 @@ func (attr *EapAkaPrimeAttr) setAttr(typeData EapAkaPrimeAttrType, value []byte)
 		attr.value = make([]byte, valBytesLen)
 		copy(attr.value, value)
 	case AT_KDF:
-		/*
-			RFC 5448:
-				The length of the attribute, MUST be set to 1.
-		*/
-		/*
-		    0                   1                   2                   3
-		    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		   | AT_KDF        | Length        |    Key Derivation Function    |
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		*/
+		// RFC 5448:
+		// 	The length of the attribute, MUST be set to 1.
+
+		// 0                   1                   2                   3
+		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// | AT_KDF        | Length        |    Key Derivation Function    |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 		valLen := len(value)
 		if valLen != 2 {
-			return fmt.Errorf("%s needs exactly 2 bytes, but got %d bytes", typeData, valLen)
+			return errors.Errorf("%s needs exactly 2 bytes, but got %d bytes", attrType, valLen)
 		}
 		attr.length = 1
 		attr.value = make([]byte, valLen)
 		copy(attr.value, value)
 	case AT_CHECKCODE:
-		/*
-			RFC 4187:
-			   The value field of AT_CHECKCODE begins with two reserved bytes, which
-			   may be followed by a 20-byte checkcode.  If the checkcode is not
-			   included in AT_CHECKCODE, then the attribute indicates that no EAP/-
-			   AKA-Identity messages were exchanged.  This may occur in both full
-			   authentication and fast re-authentication.  The reserved bytes are
-			   set to zero when sending and ignored on reception.
-		*/
-		/*
-		    0                   1                   2                   3
-		    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		   | AT_CHECKCODE  | Length        |           Reserved            |
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		   |                                                               |
-		   |                     Checkcode (0 or 20 bytes)                 |
-		   |                                                               |
-		   |                                                               |
-		   |                                                               |
-		   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		*/
+		// RFC 4187:
+		//    The value field of AT_CHECKCODE begins with two reserved bytes, which
+		//    may be followed by a 20-byte checkcode.  If the checkcode is not
+		//    included in AT_CHECKCODE, then the attribute indicates that no EAP/-
+		//    AKA-Identity messages were exchanged.  This may occur in both full
+		//    authentication and fast re-authentication.  The reserved bytes are
+		//    set to zero when sending and ignored on reception.
+
+		// 0                   1                   2                   3
+		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// | AT_CHECKCODE  | Length        |           Reserved            |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |                                                               |
+		// |                     Checkcode (0 or 20 bytes)                 |
+		// |                                                               |
+		// |                                                               |
+		// |                                                               |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 		attr.reserved = 0
 		valLen := len(value)
 		attr.length = uint8((EapAkaAttrTypeLen + EapAkaAttrTypeLen + EapAkaAttrReservedLen + valLen) / 4)
 		attr.value = make([]byte, valLen)
 		copy(attr.value, value)
-
 	default:
-		err = fmt.Errorf("%s is not supported", typeData)
+		err = errors.Errorf("%s is not supported", attrType)
 	}
 
 	return err

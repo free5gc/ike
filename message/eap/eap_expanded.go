@@ -6,16 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Definition of EAP expanded
-
-// Types for EAP-5G
-// Used in IKE EAP expanded for vendor ID
-const VendorId3GPP = 10415
-
-// Used in IKE EAP expanded for vendor data
-const VendorTypeEAP5G = 3
-
-var _ EapTypeFormat = &EapExpanded{}
+var _ EapTypeData = &EapExpanded{}
 
 type EapExpanded struct {
 	VendorID   uint32

@@ -1,7 +1,6 @@
 package eap_test
 
 import (
-	"encoding/hex"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,86 +8,230 @@ import (
 	eap_message "github.com/free5gc/ike/message/eap"
 )
 
-// func TestEapIdentity(t *testing.T) {
-// 	tcs := []struct {
-// 		name           string
-// 		userName       string
-// 		expectedResult []byte
-// 	}{
-// 		{
-// 			name:           "correct",
-// 			userName:       "test1",
-// 			expectedResult: []byte{0x02, 0x01, 0x00, 0x0a, 0x01, 0x74, 0x65, 0x73, 0x74, 0x31},
-// 		},
-// 	}
+var (
+	eapIdentity = eap_message.EAP{
+		Code:       eap_message.EapCodeRequest,
+		Identifier: 9,
+		EapTypeData: &eap_message.EapIdentity{
+			IdentityData: []byte{
+				0x7d, 0x09, 0x18, 0x42, 0x60, 0x9c, 0x9e, 0x20,
+				0x56, 0x9f, 0xc0, 0x39, 0xda, 0x3f, 0x22, 0x2a,
+				0xb8, 0x56, 0x81, 0x8a,
+			},
+		},
+	}
 
-// 	for _, tc := range tcs {
-// 		t.Run(tc.name, func(t *testing.T) {
-// 			eap := new(eap_message.EAP)
-// 			eap.Code = eap_message.EapCodeResponse
-// 			eap.Identifier = 1
+	eapIdentityByte = []byte{
+		0x01, 0x09, 0x00, 0x19, 0x01, 0x7d, 0x09,
+		0x18, 0x42, 0x60, 0x9c, 0x9e, 0x20, 0x56,
+		0x9f, 0xc0, 0x39, 0xda, 0x3f, 0x22, 0x2a,
+		0xb8, 0x56, 0x81, 0x8a,
+	}
 
-// 			eapIdentity := new(eap_message.EapIdentity)
-// 			err := eapIdentity.Unmarshal([]byte(tc.userName))
-// 			require.NoError(t, err)
-// 			eap.EapTypeData = append(eap.EapTypeData, eapIdentity)
+	eapNotification = eap_message.EAP{
+		Code:       eap_message.EapCodeRequest,
+		Identifier: 9,
+		EapTypeData: &eap_message.EapNotification{
+			NotificationData: []byte{
+				0x7d, 0x09, 0x18, 0x42, 0x60, 0x9c, 0x9e, 0x20,
+				0x56, 0x9f, 0xc0, 0x39, 0xda, 0x3f, 0x22, 0x2a,
+				0xb8, 0x56, 0x81, 0x8a,
+			},
+		},
+	}
 
-// 			result, err := eap.Marshal()
-// 			require.NoError(t, err)
+	eapNotificationByte = []byte{
+		0x01, 0x09, 0x00, 0x19, 0x02, 0x7d, 0x09, 0x18,
+		0x42, 0x60, 0x9c, 0x9e, 0x20, 0x56, 0x9f, 0xc0,
+		0x39, 0xda, 0x3f, 0x22, 0x2a, 0xb8, 0x56, 0x81,
+		0x8a,
+	}
 
-// 			require.Equal(t, tc.expectedResult, result)
-// 		})
-// 	}
-// }
+	eapNak = eap_message.EAP{
+		Code:       eap_message.EapCodeRequest,
+		Identifier: 9,
+		EapTypeData: &eap_message.EapNak{
+			NakData: []byte{
+				0x7d, 0x09, 0x18, 0x42, 0x60, 0x9c, 0x9e, 0x20,
+				0x56, 0x9f, 0xc0, 0x39, 0xda, 0x3f, 0x22, 0x2a,
+				0xb8, 0x56, 0x81, 0x8a,
+			},
+		},
+	}
 
-func TestEapAkaPrime(t *testing.T) {
-	var err error
-	var val []byte
+	eapNakByte = []byte{
+		0x01, 0x09, 0x00, 0x19, 0x03, 0x7d, 0x09, 0x18,
+		0x42, 0x60, 0x9c, 0x9e, 0x20, 0x56, 0x9f, 0xc0,
+		0x39, 0xda, 0x3f, 0x22, 0x2a, 0xb8, 0x56, 0x81,
+		0x8a,
+	}
 
-	eapAkaPrime := new(eap_message.EapAkaPrime)
-	eapAkaPrime.Init(eap_message.SubtypeAkaChallenge)
+	eapExpanded = eap_message.EAP{
+		Code:       eap_message.EapCodeRequest,
+		Identifier: 9,
+		EapTypeData: &eap_message.EapExpanded{
+			VendorID:   eap_message.VendorId3GPP,
+			VendorType: eap_message.VendorTypeEAP5G,
+			VendorData: []byte{
+				0x7d, 0x09, 0x18, 0x42, 0x60, 0x9c, 0x9e, 0x20,
+				0x56, 0x9f, 0xc0, 0x39, 0xda, 0x3f, 0x22, 0x2a,
+				0xb8, 0x56, 0x81, 0x8a,
+			},
+		},
+	}
 
-	attrs := []struct {
-		eapAkaPrimeAttrType eap_message.EapAkaPrimeAttrType
-		value               string
+	eapExpandedByte = []byte{
+		0x01, 0x09, 0x00, 0x20, 0xfe, 0x00, 0x28, 0xaf,
+		0x00, 0x00, 0x00, 0x03, 0x7d, 0x09, 0x18, 0x42,
+		0x60, 0x9c, 0x9e, 0x20, 0x56, 0x9f, 0xc0, 0x39,
+		0xda, 0x3f, 0x22, 0x2a, 0xb8, 0x56, 0x81, 0x8a,
+	}
+)
+
+func TestEapMarshal(t *testing.T) {
+	testcases := []struct {
+		description string
+		eap         eap_message.EAP
+		expMarshal  []byte
+		expErr      bool
 	}{
 		{
-			eapAkaPrimeAttrType: eap_message.AT_RAND,
-			value:               "25fa7d6e3232108389df876560af7c15",
+			description: "EAP identity is empty",
+			eap: eap_message.EAP{
+				Code:       eap_message.EapCodeRequest,
+				Identifier: 9,
+				EapTypeData: &eap_message.EapIdentity{
+					IdentityData: nil,
+				},
+			},
+			expErr: true,
 		},
 		{
-			eapAkaPrimeAttrType: eap_message.AT_AUTN,
-			value:               "c8621644d1368000cfac85416226ed27",
+			description: "EapIdentity marshal",
+			eap:         eapIdentity,
+			expMarshal:  eapIdentityByte,
+			expErr:      false,
 		},
 		{
-			eapAkaPrimeAttrType: eap_message.AT_KDF,
-			value:               "0001",
+			description: "EAP notification is empty",
+			eap: eap_message.EAP{
+				Code:       eap_message.EapCodeRequest,
+				Identifier: 9,
+				EapTypeData: &eap_message.EapNotification{
+					NotificationData: nil,
+				},
+			},
+			expErr: true,
 		},
 		{
-			eapAkaPrimeAttrType: eap_message.AT_KDF_INPUT,
-			value:               "35473a6d6e633039332e6d63633230382e336770706e6574776f726b2e6f7267",
+			description: "EapNotification marshal",
+			eap:         eapNotification,
+			expMarshal:  eapNotificationByte,
+			expErr:      false,
 		},
 		{
-			eapAkaPrimeAttrType: eap_message.AT_MAC,
-			value:               "51dbe38b18f8aab6ac6e793bfabdbb0e",
+			description: "EAP nak is empty",
+			eap: eap_message.EAP{
+				Code:       eap_message.EapCodeRequest,
+				Identifier: 9,
+				EapTypeData: &eap_message.EapNak{
+					NakData: nil,
+				},
+			},
+			expErr: true,
+		},
+		{
+			description: "EapNak marshal",
+			eap:         eapNak,
+			expMarshal:  eapNakByte,
+			expErr:      false,
+		},
+		{
+			description: "EapExpanded marshal",
+			eap:         eapExpanded,
+			expMarshal:  eapExpandedByte,
+			expErr:      false,
 		},
 	}
 
-	for i := 0; i < len(attrs); i++ {
-		val, err = hex.DecodeString(attrs[i].value)
-		require.NoError(t, err)
-		err = eapAkaPrime.SetAttr(attrs[i].eapAkaPrimeAttrType, val)
-		require.NoError(t, err)
+	for _, tc := range testcases {
+		t.Run(tc.description, func(t *testing.T) {
+			result, err := tc.eap.Marshal()
+			if tc.expErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.expMarshal, result)
+			}
+		})
+	}
+}
+
+func TestEapUnmarshal(t *testing.T) {
+	testcases := []struct {
+		description string
+		b           []byte
+		expMarshal  eap_message.EAP
+		expErr      bool
+	}{
+		{
+			description: "No sufficient bytes to decode next EAP payload",
+			b:           []byte{0x01, 0x02, 0x03},
+			expErr:      true,
+		},
+		{
+			description: "Payload length specified in the header is too small for EAP",
+			b:           []byte{0x01, 0x02, 0x00, 0x03},
+			expErr:      true,
+		},
+		{
+			description: "Received payload length not matches the length specified in header",
+			b:           []byte{0x01, 0x02, 0x00, 0x07, 0x01},
+			expErr:      true,
+		},
+		{
+			description: "EapIdentity unmarshal",
+			b:           eapIdentityByte,
+			expMarshal:  eapIdentity,
+			expErr:      false,
+		},
+		{
+			description: "EapNotification unmarshal",
+			b:           eapNotificationByte,
+			expMarshal:  eapNotification,
+			expErr:      false,
+		},
+		{
+			description: "EapNak unmarshal",
+			b:           eapNakByte,
+			expMarshal:  eapNak,
+			expErr:      false,
+		},
+		{
+			description: "EapExpanded: No sufficient bytes to decode the EAP expanded type",
+			b: []byte{
+				0x01, 0x09, 0x00, 0x20, 0xfe, 0x00, 0x28,
+			},
+			expErr: true,
+		},
+		{
+			description: "EapExpanded unmarshal",
+			b:           eapExpandedByte,
+			expMarshal:  eapExpanded,
+			expErr:      false,
+		},
 	}
 
-	// Test Marshal
-	eapAkaPrimeBytes, err := eapAkaPrime.Marshal()
-	require.NoError(t, err)
-
-	// Test Unmarshal
-	result := new(eap_message.EapAkaPrime)
-	err = result.Unmarshal(eapAkaPrimeBytes)
-	require.NoError(t, err)
-
-	require.Equal(t, eapAkaPrime, result)
+	for _, tc := range testcases {
+		t.Run(tc.description, func(t *testing.T) {
+			var eap eap_message.EAP
+			err := eap.Unmarshal(tc.b)
+			if tc.expErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.expMarshal, eap)
+			}
+		})
+	}
 }
