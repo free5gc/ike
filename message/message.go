@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	eap_message "github.com/free5gc/ike/message/eap"
+	eap_message "github.com/free5gc/ike/eap"
 	ike_types "github.com/free5gc/ike/types"
 )
 

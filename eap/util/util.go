@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	eap_message "github.com/free5gc/ike/message/eap"
+	eap_message "github.com/free5gc/ike/eap"
 )
 
 // RFC 9048 - 3.4.1. PRF'

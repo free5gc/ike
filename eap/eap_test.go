@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	eap_message "github.com/free5gc/ike/message/eap"
+	eap_message "github.com/free5gc/ike/eap"
 )
 
 var (

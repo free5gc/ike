@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	eap_message "github.com/free5gc/ike/message/eap"
-	eap_util "github.com/free5gc/ike/message/eap/util"
+	eap_message "github.com/free5gc/ike/eap"
+	eap_util "github.com/free5gc/ike/eap/util"
 )
 
 func TestEapAkaPrimePrf(t *testing.T) {

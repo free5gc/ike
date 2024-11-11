@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	eap_message "github.com/free5gc/ike/eap"
 	"github.com/free5gc/ike/message"
-	eap_message "github.com/free5gc/ike/message/eap"
 	"github.com/free5gc/ike/security"
 	"github.com/free5gc/ike/security/encr"
 	"github.com/free5gc/ike/security/integ"
