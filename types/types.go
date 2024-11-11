@@ -25,48 +25,33 @@ const (
 	TypeEAP
 )
 
+var typeStr map[IkePayloadType]string = map[IkePayloadType]string{
+	NoNext:      "NoNext",
+	TypeSA:      "Security Association",
+	TypeKE:      "Key Exchange",
+	TypeIDi:     "Identification - Initiator",
+	TypeIDr:     "Identification - Responder",
+	TypeCERT:    "Certificate",
+	TypeCERTreq: "Certificate Request",
+	TypeAUTH:    "Authentication",
+	TypeNiNr:    "Nonce",
+	TypeN:       "Notify",
+	TypeD:       "Delete",
+	TypeV:       "Vendor ID",
+	TypeTSi:     "Traffic Selector - Initiator",
+	TypeTSr:     "Traffic Selector - Responder",
+	TypeSK:      "Encrypted and Authenticated",
+	TypeCP:      "Configuration",
+	TypeEAP:     "Extensible Authentication",
+}
+
 // RFC 7296: 3.2.  Generic Payload Header
 func (t IkePayloadType) String() string {
-	result := ""
-	switch t {
-	case NoNext:
-		result = "No Next Payload"
-	case TypeSA:
-		result = "Security Association"
-	case TypeKE:
-		result = "Key Exchange"
-	case TypeIDi:
-		result = "Identification - Initiator"
-	case TypeIDr:
-		result = "Identification - Responder"
-	case TypeCERT:
-		result = "Certificate"
-	case TypeCERTreq:
-		result = "Certificate Request"
-	case TypeAUTH:
-		result = "Authentication"
-	case TypeNiNr:
-		result = "Nonce"
-	case TypeN:
-		result = "Notify"
-	case TypeD:
-		result = "Delete"
-	case TypeV:
-		result = "Vender ID"
-	case TypeTSi:
-		result = "Traffic Selector - Initiator"
-	case TypeTSr:
-		result = "Traffic Selector - Responder"
-	case TypeSK:
-		result = "Encrypted and Authenticated"
-	case TypeCP:
-		result = "Configuration"
-	case TypeEAP:
-		result = "Extensible Authentication"
-	default:
-		result = fmt.Sprintf("IKE payload type[%d] is not supported", t)
+	s, ok := typeStr[t]
+	if !ok {
+		return fmt.Sprintf("IKE payload type[%d] is not supported", t)
 	}
-	return result
+	return s
 }
 
 // used for SecurityAssociation-Proposal-Transform TransformType
