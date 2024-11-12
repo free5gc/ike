@@ -90,6 +90,8 @@ type EapAkaPrime struct {
 
 func (eapAkaPrime *EapAkaPrime) Type() EapType { return EapTypeAkaPrime }
 
+func (eapAkaPrime *EapAkaPrime) SubType() EapAkaSubtype { return eapAkaPrime.subType }
+
 func (eapAkaPrime *EapAkaPrime) Init(subType EapAkaSubtype) {
 	eapAkaPrime.subType = subType
 	eapAkaPrime.attributes = make(map[EapAkaPrimeAttrType]*EapAkaPrimeAttr)
