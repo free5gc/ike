@@ -197,7 +197,7 @@ func (container *TransformContainer) BuildTransform(
 	*container = append(*container, transform)
 }
 
-func (container *IKEPayloadContainer) BuildEAP(code uint8, identifier uint8) *PayloadEap {
+func (container *IKEPayloadContainer) BuildEAP(code eap_message.EapCode, identifier uint8) *PayloadEap {
 	eap := &PayloadEap{
 		EAP: &eap_message.EAP{
 			Code:       code,

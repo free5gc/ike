@@ -3,6 +3,8 @@ package eap
 import (
 	"bufio"
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -12,7 +14,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Definition of EAP-AKA'
+// Length of EAP-AKA' header (in bytes)
+const (
+	EapAkaHeaderSubtypeLen  = 1
+	EapAkaHeaderReservedLen = 2
+
+	EapAkaAttrTypeLen     = 1
+	EapAkaAttrLengthLen   = 1
+	EapAkaAttrReservedLen = 2
+)
 
 // RFC 4187 - Section 11:
 // EAP-AKA' SubType
@@ -45,40 +55,31 @@ const (
 	AT_CHECKCODE         EapAkaPrimeAttrType = 134
 )
 
+var attrTypeStr map[EapAkaPrimeAttrType]string = map[EapAkaPrimeAttrType]string{
+	AT_RAND:              "AT_RAND",
+	AT_AUTN:              "AT_AUTN",
+	AT_RES:               "AT_RES",
+	AT_AUTS:              "AT_AUTS",
+	AT_MAC:               "AT_MAC",
+	AT_NOTIFICATION:      "AT_NOTIFICATION",
+	AT_IDENTITY:          "AT_IDENTITY",
+	AT_CLIENT_ERROR_CODE: "AT_CLIENT_ERROR_CODE",
+	AT_KDF_INPUT:         "AT_KDF_INPUT",
+	AT_KDF:               "AT_KDF",
+	AT_CHECKCODE:         "AT_CHECKCODE",
+}
+
 func (t EapAkaPrimeAttrType) String() string {
-	var s string
-
-	switch t {
-	case AT_RAND:
-		s = "AT_RAND"
-	case AT_AUTN:
-		s = "AT_AUTN"
-	case AT_RES:
-		s = "AT_RES"
-	case AT_AUTS:
-		s = "AT_AUTS"
-	case AT_MAC:
-		s = "AT_MAC"
-	case AT_NOTIFICATION:
-		s = "AT_NOTIFICATION"
-	case AT_IDENTITY:
-		s = "AT_IDENTITY"
-	case AT_CLIENT_ERROR_CODE:
-		s = "AT_CLIENT_ERROR_CODE"
-	case AT_KDF_INPUT:
-		s = "AT_KDF_INPUT"
-	case AT_KDF:
-		s = "AT_KDF"
-	case AT_CHECKCODE:
-		s = "AT_CHECKCODE"
-	default:
-		s = fmt.Sprintf("Unsupported type[%d]", t.Value())
+	s, ok := attrTypeStr[t]
+	if !ok {
+		return fmt.Sprintf("EAP-AKA' attribute type[%d] is not supported", t.Value())
 	}
-
 	return s
 }
 
 func (t EapAkaPrimeAttrType) Value() uint8 { return uint8(t) }
+
+// Definition of EAP-AKA'
 
 var _ EapTypeData = &EapAkaPrime{}
 
@@ -475,3 +476,58 @@ func (attr *EapAkaPrimeAttr) setAttr(attrType EapAkaPrimeAttrType, value []byte)
 }
 
 func (attr *EapAkaPrimeAttr) GetValue() []byte { return attr.value }
+
+// RFC 9048 - 3.4.1. PRF'
+func EapAkaPrimePRF(
+	ikPrime, ckPrime []byte,
+	identity string,
+) (k_encr, k_aut, k_re, msk, emsk []byte) {
+	// PRF'(K,S) = T1 | T2 | T3 | T4 | ...
+	// where:
+	// T1 = HMAC-SHA-256 (K, S | 0x01)
+	// T2 = HMAC-SHA-256 (K, T1 | S | 0x02)
+	// T3 = HMAC-SHA-256 (K, T2 | S | 0x03)
+	// T4 = HMAC-SHA-256 (K, T3 | S | 0x04)
+	// ...
+
+	key := make([]byte, 0)
+	key = append(key, ikPrime...)
+	key = append(key, ckPrime...)
+	sBase := []byte("EAP-AKA'" + identity)
+	sBaseLen := len(sBase)
+
+	MK := []byte("") // MK = PRF'(IK'|CK',"EAP-AKA'"|Identity)
+	prev := []byte("")
+	const prfRounds = 208/32 + 1
+	for i := 0; i < prfRounds; i++ {
+		// Create a new HMAC by defining the hash type and the key (as byte array)
+		h := hmac.New(sha256.New, key)
+		hexNum := (byte)(i + 1)
+
+		sBaseWithNum := make([]byte, sBaseLen+1)
+		copy(sBaseWithNum, sBase)
+		sBaseWithNum[sBaseLen] = hexNum
+
+		s := make([]byte, len(prev))
+		copy(s, prev)
+		s = append(s, sBaseWithNum...)
+
+		// Write Data to it
+		if _, err := h.Write(s); err != nil {
+			return nil, nil, nil, nil, nil
+		}
+
+		// Get result
+		sha := h.Sum(nil)
+		MK = append(MK, sha...)
+		prev = sha
+	}
+
+	k_encr = MK[0:16]  // K_encr = MK[0..127]
+	k_aut = MK[16:48]  // K_aut  = MK[128..383]
+	k_re = MK[48:80]   // K_re   = MK[384..639]
+	msk = MK[80:144]   // MSK    = MK[640..1151]
+	emsk = MK[144:208] // EMSK   = MK[1152..1663]
+
+	return k_encr, k_aut, k_re, msk, emsk
+}

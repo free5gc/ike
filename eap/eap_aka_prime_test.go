@@ -60,3 +60,47 @@ func TestEapAkaPrime(t *testing.T) {
 
 	require.Equal(t, eapAkaPrime, result)
 }
+
+func TestEapAkaPrimePrf(t *testing.T) {
+	tcs := []struct {
+		name           string
+		ikPrime        string
+		ckPrime        string
+		identity       string
+		expectedResult []string
+	}{
+		{
+			name:     "correct",
+			ikPrime:  "4bf4f64b21b59444277f2c60c417d4c7",
+			ckPrime:  "403075840723643618b6fae83236c86d",
+			identity: "208930123456789",
+			expectedResult: []string{
+				"d2e0e54aa01d48959e38ca1aff6c38fb",
+				"a56e1733adf3747cfe045dacebedeb33dd53e0f5200f6697c0855e2f856c4e40",
+				"c362f256003483d0766bf877191741254446986158e66d57fcdc251d531fdec4",
+				"e6ad162cd2fbcf3b6df5765b51e8983f5fb3204d16930c9bbbef5a971cf1de7c" +
+					"1c60f79516b4efe1b937ce510a3e52c161d6c6db3f03a62a93e33a53cc15bb70",
+				"f74892a2343d64de4528bd0cbbf12edf03b47adbc72e7839175af598d87cc7d3" +
+					"3cf0671517eb051345946b978e7afc9b48327e90f816e67efddc5949adab08ad",
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			ikPrime, err := hex.DecodeString(tc.ikPrime)
+			require.NoError(t, err)
+			ckPrime, err := hex.DecodeString(tc.ckPrime)
+			require.NoError(t, err)
+
+			k_encr, k_aut, k_re, msk, emsk := eap_message.EapAkaPrimePRF(ikPrime, ckPrime, tc.identity)
+			actualResult := [][]byte{k_encr, k_aut, k_re, msk, emsk}
+
+			for i := 0; i < len(actualResult); i++ {
+				expectedResult, innerErr := hex.DecodeString(tc.expectedResult[i])
+				require.NoError(t, innerErr)
+				require.Equal(t, expectedResult, actualResult[i])
+			}
+		})
+	}
+}

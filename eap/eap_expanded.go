@@ -6,11 +6,28 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Refer to 3GPP TS 24.502 - 9.3.2 EAP-5G method
+// 3GPP Vendor-Id of 10415 (decimal) registered with IANA under the SMI Private Enterprise Code registry.
+const VendorId3GPP = 10415
+
+// EAP-5G method (3GPP TS 33.402 - annex C)
+const VendorTypeEAP5G = 3
+
 var _ EapTypeData = &EapExpanded{}
 
+// 0                   1                   2                   3
+// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |     Type      |               Vendor-Id                       |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |                          Vendor-Type                          |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |              Vendor data...
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
 type EapExpanded struct {
-	VendorID   uint32
-	VendorType uint32
+	VendorID   uint32 // 3 bytes
+	VendorType uint32 // 4 bytes
 	VendorData []byte
 }
 

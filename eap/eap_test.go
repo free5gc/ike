@@ -1,6 +1,7 @@
 package eap_test
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -232,6 +233,84 @@ func TestEapUnmarshal(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, tc.expMarshal, eap)
 			}
+		})
+	}
+}
+
+func TestEapAkaMac(t *testing.T) {
+	tcs := []struct {
+		name         string
+		eapID        uint8
+		atRes        string
+		key          string
+		expectResult string
+	}{
+		{
+			name:         "test case 1",
+			eapID:        64,
+			atRes:        "e2f5c0ab3685b3b4",
+			key:          "7e28ba2f666944737f6c8a0a008e834895206a02725b5b4b925a399ae6f09cf0",
+			expectResult: "fd69971493e2b7f873a06e72e2051e8a",
+		},
+		{
+			name:         "test case 2",
+			eapID:        2,
+			atRes:        "1e4c99649c900fec",
+			key:          "7ee97c273b07a773c29f670d2e688b2a70eb206963bd7d3d40a0eb18955133f8",
+			expectResult: "66a5e7f1e0df7cb0043069ae5a9e181c",
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			expectResult, err := hex.DecodeString(tc.expectResult)
+			require.NoError(t, err)
+
+			// Build test EAP packet
+			eap := new(eap_message.EAP)
+			eap.Code = eap_message.EapCodeResponse
+			eap.Identifier = tc.eapID
+			eap.EapTypeData = new(eap_message.EapAkaPrime)
+
+			// Build EAP-AKA' packet
+			eapAkaPrime := eap.EapTypeData.(*eap_message.EapAkaPrime)
+			eapAkaPrime.Init(eap_message.SubtypeAkaChallenge)
+
+			attrs := []struct {
+				eapAkaPrimeAttrType eap_message.EapAkaPrimeAttrType
+				value               string
+			}{
+				{
+					eapAkaPrimeAttrType: eap_message.AT_RES,
+					value:               tc.atRes,
+				},
+				{
+					eapAkaPrimeAttrType: eap_message.AT_CHECKCODE,
+					value:               "",
+				},
+			}
+
+			var val []byte
+			for i := 0; i < len(attrs); i++ {
+				val, err = hex.DecodeString(attrs[i].value)
+				require.NoError(t, err)
+
+				err = eapAkaPrime.SetAttr(attrs[i].eapAkaPrimeAttrType, val)
+				require.NoError(t, err)
+			}
+
+			key, err := hex.DecodeString(tc.key)
+			require.NoError(t, err)
+
+			mac, err := eap.CalcEapAkaPrimeAtMAC(key)
+			require.NoError(t, err)
+
+			require.Equal(t, expectResult, mac)
+
+			err = eapAkaPrime.SetAttr(eap_message.AT_MAC, mac)
+			require.NoError(t, err)
+			_, err = eap.Marshal()
+			require.NoError(t, err)
 		})
 	}
 }

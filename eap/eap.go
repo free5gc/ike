@@ -1,7 +1,10 @@
 package eap
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/pkg/errors"
 )
@@ -20,6 +23,22 @@ const (
 	EapTypeExpanded EapType = 254
 )
 
+var typeStr = map[EapType]string{
+	EapTypeIdentity:     "EAP-Identity",
+	EapTypeNotification: "EAP-Notification",
+	EapTypeNak:          "EAP-Nak",
+	EapTypeAkaPrime:     "EAP-AKA'",
+	EapTypeExpanded:     "EAP-Expanded",
+}
+
+func (eapType EapType) String() string {
+	s, ok := typeStr[eapType]
+	if !ok {
+		return fmt.Sprintf("EAP type[%d] is not supported", eapType)
+	}
+	return s
+}
+
 // Length of EAP header
 const (
 	EapHeaderCodeLen       = 1
@@ -28,22 +47,7 @@ const (
 	EapHeaderTypeLen       = 1
 )
 
-// Length of EAP-AKA' header
-const (
-	EapAkaHeaderSubtypeLen  = 1
-	EapAkaHeaderReservedLen = 2
-
-	EapAkaAttrTypeLen     = 1
-	EapAkaAttrLengthLen   = 1
-	EapAkaAttrReservedLen = 2
-)
-
-// Types for EAP-5G
-// Used in IKE EAP expanded for vendor ID
-const VendorId3GPP = 10415
-
-// Used in IKE EAP expanded for vendor data
-const VendorTypeEAP5G = 3
+type EapCode uint8
 
 const (
 	// 	0                   1                   2                   3
@@ -54,7 +58,7 @@ const (
 	//    |     Type      |  Type-Data ...
 	//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 
-	EapCodeRequest = iota + 1
+	EapCodeRequest EapCode = iota + 1
 	EapCodeResponse
 	//     0                   1                   2                   3
 	//     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -67,6 +71,9 @@ const (
 )
 
 type EapTypeData interface {
+	// Type specifies EAP types
+	Type() EapType
+
 	// Called by EAP.Marshal() or EAP.Unmarshal()
 	Marshal() ([]byte, error)
 	Unmarshal(b []byte) error
@@ -81,7 +88,7 @@ type EapTypeData interface {
 // +-+-+-+-+
 
 type EAP struct {
-	Code        uint8
+	Code        EapCode
 	Identifier  uint8
 	EapTypeData EapTypeData
 }
@@ -89,7 +96,7 @@ type EAP struct {
 func (eap *EAP) Marshal() ([]byte, error) {
 	eapData := make([]byte, 4)
 
-	eapData[0] = eap.Code
+	eapData[0] = byte(eap.Code)
 	eapData[1] = eap.Identifier
 
 	if eap.EapTypeData != nil {
@@ -120,7 +127,7 @@ func (eap *EAP) Unmarshal(b []byte) error {
 			return errors.New("EAP: Received payload length not matches the length specified in header")
 		}
 
-		eap.Code = b[0]
+		eap.Code = EapCode(b[0])
 		eap.Identifier = b[1]
 
 		// EAP Success or Failure
@@ -154,4 +161,36 @@ func (eap *EAP) Unmarshal(b []byte) error {
 	}
 
 	return nil
+}
+
+// key is k_aut
+func (eap *EAP) CalcEapAkaPrimeAtMAC(key []byte) ([]byte, error) {
+	// check EAP type is EAP-AKA'
+	dataType := eap.EapTypeData.Type()
+	if dataType != EapTypeAkaPrime {
+		return nil, errors.Errorf("Expected EAP-AKA' type, but got %s", dataType.String())
+	}
+	eapAkaPrime := eap.EapTypeData.(*EapAkaPrime)
+
+	// Reset AT_MAC
+	err := eapAkaPrime.InitMac()
+	if err != nil {
+		return nil, errors.Wrapf(err, "EAP init EAP-AKA' AT_MAC failed")
+	}
+
+	// It will need the whole EAP message to calculate AT_MAC
+	eapBytes, err := eap.Marshal()
+	if err != nil {
+		return nil, errors.Wrapf(err, "EAP marshal failed")
+	}
+
+	// Calculate AT_MAC
+	h := hmac.New(sha256.New, key)
+	_, err = h.Write(eapBytes)
+	if err != nil {
+		return nil, errors.Wrapf(err, "EAP calculate EAP-AKA' AT_MAC failed")
+	}
+	sum := h.Sum(nil)
+
+	return sum[:16], nil
 }
