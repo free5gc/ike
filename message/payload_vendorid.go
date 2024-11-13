@@ -1,16 +1,12 @@
 package message
 
-import (
-	ike_types "github.com/free5gc/ike/types"
-)
-
 var _ IKEPayload = &VendorID{}
 
 type VendorID struct {
 	VendorIDData []byte
 }
 
-func (vendorID *VendorID) Type() ike_types.IkePayloadType { return ike_types.TypeV }
+func (vendorID *VendorID) Type() IkePayloadType { return TypeV }
 
 func (vendorID *VendorID) Marshal() ([]byte, error) {
 	return vendorID.VendorIDData, nil

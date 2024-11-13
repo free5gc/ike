@@ -2,8 +2,6 @@ package message
 
 import (
 	"github.com/pkg/errors"
-
-	ike_types "github.com/free5gc/ike/types"
 )
 
 var _ IKEPayload = &IdentificationResponder{}
@@ -13,8 +11,8 @@ type IdentificationResponder struct {
 	IDData []byte
 }
 
-func (identification *IdentificationResponder) Type() ike_types.IkePayloadType {
-	return ike_types.TypeIDr
+func (identification *IdentificationResponder) Type() IkePayloadType {
+	return TypeIDr
 }
 
 func (identification *IdentificationResponder) Marshal() ([]byte, error) {

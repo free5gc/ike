@@ -2,8 +2,6 @@ package message
 
 import (
 	"github.com/pkg/errors"
-
-	ike_types "github.com/free5gc/ike/types"
 )
 
 var _ IKEPayload = &Authentication{}
@@ -13,7 +11,7 @@ type Authentication struct {
 	AuthenticationData   []byte
 }
 
-func (authentication *Authentication) Type() ike_types.IkePayloadType { return ike_types.TypeAUTH }
+func (authentication *Authentication) Type() IkePayloadType { return TypeAUTH }
 
 func (authentication *Authentication) Marshal() ([]byte, error) {
 	authenticationData := make([]byte, 4)

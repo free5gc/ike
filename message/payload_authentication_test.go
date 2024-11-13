@@ -4,13 +4,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	ike_types "github.com/free5gc/ike/types"
 )
 
 var (
 	validAuthentication = Authentication{
-		AuthenticationMethod: ike_types.SharedKeyMesageIntegrityCode,
+		AuthenticationMethod: SharedKeyMesageIntegrityCode,
 		AuthenticationData: []byte{
 			0x7d, 0x09, 0x18, 0x42, 0x60, 0x9c, 0x9e, 0x20,
 			0x56, 0x9f, 0xc0, 0x39, 0xda, 0x3f, 0x22, 0x2a,

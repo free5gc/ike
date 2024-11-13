@@ -2,8 +2,6 @@ package message
 
 import (
 	"github.com/pkg/errors"
-
-	ike_types "github.com/free5gc/ike/types"
 )
 
 var _ IKEPayload = &Encrypted{}
@@ -13,7 +11,7 @@ type Encrypted struct {
 	EncryptedData []byte
 }
 
-func (encrypted *Encrypted) Type() ike_types.IkePayloadType { return ike_types.TypeSK }
+func (encrypted *Encrypted) Type() IkePayloadType { return TypeSK }
 
 func (encrypted *Encrypted) Marshal() ([]byte, error) {
 	if len(encrypted.EncryptedData) == 0 {

@@ -4,8 +4,6 @@ import (
 	"encoding/binary"
 
 	"github.com/pkg/errors"
-
-	ike_types "github.com/free5gc/ike/types"
 )
 
 // EAP related spec
@@ -69,9 +67,6 @@ const (
 )
 
 type EapTypeData interface {
-	// Type specifies EAP types
-	Type() EapType
-
 	// Called by EAP.Marshal() or EAP.Unmarshal()
 	Marshal() ([]byte, error)
 	Unmarshal(b []byte) error
@@ -90,8 +85,6 @@ type EAP struct {
 	Identifier  uint8
 	EapTypeData EapTypeData
 }
-
-func (eap *EAP) Type() ike_types.IkePayloadType { return ike_types.TypeEAP }
 
 func (eap *EAP) Marshal() ([]byte, error) {
 	eapData := make([]byte, 4)

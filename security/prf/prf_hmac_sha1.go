@@ -5,7 +5,7 @@ import (
 	"crypto/sha1" // #nosec G505
 	"hash"
 
-	ike_types "github.com/free5gc/ike/types"
+	"github.com/free5gc/ike/message"
 )
 
 func toString_PRF_HMAC_SHA1(attrType uint16, intValue uint16, bytesValue []byte) string {
@@ -20,7 +20,7 @@ type PrfHmacSha1 struct {
 }
 
 func (t *PrfHmacSha1) TransformID() uint16 {
-	return ike_types.PRF_HMAC_SHA1
+	return message.PRF_HMAC_SHA1
 }
 
 func (t *PrfHmacSha1) getAttribute() (bool, uint16, uint16, []byte) {

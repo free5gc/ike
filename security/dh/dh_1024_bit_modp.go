@@ -3,7 +3,7 @@ package dh
 import (
 	"math/big"
 
-	ike_types "github.com/free5gc/ike/types"
+	"github.com/free5gc/ike/message"
 )
 
 const (
@@ -32,7 +32,7 @@ type Dh1024BitModp struct {
 }
 
 func (t *Dh1024BitModp) TransformID() uint16 {
-	return ike_types.DH_1024_BIT_MODP
+	return message.DH_1024_BIT_MODP
 }
 
 func (t *Dh1024BitModp) getAttribute() (bool, uint16, uint16, []byte) {

@@ -4,8 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	ike_types "github.com/free5gc/ike/types"
 )
 
 func TestDeleteMarshal(t *testing.T) {
@@ -18,7 +16,7 @@ func TestDeleteMarshal(t *testing.T) {
 		{
 			description: "Number of SPI not correct",
 			delete: Delete{
-				ProtocolID:  ike_types.TypeESP,
+				ProtocolID:  TypeESP,
 				SPISize:     4,
 				NumberOfSPI: 1,
 				SPIs:        []uint32{0x01, 0x02, 0x03},
@@ -26,9 +24,9 @@ func TestDeleteMarshal(t *testing.T) {
 			expErr: true,
 		},
 		{
-			description: "Delete marshal ike_types.TypeIKE",
+			description: "Delete marshal TypeIKE",
 			delete: Delete{
-				ProtocolID:  ike_types.TypeIKE,
+				ProtocolID:  TypeIKE,
 				SPISize:     0,
 				NumberOfSPI: 0,
 				SPIs:        nil,
@@ -39,9 +37,9 @@ func TestDeleteMarshal(t *testing.T) {
 			expErr: false,
 		},
 		{
-			description: "Delete marshal ike_types.TypeESP",
+			description: "Delete marshal TypeESP",
 			delete: Delete{
-				ProtocolID:  ike_types.TypeESP,
+				ProtocolID:  TypeESP,
 				SPISize:     4,
 				NumberOfSPI: 4,
 				SPIs:        []uint32{0x01, 0x02, 0x03, 0x04},
@@ -93,7 +91,7 @@ func TestDeleteUnmarshal(t *testing.T) {
 				0x00, 0x00, 0x00, 0x04,
 			},
 			expMarshal: Delete{
-				ProtocolID:  ike_types.TypeESP,
+				ProtocolID:  TypeESP,
 				SPISize:     4,
 				NumberOfSPI: 4,
 				SPIs:        []uint32{0x01, 0x02, 0x03, 0x04},

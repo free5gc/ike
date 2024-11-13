@@ -4,13 +4,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	ike_types "github.com/free5gc/ike/types"
 )
 
 var (
 	validCertificate = Certificate{
-		CertificateEncoding: ike_types.ID_FQDN,
+		CertificateEncoding: ID_FQDN,
 		CertificateData: []byte{
 			0x6e, 0x33, 0x69, 0x77, 0x66, 0x2e, 0x73, 0x61,
 			0x76, 0x69, 0x61, 0x68, 0x35, 0x67, 0x63, 0x2e,

@@ -2,8 +2,6 @@ package message
 
 import (
 	"github.com/pkg/errors"
-
-	ike_types "github.com/free5gc/ike/types"
 )
 
 var _ IKEPayload = &Certificate{}
@@ -13,7 +11,7 @@ type Certificate struct {
 	CertificateData     []byte
 }
 
-func (certificate *Certificate) Type() ike_types.IkePayloadType { return ike_types.TypeCERT }
+func (certificate *Certificate) Type() IkePayloadType { return TypeCERT }
 
 func (certificate *Certificate) Marshal() ([]byte, error) {
 	certificateData := make([]byte, 1)

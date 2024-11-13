@@ -4,7 +4,6 @@ import (
 	"hash"
 
 	"github.com/free5gc/ike/message"
-	ike_types "github.com/free5gc/ike/types"
 )
 
 const (
@@ -21,9 +20,9 @@ var (
 func init() {
 	// PRF String
 	prfString = make(map[uint16]func(uint16, uint16, []byte) string)
-	prfString[ike_types.PRF_HMAC_MD5] = toString_PRF_HMAC_MD5
-	prfString[ike_types.PRF_HMAC_SHA1] = toString_PRF_HMAC_SHA1
-	prfString[ike_types.PRF_HMAC_SHA2_256] = toString_PRF_HMAC_SHA2_256
+	prfString[message.PRF_HMAC_MD5] = toString_PRF_HMAC_MD5
+	prfString[message.PRF_HMAC_SHA1] = toString_PRF_HMAC_SHA1
+	prfString[message.PRF_HMAC_SHA2_256] = toString_PRF_HMAC_SHA2_256
 
 	// PRF Types
 	prfTypes = make(map[string]PRFType)
@@ -69,11 +68,11 @@ func DecodeTransform(transform *message.Transform) PRFType {
 
 func ToTransform(prfType PRFType) *message.Transform {
 	t := new(message.Transform)
-	t.TransformType = ike_types.TypePseudorandomFunction
+	t.TransformType = message.TypePseudorandomFunction
 	t.TransformID = prfType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = prfType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
-		t.AttributeFormat = ike_types.AttributeFormatUseTV
+		t.AttributeFormat = message.AttributeFormatUseTV
 	}
 	return t
 }

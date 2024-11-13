@@ -21,7 +21,6 @@ import (
 	"github.com/free5gc/ike/security/integ"
 	"github.com/free5gc/ike/security/lib"
 	"github.com/free5gc/ike/security/prf"
-	ike_types "github.com/free5gc/ike/types"
 )
 
 // General data
@@ -114,7 +113,7 @@ func (ikesaKey *IKESAKey) String() string {
 
 func (ikesaKey *IKESAKey) ToProposal() (*message.Proposal, error) {
 	p := new(message.Proposal)
-	p.ProtocolID = ike_types.TypeIKE
+	p.ProtocolID = message.TypeIKE
 	p.DiffieHellmanGroup = append(p.DiffieHellmanGroup, dh.ToTransform(ikesaKey.DhInfo))
 	p.PseudorandomFunction = append(p.PseudorandomFunction, prf.ToTransform(ikesaKey.PrfInfo))
 	encrTranform, err := encr.ToTransform(ikesaKey.EncrInfo)
@@ -324,7 +323,7 @@ type ChildSAKey struct {
 
 func (childsaKey *ChildSAKey) ToProposal() (*message.Proposal, error) {
 	p := new(message.Proposal)
-	p.ProtocolID = ike_types.TypeESP
+	p.ProtocolID = message.TypeESP
 	if childsaKey.DhInfo != nil {
 		p.DiffieHellmanGroup = append(p.DiffieHellmanGroup, dh.ToTransform(childsaKey.DhInfo))
 	}
@@ -455,7 +454,7 @@ func CompareRootCertificate(
 	certificateEncoding uint8,
 	requestedCertificateAuthorityHash []byte,
 ) bool {
-	if certificateEncoding != ike_types.X509CertificateSignature {
+	if certificateEncoding != message.X509CertificateSignature {
 		// fmt.Printf("Not support certificate type: %d. Reject.", certificateEncoding)
 		return false
 	}

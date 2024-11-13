@@ -4,8 +4,6 @@ import (
 	"encoding/binary"
 
 	"github.com/pkg/errors"
-
-	ike_types "github.com/free5gc/ike/types"
 )
 
 var _ IKEPayload = &Configuration{}
@@ -22,7 +20,7 @@ type IndividualConfigurationAttribute struct {
 	Value []byte
 }
 
-func (configuration *Configuration) Type() ike_types.IkePayloadType { return ike_types.TypeCP }
+func (configuration *Configuration) Type() IkePayloadType { return TypeCP }
 
 func (configuration *Configuration) Marshal() ([]byte, error) {
 	configurationData := make([]byte, 4)

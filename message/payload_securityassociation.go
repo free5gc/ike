@@ -4,8 +4,6 @@ import (
 	"encoding/binary"
 
 	"github.com/pkg/errors"
-
-	ike_types "github.com/free5gc/ike/types"
 )
 
 var _ IKEPayload = &SecurityAssociation{}
@@ -39,8 +37,8 @@ type Transform struct {
 	VariableLengthAttributeValue []byte
 }
 
-func (securityAssociation *SecurityAssociation) Type() ike_types.IkePayloadType {
-	return ike_types.TypeSA
+func (securityAssociation *SecurityAssociation) Type() IkePayloadType {
+	return TypeSA
 }
 
 func (securityAssociation *SecurityAssociation) Marshal() ([]byte, error) {
@@ -213,15 +211,15 @@ func (securityAssociation *SecurityAssociation) Unmarshal(b []byte) error {
 			}
 
 			switch transform.TransformType {
-			case ike_types.TypeEncryptionAlgorithm:
+			case TypeEncryptionAlgorithm:
 				proposal.EncryptionAlgorithm = append(proposal.EncryptionAlgorithm, transform)
-			case ike_types.TypePseudorandomFunction:
+			case TypePseudorandomFunction:
 				proposal.PseudorandomFunction = append(proposal.PseudorandomFunction, transform)
-			case ike_types.TypeIntegrityAlgorithm:
+			case TypeIntegrityAlgorithm:
 				proposal.IntegrityAlgorithm = append(proposal.IntegrityAlgorithm, transform)
-			case ike_types.TypeDiffieHellmanGroup:
+			case TypeDiffieHellmanGroup:
 				proposal.DiffieHellmanGroup = append(proposal.DiffieHellmanGroup, transform)
-			case ike_types.TypeExtendedSequenceNumbers:
+			case TypeExtendedSequenceNumbers:
 				proposal.ExtendedSequenceNumbers = append(proposal.ExtendedSequenceNumbers, transform)
 			}
 

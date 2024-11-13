@@ -4,14 +4,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	ike_types "github.com/free5gc/ike/types"
 )
 
 var (
 	validNotification = Notification{
-		ProtocolID:        ike_types.TypeNone,
-		NotifyMessageType: ike_types.NAT_DETECTION_SOURCE_IP,
+		ProtocolID:        TypeNone,
+		NotifyMessageType: NAT_DETECTION_SOURCE_IP,
 		SPI:               []byte{0x01, 0x02, 0x03},
 		NotificationData: []byte{
 			0x50, 0xc4, 0xc2, 0xbe, 0x8e, 0x3f, 0xd9, 0x16,

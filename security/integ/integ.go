@@ -4,7 +4,6 @@ import (
 	"hash"
 
 	"github.com/free5gc/ike/message"
-	ike_types "github.com/free5gc/ike/types"
 )
 
 const (
@@ -23,9 +22,9 @@ var (
 func init() {
 	// INTEG String
 	integString = make(map[uint16]func(uint16, uint16, []byte) string)
-	integString[ike_types.AUTH_HMAC_MD5_96] = toString_AUTH_HMAC_MD5_96
-	integString[ike_types.AUTH_HMAC_SHA1_96] = toString_AUTH_HMAC_SHA1_96
-	integString[ike_types.AUTH_HMAC_SHA2_256_128] = toString_AUTH_HMAC_SHA2_256_128
+	integString[message.AUTH_HMAC_MD5_96] = toString_AUTH_HMAC_MD5_96
+	integString[message.AUTH_HMAC_SHA1_96] = toString_AUTH_HMAC_SHA1_96
+	integString[message.AUTH_HMAC_SHA2_256_128] = toString_AUTH_HMAC_SHA2_256_128
 
 	// INTEG Types
 	integTypes = make(map[string]INTEGType)
@@ -95,7 +94,7 @@ func DecodeTransform(transform *message.Transform) INTEGType {
 
 func ToTransform(integType INTEGType) *message.Transform {
 	t := new(message.Transform)
-	t.TransformType = ike_types.TypeIntegrityAlgorithm
+	t.TransformType = message.TypeIntegrityAlgorithm
 	t.TransformID = integType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = integType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
@@ -123,11 +122,11 @@ func DecodeTransformChildSA(transform *message.Transform) INTEGKType {
 
 func ToTransformChildSA(integKType INTEGKType) *message.Transform {
 	t := new(message.Transform)
-	t.TransformType = ike_types.TypeIntegrityAlgorithm
+	t.TransformType = message.TypeIntegrityAlgorithm
 	t.TransformID = integKType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue = integKType.getAttribute()
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
-		t.AttributeFormat = ike_types.AttributeFormatUseTV
+		t.AttributeFormat = message.AttributeFormatUseTV
 	}
 	return t
 }

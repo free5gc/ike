@@ -4,9 +4,6 @@ import (
 	"encoding/binary"
 
 	"github.com/pkg/errors"
-
-	eap_message "github.com/free5gc/ike/eap"
-	ike_types "github.com/free5gc/ike/types"
 )
 
 type IKEMessage struct {
@@ -21,7 +18,7 @@ func NewMessage(
 ) *IKEMessage {
 	m := &IKEMessage{
 		IKEHeader: NewHeader(iSPI, rSPI, exchgType,
-			response, initiator, mId, uint8(ike_types.NoNext), nil),
+			response, initiator, mId, uint8(NoNext), nil),
 		Payloads: payloads,
 	}
 	return m
@@ -31,7 +28,7 @@ func (m *IKEMessage) Encode() ([]byte, error) {
 	if len(m.Payloads) > 0 {
 		m.IKEHeader.NextPayload = uint8(m.Payloads[0].Type())
 	} else {
-		m.IKEHeader.NextPayload = uint8(ike_types.NoNext)
+		m.IKEHeader.NextPayload = uint8(NoNext)
 	}
 
 	var err error
@@ -76,10 +73,10 @@ func (container *IKEPayloadContainer) Encode() ([]byte, error) {
 		if (index + 1) < len(*container) { // if it has next payload
 			payloadData[0] = uint8((*container)[index+1].Type())
 		} else {
-			if payload.Type() == ike_types.TypeSK {
+			if payload.Type() == TypeSK {
 				payloadData[0] = payload.(*Encrypted).NextPayload
 			} else {
-				payloadData[0] = byte(ike_types.NoNext)
+				payloadData[0] = byte(NoNext)
 			}
 		}
 
@@ -120,41 +117,41 @@ func (container *IKEPayloadContainer) Decode(nextPayload uint8, b []byte) error 
 
 		var payload IKEPayload
 
-		switch ike_types.IkePayloadType(nextPayload) {
-		case ike_types.TypeSA:
+		switch IkePayloadType(nextPayload) {
+		case TypeSA:
 			payload = new(SecurityAssociation)
-		case ike_types.TypeKE:
+		case TypeKE:
 			payload = new(KeyExchange)
-		case ike_types.TypeIDi:
+		case TypeIDi:
 			payload = new(IdentificationInitiator)
-		case ike_types.TypeIDr:
+		case TypeIDr:
 			payload = new(IdentificationResponder)
-		case ike_types.TypeCERT:
+		case TypeCERT:
 			payload = new(Certificate)
-		case ike_types.TypeCERTreq:
+		case TypeCERTreq:
 			payload = new(CertificateRequest)
-		case ike_types.TypeAUTH:
+		case TypeAUTH:
 			payload = new(Authentication)
-		case ike_types.TypeNiNr:
+		case TypeNiNr:
 			payload = new(Nonce)
-		case ike_types.TypeN:
+		case TypeN:
 			payload = new(Notification)
-		case ike_types.TypeD:
+		case TypeD:
 			payload = new(Delete)
-		case ike_types.TypeV:
+		case TypeV:
 			payload = new(VendorID)
-		case ike_types.TypeTSi:
+		case TypeTSi:
 			payload = new(TrafficSelectorInitiator)
-		case ike_types.TypeTSr:
+		case TypeTSr:
 			payload = new(TrafficSelectorResponder)
-		case ike_types.TypeSK:
+		case TypeSK:
 			encryptedPayload := new(Encrypted)
 			encryptedPayload.NextPayload = b[0]
 			payload = encryptedPayload
-		case ike_types.TypeCP:
+		case TypeCP:
 			payload = new(Configuration)
-		case ike_types.TypeEAP:
-			payload = new(eap_message.EAP)
+		case TypeEAP:
+			payload = NewPayloadEap()
 		default:
 			if criticalBit == 0 {
 				// Skip this payload
@@ -182,7 +179,7 @@ func (container *IKEPayloadContainer) Decode(nextPayload uint8, b []byte) error 
 
 type IKEPayload interface {
 	// Type specifies the IKE payload types
-	Type() ike_types.IkePayloadType
+	Type() IkePayloadType
 
 	// Called by Encode() or Decode()
 	Marshal() ([]byte, error)

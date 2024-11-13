@@ -5,7 +5,6 @@ import (
 
 	"github.com/free5gc/ike/message"
 	ikeCrypto "github.com/free5gc/ike/security/IKECrypto"
-	ike_types "github.com/free5gc/ike/types"
 )
 
 var encrString map[uint16]func(uint16, uint16, []byte) string
@@ -18,7 +17,7 @@ var (
 func init() {
 	// ENCR String
 	encrString = make(map[uint16]func(uint16, uint16, []byte) string)
-	encrString[ike_types.ENCR_AES_CBC] = toString_ENCR_AES_CBC
+	encrString[message.ENCR_AES_CBC] = toString_ENCR_AES_CBC
 
 	// ENCR Types
 	encrTypes = make(map[string]ENCRType)
@@ -83,7 +82,7 @@ func DecodeTransform(transform *message.Transform) ENCRType {
 func ToTransform(encrType ENCRType) (*message.Transform, error) {
 	t := new(message.Transform)
 	var err error
-	t.TransformType = ike_types.TypeEncryptionAlgorithm
+	t.TransformType = message.TypeEncryptionAlgorithm
 	t.TransformID = encrType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue,
 		err = encrType.getAttribute()
@@ -91,7 +90,7 @@ func ToTransform(encrType ENCRType) (*message.Transform, error) {
 		return nil, errors.Wrapf(err, "ToTransform")
 	}
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
-		t.AttributeFormat = ike_types.AttributeFormatUseTV
+		t.AttributeFormat = message.AttributeFormatUseTV
 	}
 	return t, nil
 }
@@ -116,7 +115,7 @@ func DecodeTransformChildSA(transform *message.Transform) ENCRKType {
 func ToTransformChildSA(encrKType ENCRKType) (*message.Transform, error) {
 	t := new(message.Transform)
 	var err error
-	t.TransformType = ike_types.TypeEncryptionAlgorithm
+	t.TransformType = message.TypeEncryptionAlgorithm
 	t.TransformID = encrKType.TransformID()
 	t.AttributePresent, t.AttributeType, t.AttributeValue, t.VariableLengthAttributeValue,
 		err = encrKType.getAttribute()
@@ -124,7 +123,7 @@ func ToTransformChildSA(encrKType ENCRKType) (*message.Transform, error) {
 		return nil, errors.Wrapf(err, "ToTransformChildSA")
 	}
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
-		t.AttributeFormat = 1 // TV
+		t.AttributeFormat = message.AttributeFormatUseTV
 	}
 	return t, nil
 }

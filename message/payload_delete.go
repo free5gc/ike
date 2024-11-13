@@ -4,8 +4,6 @@ import (
 	"encoding/binary"
 
 	"github.com/pkg/errors"
-
-	ike_types "github.com/free5gc/ike/types"
 )
 
 var _ IKEPayload = &Delete{}
@@ -17,7 +15,7 @@ type Delete struct {
 	SPIs        []uint32
 }
 
-func (d *Delete) Type() ike_types.IkePayloadType { return ike_types.TypeD }
+func (d *Delete) Type() IkePayloadType { return TypeD }
 
 func (d *Delete) Marshal() ([]byte, error) {
 	if len(d.SPIs) != int(d.NumberOfSPI) {

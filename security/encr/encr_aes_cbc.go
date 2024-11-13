@@ -8,9 +8,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/free5gc/ike/message"
 	ikeCrypto "github.com/free5gc/ike/security/IKECrypto"
 	"github.com/free5gc/ike/security/lib"
-	ike_types "github.com/free5gc/ike/types"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 )
 
 func toString_ENCR_AES_CBC(attrType uint16, intValue uint16, bytesValue []byte) string {
-	if attrType == ike_types.AttributeTypeKeyLength {
+	if attrType == message.AttributeTypeKeyLength {
 		switch intValue {
 		case 128:
 			return ENCR_AES_CBC_128
@@ -46,7 +46,7 @@ type EncrAesCbc struct {
 }
 
 func (t *EncrAesCbc) TransformID() uint16 {
-	return ike_types.ENCR_AES_CBC
+	return message.ENCR_AES_CBC
 }
 
 func (t *EncrAesCbc) getAttribute() (bool, uint16, uint16, []byte, error) {
@@ -54,7 +54,7 @@ func (t *EncrAesCbc) getAttribute() (bool, uint16, uint16, []byte, error) {
 	if keyLengthBits < 0 || keyLengthBits > 0xFFFF {
 		return false, 0, 0, nil, errors.Errorf("key length exceeds uint16 maximum value: %v", keyLengthBits)
 	}
-	return true, ike_types.AttributeTypeKeyLength, uint16(keyLengthBits), nil, nil
+	return true, message.AttributeTypeKeyLength, uint16(keyLengthBits), nil, nil
 }
 
 func (t *EncrAesCbc) GetKeyLength() int {

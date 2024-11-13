@@ -1,16 +1,12 @@
 package message
 
-import (
-	ike_types "github.com/free5gc/ike/types"
-)
-
 var _ IKEPayload = &Nonce{}
 
 type Nonce struct {
 	NonceData []byte
 }
 
-func (nonce *Nonce) Type() ike_types.IkePayloadType { return ike_types.TypeNiNr }
+func (nonce *Nonce) Type() IkePayloadType { return TypeNiNr }
 
 func (nonce *Nonce) Marshal() ([]byte, error) {
 	nonceData := make([]byte, 0)

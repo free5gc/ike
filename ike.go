@@ -7,13 +7,12 @@ import (
 
 	"github.com/free5gc/ike/message"
 	"github.com/free5gc/ike/security"
-	ike_types "github.com/free5gc/ike/types"
 )
 
 func EncodeEncrypt(
 	ikeMsg *message.IKEMessage,
 	ikesaKey *security.IKESAKey,
-	role ike_types.Role,
+	role message.Role,
 ) ([]byte, error) {
 	if ikesaKey != nil {
 		err := encryptMsg(ikeMsg, ikesaKey, role)
@@ -32,7 +31,7 @@ func DecodeDecrypt(
 	msg []byte,
 	ikeHeader *message.IKEHeader,
 	ikesaKey *security.IKESAKey,
-	role ike_types.Role,
+	role message.Role,
 ) (*message.IKEMessage, error) {
 	ikeMsg := new(message.IKEMessage)
 	var err error
@@ -50,7 +49,7 @@ func DecodeDecrypt(
 		}
 	}
 
-	if ikeMsg.Payloads[0].Type() == ike_types.TypeSK {
+	if ikeMsg.Payloads[0].Type() == message.TypeSK {
 		if ikesaKey == nil {
 			return nil, errors.Errorf("IKE decode decrypt: need ikesaKey to decrypt")
 		}
@@ -67,7 +66,7 @@ func verifyIntegrity(
 	originData []byte,
 	checksum []byte,
 	ikesaKey *security.IKESAKey,
-	role ike_types.Role,
+	role message.Role,
 ) error {
 	expectChecksum, err := calculateIntegrity(ikesaKey, role, originData)
 	if err != nil {
@@ -84,13 +83,13 @@ func verifyIntegrity(
 
 func calculateIntegrity(
 	ikesaKey *security.IKESAKey,
-	role ike_types.Role,
+	role message.Role,
 	originData []byte,
 ) ([]byte, error) {
 	outputLen := ikesaKey.IntegInfo.GetOutputLength()
 
 	var calculatedChecksum []byte
-	if role == ike_types.Role_Initiator {
+	if role == message.Role_Initiator {
 		if ikesaKey.Integ_i == nil {
 			return nil, errors.Errorf("CalcIKEChecksum() : IKE SA have nil Integ_r")
 		}
@@ -116,10 +115,10 @@ func calculateIntegrity(
 func encryptPayload(
 	plainText []byte,
 	ikesaKey *security.IKESAKey,
-	role ike_types.Role,
+	role message.Role,
 ) ([]byte, error) {
 	var cipherText []byte
-	if role == ike_types.Role_Initiator {
+	if role == message.Role_Initiator {
 		var err error
 		if cipherText, err = ikesaKey.Encr_i.Encrypt(plainText); err != nil {
 			return nil, errors.Wrapf(err, "encryptPayload()")
@@ -137,10 +136,10 @@ func encryptPayload(
 func decryptPayload(
 	cipherText []byte,
 	ikesaKey *security.IKESAKey,
-	role ike_types.Role,
+	role message.Role,
 ) ([]byte, error) {
 	var plainText []byte
-	if role == ike_types.Role_Initiator {
+	if role == message.Role_Initiator {
 		var err error
 		if plainText, err = ikesaKey.Encr_r.Decrypt(cipherText); err != nil {
 			return nil, errors.Wrapf(err, "decryptPayload()")
@@ -159,7 +158,7 @@ func decryptMsg(
 	msg []byte,
 	ikeMsg *message.IKEMessage,
 	ikesaKey *security.IKESAKey,
-	role ike_types.Role,
+	role message.Role,
 ) (*message.IKEMessage, error) {
 	// Check parameters
 	if ikesaKey == nil {
@@ -190,7 +189,7 @@ func decryptMsg(
 	var encryptedPayload *message.Encrypted
 	for _, ikePayload := range ikeMsg.Payloads {
 		switch ikePayload.Type() {
-		case ike_types.TypeSK:
+		case message.TypeSK:
 			encryptedPayload = ikePayload.(*message.Encrypted)
 		default:
 			return nil, errors.Errorf(
@@ -229,7 +228,7 @@ func decryptMsg(
 func encryptMsg(
 	ikeMsg *message.IKEMessage,
 	ikesaKey *security.IKESAKey,
-	role ike_types.Role,
+	role message.Role,
 ) error {
 	if ikeMsg == nil {
 		return errors.Errorf("encryptMsg(): Response IKE message is nil")
@@ -270,9 +269,9 @@ func encryptMsg(
 	encryptedData = append(encryptedData, make([]byte, checksumLength)...)
 	ikeMsg.Payloads.Reset()
 
-	var encrNextPayloadType ike_types.IkePayloadType
+	var encrNextPayloadType message.IkePayloadType
 	if len(ikePayloads) == 0 {
-		encrNextPayloadType = ike_types.NoNext
+		encrNextPayloadType = message.NoNext
 	} else {
 		encrNextPayloadType = ikePayloads[0].Type()
 	}

@@ -4,8 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	ike_types "github.com/free5gc/ike/types"
 )
 
 func TestIdentificationInitiatorMarshal(t *testing.T) {
@@ -17,7 +15,7 @@ func TestIdentificationInitiatorMarshal(t *testing.T) {
 		{
 			description: "IdentificationInitiator marshal",
 			id: IdentificationInitiator{
-				IDType: ike_types.ID_KEY_ID,
+				IDType: ID_KEY_ID,
 				IDData: []byte{
 					0x55, 0x45,
 				},
@@ -57,7 +55,7 @@ func TestIdentificationInitiatorUnmarshal(t *testing.T) {
 				0xb, 0x0, 0x0, 0x0, 0x55, 0x45,
 			},
 			expMarshal: IdentificationInitiator{
-				IDType: ike_types.ID_KEY_ID,
+				IDType: ID_KEY_ID,
 				IDData: []byte{
 					0x55, 0x45,
 				},

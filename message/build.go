@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 
 	eap_message "github.com/free5gc/ike/eap"
-	ike_types "github.com/free5gc/ike/types"
 )
 
 func (container *IKEPayloadContainer) Reset() {
@@ -35,7 +34,7 @@ func (container *IKEPayloadContainer) BuildCertificate(certificateEncode uint8, 
 	*container = append(*container, certificate)
 }
 
-func (container *IKEPayloadContainer) BuildEncrypted(nextPayload ike_types.IkePayloadType,
+func (container *IKEPayloadContainer) BuildEncrypted(nextPayload IkePayloadType,
 	encryptedData []byte,
 ) *Encrypted {
 	encrypted := new(Encrypted)
@@ -182,10 +181,10 @@ func (container *TransformContainer) BuildTransform(
 		transform.AttributePresent = true
 		transform.AttributeType = *attributeType
 		if attributeValue != nil {
-			transform.AttributeFormat = ike_types.AttributeFormatUseTV
+			transform.AttributeFormat = AttributeFormatUseTV
 			transform.AttributeValue = *attributeValue
 		} else if len(variableLengthAttributeValue) != 0 {
-			transform.AttributeFormat = ike_types.AttributeFormatUseTLV
+			transform.AttributeFormat = AttributeFormatUseTLV
 			transform.VariableLengthAttributeValue = append(
 				transform.VariableLengthAttributeValue,
 				variableLengthAttributeValue...)
@@ -198,25 +197,37 @@ func (container *TransformContainer) BuildTransform(
 	*container = append(*container, transform)
 }
 
-func (container *IKEPayloadContainer) BuildEAP(code uint8, identifier uint8) *eap_message.EAP {
-	eap := new(eap_message.EAP)
-	eap.Code = code
-	eap.Identifier = identifier
+func (container *IKEPayloadContainer) BuildEAP(code uint8, identifier uint8) *PayloadEap {
+	eap := &PayloadEap{
+		EAP: &eap_message.EAP{
+			Code:       code,
+			Identifier: identifier,
+		},
+	}
+
 	*container = append(*container, eap)
 	return eap
 }
 
 func (container *IKEPayloadContainer) BuildEAPSuccess(identifier uint8) {
-	eap := new(eap_message.EAP)
-	eap.Code = eap_message.EapCodeSuccess
-	eap.Identifier = identifier
+	eap := &PayloadEap{
+		EAP: &eap_message.EAP{
+			Code:       eap_message.EapCodeSuccess,
+			Identifier: identifier,
+		},
+	}
+
 	*container = append(*container, eap)
 }
 
 func (container *IKEPayloadContainer) BuildEAPfailure(identifier uint8) {
-	eap := new(eap_message.EAP)
-	eap.Code = eap_message.EapCodeFailure
-	eap.Identifier = identifier
+	eap := &PayloadEap{
+		EAP: &eap_message.EAP{
+			Code:       eap_message.EapCodeFailure,
+			Identifier: identifier,
+		},
+	}
+
 	*container = append(*container, eap)
 }
 
@@ -232,7 +243,7 @@ func BuildEapExpanded(vendorID uint32, vendorType uint32, vendorData []byte) *ea
 func (container *IKEPayloadContainer) BuildEAP5GStart(identifier uint8) {
 	eap := container.BuildEAP(eap_message.EapCodeRequest, identifier)
 	eap.EapTypeData = BuildEapExpanded(eap_message.VendorId3GPP, eap_message.VendorTypeEAP5G,
-		[]byte{ike_types.EAP5GType5GStart, ike_types.EAP5GSpareValue})
+		[]byte{EAP5GType5GStart, EAP5GSpareValue})
 }
 
 func (container *IKEPayloadContainer) BuildEAP5GNAS(identifier uint8, nasPDU []byte) error {
@@ -243,7 +254,7 @@ func (container *IKEPayloadContainer) BuildEAP5GNAS(identifier uint8, nasPDU []b
 	header := make([]byte, 4)
 
 	// Message ID
-	header[0] = ike_types.EAP5GType5GNAS
+	header[0] = EAP5GType5GNAS
 	// NASPDU length (2 octets)
 	nasPDULen := len(nasPDU)
 	if nasPDULen > 0xFFFF {
@@ -280,10 +291,10 @@ func (container *IKEPayloadContainer) BuildNotify5G_QOS_INFO(
 	// Append default and differentiated service flags
 	var defaultAndDifferentiatedServiceFlags uint8
 	if isDefault {
-		defaultAndDifferentiatedServiceFlags |= ike_types.NotifyType5G_QOS_INFOBitDCSICheck
+		defaultAndDifferentiatedServiceFlags |= NotifyType5G_QOS_INFOBitDCSICheck
 	}
 	if isDSCPSpecified {
-		defaultAndDifferentiatedServiceFlags |= ike_types.NotifyType5G_QOS_INFOBitDSCPICheck
+		defaultAndDifferentiatedServiceFlags |= NotifyType5G_QOS_INFOBitDSCPICheck
 	}
 
 	notifyData = append(notifyData, defaultAndDifferentiatedServiceFlags)
@@ -298,7 +309,7 @@ func (container *IKEPayloadContainer) BuildNotify5G_QOS_INFO(
 	}
 	notifyData[0] = uint8(notifyDataLen)
 
-	container.BuildNotification(ike_types.TypeNone, ike_types.Vendor3GPPNotifyType5G_QOS_INFO, nil, notifyData)
+	container.BuildNotification(TypeNone, Vendor3GPPNotifyType5G_QOS_INFO, nil, notifyData)
 	return nil
 }
 
@@ -307,7 +318,7 @@ func (container *IKEPayloadContainer) BuildNotifyNAS_IP4_ADDRESS(nasIPAddr strin
 		return
 	} else {
 		ipAddrByte := net.ParseIP(nasIPAddr).To4()
-		container.BuildNotification(ike_types.TypeNone, ike_types.Vendor3GPPNotifyTypeNAS_IP4_ADDRESS, nil, ipAddrByte)
+		container.BuildNotification(TypeNone, Vendor3GPPNotifyTypeNAS_IP4_ADDRESS, nil, ipAddrByte)
 	}
 }
 
@@ -316,7 +327,7 @@ func (container *IKEPayloadContainer) BuildNotifyUP_IP4_ADDRESS(upIPAddr string)
 		return
 	} else {
 		ipAddrByte := net.ParseIP(upIPAddr).To4()
-		container.BuildNotification(ike_types.TypeNone, ike_types.Vendor3GPPNotifyTypeUP_IP4_ADDRESS, nil, ipAddrByte)
+		container.BuildNotification(TypeNone, Vendor3GPPNotifyTypeUP_IP4_ADDRESS, nil, ipAddrByte)
 	}
 }
 
@@ -326,6 +337,6 @@ func (container *IKEPayloadContainer) BuildNotifyNAS_TCP_PORT(port uint16) {
 	} else {
 		portData := make([]byte, 2)
 		binary.BigEndian.PutUint16(portData, port)
-		container.BuildNotification(ike_types.TypeNone, ike_types.Vendor3GPPNotifyTypeNAS_TCP_PORT, nil, portData)
+		container.BuildNotification(TypeNone, Vendor3GPPNotifyTypeNAS_TCP_PORT, nil, portData)
 	}
 }
