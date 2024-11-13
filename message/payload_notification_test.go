@@ -41,7 +41,7 @@ func TestNotification(t *testing.T) {
 
 	for _, tc := range testcasesMarshal {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.notification.marshal()
+			result, err := tc.notification.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, result)
 		})
@@ -74,7 +74,7 @@ func TestNotification(t *testing.T) {
 	for _, tc := range testcasesUnmarshal {
 		t.Run(tc.description, func(t *testing.T) {
 			var notification Notification
-			err := notification.unmarshal(tc.b)
+			err := notification.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

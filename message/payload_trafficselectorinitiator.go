@@ -23,9 +23,11 @@ type IndividualTrafficSelector struct {
 	EndAddress   []byte
 }
 
-func (trafficSelector *TrafficSelectorInitiator) Type() IKEPayloadType { return TypeTSi }
+func (trafficSelector *TrafficSelectorInitiator) Type() IkePayloadType {
+	return TypeTSi
+}
 
-func (trafficSelector *TrafficSelectorInitiator) marshal() ([]byte, error) {
+func (trafficSelector *TrafficSelectorInitiator) Marshal() ([]byte, error) {
 	if len(trafficSelector.TrafficSelectors) == 0 {
 		return nil, errors.Errorf("TrafficSelector: Contains no traffic selector for marshaling message")
 	}
@@ -103,7 +105,7 @@ func (trafficSelector *TrafficSelectorInitiator) marshal() ([]byte, error) {
 	return trafficSelectorData, nil
 }
 
-func (trafficSelector *TrafficSelectorInitiator) unmarshal(b []byte) error {
+func (trafficSelector *TrafficSelectorInitiator) Unmarshal(b []byte) error {
 	if len(b) > 0 {
 		// bounds checking
 		if len(b) < 4 {
@@ -124,7 +126,8 @@ func (trafficSelector *TrafficSelectorInitiator) unmarshal(b []byte) error {
 			if trafficSelectorType == TS_IPV4_ADDR_RANGE {
 				selectorLength := binary.BigEndian.Uint16(b[2:4])
 				if selectorLength != 16 {
-					return errors.Errorf("TrafficSelector: A TS_IPV4_ADDR_RANGE type traffic selector should has length 16 bytes")
+					return errors.Errorf("TrafficSelector: " +
+						"A TS_IPV4_ADDR_RANGE type traffic selector should has length 16 bytes")
 				}
 				if len(b) < int(selectorLength) {
 					return errors.Errorf("TrafficSelector: No sufficient bytes to decode next individual traffic selector")

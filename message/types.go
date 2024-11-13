@@ -1,11 +1,13 @@
 package message
 
+import "fmt"
+
 // IKE types
-type IKEPayloadType uint8
+type IkePayloadType uint8
 
 const (
-	NoNext IKEPayloadType = 0
-	TypeSA IKEPayloadType = iota + 32
+	NoNext IkePayloadType = 0
+	TypeSA IkePayloadType = iota + 32
 	TypeKE
 	TypeIDi
 	TypeIDr
@@ -23,22 +25,34 @@ const (
 	TypeEAP
 )
 
-// EAP types
-type EAPType uint8
+var typeStr map[IkePayloadType]string = map[IkePayloadType]string{
+	NoNext:      "NoNext",
+	TypeSA:      "SA",
+	TypeKE:      "KE",
+	TypeIDi:     "IDi",
+	TypeIDr:     "IDr",
+	TypeCERT:    "CERT",
+	TypeCERTreq: "CERTreq",
+	TypeAUTH:    "AUTH",
+	TypeNiNr:    "NiNr",
+	TypeN:       "N",
+	TypeD:       "D",
+	TypeV:       "V",
+	TypeTSi:     "TSi",
+	TypeTSr:     "TSr",
+	TypeSK:      "SK",
+	TypeCP:      "CP",
+	TypeEAP:     "EAP",
+}
 
-const (
-	EAPTypeIdentity EAPType = iota + 1
-	EAPTypeNotification
-	EAPTypeNak
-	EAPTypeExpanded EAPType = 254
-)
-
-const (
-	EAPCodeRequest = iota + 1
-	EAPCodeResponse
-	EAPCodeSuccess
-	EAPCodeFailure
-)
+// RFC 7296: 3.2.  Generic Payload Header
+func (t IkePayloadType) String() string {
+	s, ok := typeStr[t]
+	if !ok {
+		return fmt.Sprintf("IKE payload type[%d] is not supported", t)
+	}
+	return s
+}
 
 // used for SecurityAssociation-Proposal-Transform TransformType
 const (
@@ -240,19 +254,15 @@ const (
 	IPProtocolGRE  = 47
 )
 
-// Types for EAP-5G
-// Used in IKE EAP expanded for vendor ID
-const VendorID3GPP = 10415
-
-// Used in IKE EAP expanded for vendor data
-const VendorTypeEAP5G = 3
-
 // Used in EAP-5G for message ID
 const (
 	EAP5GType5GStart = 1
 	EAP5GType5GNAS   = 2
 	EAP5GType5GStop  = 4
 )
+
+// Spare
+const EAP5GSpareValue = 0
 
 // Used in AN-Parameter field for IE types
 const (
@@ -278,9 +288,6 @@ const (
 	EstablishmentCauseMPS_PriorityAccess = 8
 	EstablishmentCauseMCS_PriorityAccess = 9
 )
-
-// Spare
-const EAP5GSpareValue = 0
 
 // 3GPP specified IKE Notify Message Types
 const (

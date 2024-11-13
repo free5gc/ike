@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	eap_message "github.com/free5gc/ike/eap"
 	"github.com/free5gc/ike/message"
 	"github.com/free5gc/ike/security"
 	"github.com/free5gc/ike/security/encr"
@@ -39,11 +40,11 @@ var (
 			},
 		},
 		Payloads: message.IKEPayloadContainer{
-			&message.EAP{
-				Code:       0x02,
-				Identifier: 0x3b,
-				EAPTypeData: []message.EAPTypeFormat{
-					&message.EAPExpanded{
+			&message.PayloadEap{
+				EAP: &eap_message.EAP{
+					Code:       0x02,
+					Identifier: 0x3b,
+					EapTypeData: &eap_message.EapExpanded{
 						VendorID:   0x28af,
 						VendorType: 0x03,
 						VendorData: []byte{
@@ -132,11 +133,11 @@ func TestEncodeDecode(t *testing.T) {
 	}
 
 	expIkePayloads := message.IKEPayloadContainer{
-		&message.EAP{
-			Code:       0x02,
-			Identifier: 0x3b,
-			EAPTypeData: message.EAPTypeDataContainer{
-				&message.EAPExpanded{
+		&message.PayloadEap{
+			EAP: &eap_message.EAP{
+				Code:       0x02,
+				Identifier: 0x3b,
+				EapTypeData: &eap_message.EapExpanded{
 					VendorID:   0x28af,
 					VendorType: 0x03,
 					VendorData: []byte{
@@ -417,11 +418,11 @@ func TestEncryptMsg(t *testing.T) {
 			NextPayload:  uint8(message.TypeEAP),
 		},
 		Payloads: message.IKEPayloadContainer{
-			&message.EAP{
-				Code:       0x01,
-				Identifier: 0xd9,
-				EAPTypeData: []message.EAPTypeFormat{
-					&message.EAPExpanded{
+			&message.PayloadEap{
+				EAP: &eap_message.EAP{
+					Code:       0x01,
+					Identifier: 0xd9,
+					EapTypeData: &eap_message.EapExpanded{
 						VendorID:   0x28af,
 						VendorType: 0x03,
 						VendorData: []byte{
@@ -434,6 +435,7 @@ func TestEncryptMsg(t *testing.T) {
 			},
 		},
 	}
+
 	// Successful encryption with not nil payload
 	err = encryptMsg(ikeMsg, ikeSAKey, message.Role_Responder)
 	require.NoError(t, err)

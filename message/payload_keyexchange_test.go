@@ -50,7 +50,7 @@ func TestKeyExchangeMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.keyExchange.marshal()
+			result, err := tc.keyExchange.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, result)
 		})
@@ -88,7 +88,7 @@ func TestKeyExchangeUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var ke KeyExchange
-			err := ke.unmarshal(tc.b)
+			err := ke.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

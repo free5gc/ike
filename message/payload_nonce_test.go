@@ -37,7 +37,7 @@ func TestNonceMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.nonce.marshal()
+			result, err := tc.nonce.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, result)
 		})
@@ -61,7 +61,7 @@ func TestNonceUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var nonce Nonce
-			err := nonce.unmarshal(tc.b)
+			err := nonce.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

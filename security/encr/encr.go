@@ -123,7 +123,7 @@ func ToTransformChildSA(encrKType ENCRKType) (*message.Transform, error) {
 		return nil, errors.Wrapf(err, "ToTransformChildSA")
 	}
 	if t.AttributePresent && t.VariableLengthAttributeValue == nil {
-		t.AttributeFormat = 1 // TV
+		t.AttributeFormat = message.AttributeFormatUseTV
 	}
 	return t, nil
 }

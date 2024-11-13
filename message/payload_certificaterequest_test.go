@@ -38,7 +38,7 @@ func TestCertificateRequestMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.crt.marshal()
+			result, err := tc.crt.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, result)
 		})
@@ -69,7 +69,7 @@ func TestCertificateRequestUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var crt CertificateRequest
-			err := crt.unmarshal(tc.b)
+			err := crt.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

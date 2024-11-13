@@ -269,7 +269,7 @@ func encryptMsg(
 	encryptedData = append(encryptedData, make([]byte, checksumLength)...)
 	ikeMsg.Payloads.Reset()
 
-	var encrNextPayloadType message.IKEPayloadType
+	var encrNextPayloadType message.IkePayloadType
 	if len(ikePayloads) == 0 {
 		encrNextPayloadType = message.NoNext
 	} else {

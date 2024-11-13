@@ -38,7 +38,7 @@ func TestAuthenticationMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.authentication.marshal()
+			result, err := tc.authentication.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, result)
 		})
@@ -69,7 +69,7 @@ func TestAuthenticationUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var authentication Authentication
-			err := authentication.unmarshal(tc.b)
+			err := authentication.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

@@ -28,7 +28,7 @@ func TestIdentificationResponderMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.id.marshal()
+			result, err := tc.id.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, result)
 		})
@@ -66,7 +66,7 @@ func TestIdentificationResponderUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var id IdentificationResponder
-			err := id.unmarshal(tc.b)
+			err := id.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

@@ -13,16 +13,16 @@ type KeyExchange struct {
 	KeyExchangeData    []byte
 }
 
-func (keyExchange *KeyExchange) Type() IKEPayloadType { return TypeKE }
+func (keyExchange *KeyExchange) Type() IkePayloadType { return TypeKE }
 
-func (keyExchange *KeyExchange) marshal() ([]byte, error) {
+func (keyExchange *KeyExchange) Marshal() ([]byte, error) {
 	keyExchangeData := make([]byte, 4)
 	binary.BigEndian.PutUint16(keyExchangeData[0:2], keyExchange.DiffieHellmanGroup)
 	keyExchangeData = append(keyExchangeData, keyExchange.KeyExchangeData...)
 	return keyExchangeData, nil
 }
 
-func (keyExchange *KeyExchange) unmarshal(b []byte) error {
+func (keyExchange *KeyExchange) Unmarshal(b []byte) error {
 	if len(b) > 0 {
 		// bounds checking
 		if len(b) <= 4 {

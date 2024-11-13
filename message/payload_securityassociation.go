@@ -37,9 +37,11 @@ type Transform struct {
 	VariableLengthAttributeValue []byte
 }
 
-func (securityAssociation *SecurityAssociation) Type() IKEPayloadType { return TypeSA }
+func (securityAssociation *SecurityAssociation) Type() IkePayloadType {
+	return TypeSA
+}
 
-func (securityAssociation *SecurityAssociation) marshal() ([]byte, error) {
+func (securityAssociation *SecurityAssociation) Marshal() ([]byte, error) {
 	securityAssociationData := make([]byte, 0)
 
 	for proposalIndex, proposal := range securityAssociation.Proposals {
@@ -142,7 +144,7 @@ func (securityAssociation *SecurityAssociation) marshal() ([]byte, error) {
 	return securityAssociationData, nil
 }
 
-func (securityAssociation *SecurityAssociation) unmarshal(b []byte) error {
+func (securityAssociation *SecurityAssociation) Unmarshal(b []byte) error {
 	for len(b) > 0 {
 		// bounds checking
 		if len(b) < 8 {

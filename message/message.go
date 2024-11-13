@@ -80,7 +80,7 @@ func (container *IKEPayloadContainer) Encode() ([]byte, error) {
 			}
 		}
 
-		data, err := payload.marshal()
+		data, err := payload.Marshal()
 		if err != nil {
 			return nil, errors.Errorf("EncodePayload(): Failed to marshal payload: %+v", err)
 		}
@@ -117,7 +117,7 @@ func (container *IKEPayloadContainer) Decode(nextPayload uint8, b []byte) error 
 
 		var payload IKEPayload
 
-		switch IKEPayloadType(nextPayload) {
+		switch IkePayloadType(nextPayload) {
 		case TypeSA:
 			payload = new(SecurityAssociation)
 		case TypeKE:
@@ -151,7 +151,7 @@ func (container *IKEPayloadContainer) Decode(nextPayload uint8, b []byte) error 
 		case TypeCP:
 			payload = new(Configuration)
 		case TypeEAP:
-			payload = new(EAP)
+			payload = NewPayloadEap()
 		default:
 			if criticalBit == 0 {
 				// Skip this payload
@@ -164,7 +164,7 @@ func (container *IKEPayloadContainer) Decode(nextPayload uint8, b []byte) error 
 			}
 		}
 
-		if err := payload.unmarshal(b[4:payloadLength]); err != nil {
+		if err := payload.Unmarshal(b[4:payloadLength]); err != nil {
 			return errors.Errorf("DecodePayload(): Unmarshal payload failed: %+v", err)
 		}
 
@@ -179,9 +179,9 @@ func (container *IKEPayloadContainer) Decode(nextPayload uint8, b []byte) error 
 
 type IKEPayload interface {
 	// Type specifies the IKE payload types
-	Type() IKEPayloadType
+	Type() IkePayloadType
 
 	// Called by Encode() or Decode()
-	marshal() ([]byte, error)
-	unmarshal(b []byte) error
+	Marshal() ([]byte, error)
+	Unmarshal(b []byte) error
 }

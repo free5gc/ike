@@ -55,7 +55,7 @@ func TestDeleteMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.delete.marshal()
+			result, err := tc.delete.Marshal()
 			if tc.expErr {
 				require.Error(t, err)
 			} else {
@@ -103,7 +103,7 @@ func TestDeleteUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var d Delete
-			err := d.unmarshal(tc.b)
+			err := d.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

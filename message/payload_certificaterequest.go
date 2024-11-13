@@ -1,6 +1,8 @@
 package message
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+)
 
 var _ IKEPayload = &CertificateRequest{}
 
@@ -9,16 +11,18 @@ type CertificateRequest struct {
 	CertificationAuthority []byte
 }
 
-func (certificateRequest *CertificateRequest) Type() IKEPayloadType { return TypeCERTreq }
+func (certificateRequest *CertificateRequest) Type() IkePayloadType {
+	return TypeCERTreq
+}
 
-func (certificateRequest *CertificateRequest) marshal() ([]byte, error) {
+func (certificateRequest *CertificateRequest) Marshal() ([]byte, error) {
 	certificateRequestData := make([]byte, 1)
 	certificateRequestData[0] = certificateRequest.CertificateEncoding
 	certificateRequestData = append(certificateRequestData, certificateRequest.CertificationAuthority...)
 	return certificateRequestData, nil
 }
 
-func (certificateRequest *CertificateRequest) unmarshal(b []byte) error {
+func (certificateRequest *CertificateRequest) Unmarshal(b []byte) error {
 	if len(b) > 0 {
 		// bounds checking
 		if len(b) <= 1 {

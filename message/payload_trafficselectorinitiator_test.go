@@ -118,7 +118,7 @@ func TestTrafficSelectorInitiatorMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.tsi.marshal()
+			result, err := tc.tsi.Marshal()
 			if tc.expErr {
 				require.Error(t, err)
 			} else {
@@ -210,7 +210,7 @@ func TestTrafficSelectorInitiatorUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var tsi TrafficSelectorInitiator
-			err := tsi.unmarshal(tc.b)
+			err := tsi.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

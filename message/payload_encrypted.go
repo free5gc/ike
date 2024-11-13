@@ -1,6 +1,8 @@
 package message
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+)
 
 var _ IKEPayload = &Encrypted{}
 
@@ -9,9 +11,9 @@ type Encrypted struct {
 	EncryptedData []byte
 }
 
-func (encrypted *Encrypted) Type() IKEPayloadType { return TypeSK }
+func (encrypted *Encrypted) Type() IkePayloadType { return TypeSK }
 
-func (encrypted *Encrypted) marshal() ([]byte, error) {
+func (encrypted *Encrypted) Marshal() ([]byte, error) {
 	if len(encrypted.EncryptedData) == 0 {
 		return nil, errors.Errorf("[Encrypted] The encrypted data is empty")
 	}
@@ -19,7 +21,7 @@ func (encrypted *Encrypted) marshal() ([]byte, error) {
 	return encrypted.EncryptedData, nil
 }
 
-func (encrypted *Encrypted) unmarshal(b []byte) error {
+func (encrypted *Encrypted) Unmarshal(b []byte) error {
 	encrypted.EncryptedData = append(encrypted.EncryptedData, b...)
 	return nil
 }

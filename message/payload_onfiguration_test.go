@@ -44,7 +44,7 @@ func TestConfigurationMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.cfg.marshal()
+			result, err := tc.cfg.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, result)
 		})
@@ -84,7 +84,7 @@ func TestConfigurationUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var cfg Configuration
-			err := cfg.unmarshal(tc.b)
+			err := cfg.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

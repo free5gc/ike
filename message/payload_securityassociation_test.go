@@ -218,7 +218,7 @@ func TestSecurityAssociationMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.securityAssociation.marshal()
+			result, err := tc.securityAssociation.Marshal()
 			if tc.expErr {
 				require.Error(t, err)
 			} else {
@@ -279,7 +279,7 @@ func TestSecurityAssociationUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var sa SecurityAssociation
-			err := sa.unmarshal(tc.b)
+			err := sa.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

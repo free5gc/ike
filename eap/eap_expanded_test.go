@@ -1,4 +1,4 @@
-package message
+package eap
 
 import (
 	"testing"
@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	validEAPExpanded = EAPExpanded{
-		VendorID:   VendorID3GPP,
+	validEapExpanded = EapExpanded{
+		VendorID:   VendorId3GPP,
 		VendorType: VendorTypeEAP5G,
 		VendorData: []byte{
 			0x7d, 0x09, 0x18, 0x42, 0x60, 0x9c, 0x9e, 0x20,
@@ -17,7 +17,7 @@ var (
 		},
 	}
 
-	validEAPExpandedByte = []byte{
+	validEapExpandedByte = []byte{
 		0xfe, 0x00, 0x28, 0xaf, 0x00, 0x00, 0x00, 0x03,
 		0x7d, 0x09, 0x18, 0x42, 0x60, 0x9c, 0x9e, 0x20,
 		0x56, 0x9f, 0xc0, 0x39, 0xda, 0x3f, 0x22, 0x2a,
@@ -25,24 +25,24 @@ var (
 	}
 )
 
-func TestEAPExpandedMarshal(t *testing.T) {
+func TestEapExpandedMarshal(t *testing.T) {
 	testcases := []struct {
 		description string
-		eap         EAPExpanded
+		eap         EapExpanded
 		expMarshal  []byte
 		expErr      bool
 	}{
 		{
-			description: "EAPExpanded marshal",
-			eap:         validEAPExpanded,
-			expMarshal:  validEAPExpandedByte,
+			description: "EapExpanded Marshal",
+			eap:         validEapExpanded,
+			expMarshal:  validEapExpandedByte,
 			expErr:      false,
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.eap.marshal()
+			result, err := tc.eap.Marshal()
 			if tc.expErr {
 				require.Error(t, err)
 			} else {
@@ -53,11 +53,11 @@ func TestEAPExpandedMarshal(t *testing.T) {
 	}
 }
 
-func TestEAPExpandedUnmarshal(t *testing.T) {
+func TestEapExpandedUnmarshal(t *testing.T) {
 	testcases := []struct {
 		description string
 		b           []byte
-		expMarshal  EAPExpanded
+		expMarshal  EapExpanded
 		expErr      bool
 	}{
 		{
@@ -68,17 +68,17 @@ func TestEAPExpandedUnmarshal(t *testing.T) {
 			expErr: true,
 		},
 		{
-			description: "EAPExpanded Unmarshal",
-			b:           validEAPExpandedByte,
-			expMarshal:  validEAPExpanded,
+			description: "EapExpanded Unmarshal",
+			b:           validEapExpandedByte,
+			expMarshal:  validEapExpanded,
 			expErr:      false,
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			var eap EAPExpanded
-			err := eap.unmarshal(tc.b)
+			var eap EapExpanded
+			err := eap.Unmarshal(tc.b)
 			if tc.expErr {
 				require.Error(t, err)
 			} else {

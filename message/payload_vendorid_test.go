@@ -37,7 +37,7 @@ func TestVendorIDMarshal(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.vendorID.marshal()
+			result, err := tc.vendorID.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, result)
 		})
@@ -60,7 +60,7 @@ func TestVendorIDUnmarshal(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
 			var vendorID VendorID
-			err := vendorID.unmarshal(tc.b)
+			err := vendorID.Unmarshal(tc.b)
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, vendorID)
 		})

@@ -15,9 +15,9 @@ type Delete struct {
 	SPIs        []uint32
 }
 
-func (d *Delete) Type() IKEPayloadType { return TypeD }
+func (d *Delete) Type() IkePayloadType { return TypeD }
 
-func (d *Delete) marshal() ([]byte, error) {
+func (d *Delete) Marshal() ([]byte, error) {
 	if len(d.SPIs) != int(d.NumberOfSPI) {
 		return nil, errors.Errorf("Number of SPI not correct")
 	}
@@ -39,7 +39,7 @@ func (d *Delete) marshal() ([]byte, error) {
 	return deleteData, nil
 }
 
-func (d *Delete) unmarshal(b []byte) error {
+func (d *Delete) Unmarshal(b []byte) error {
 	if len(b) > 0 {
 		// bounds checking
 		if len(b) <= 3 {

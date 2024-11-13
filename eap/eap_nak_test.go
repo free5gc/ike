@@ -1,4 +1,4 @@
-package message
+package eap
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	validEAPNak = EAPNak{
+	validEapNak = EapNak{
 		NakData: []byte{
 			0x7d, 0x09, 0x18, 0x42, 0x60, 0x9c, 0x9e, 0x20,
 			0x56, 0x9f, 0xc0, 0x39, 0xda, 0x3f, 0x22, 0x2a,
@@ -15,38 +15,38 @@ var (
 		},
 	}
 
-	validEAPNakByte = []byte{
+	validEapNakByte = []byte{
 		0x03, 0x7d, 0x09, 0x18, 0x42, 0x60, 0x9c, 0x9e,
 		0x20, 0x56, 0x9f, 0xc0, 0x39, 0xda, 0x3f, 0x22,
 		0x2a, 0xb8, 0x56, 0x81, 0x8a,
 	}
 )
 
-func TestEAPNakMarshal(t *testing.T) {
+func TestEapNakMarshal(t *testing.T) {
 	testcases := []struct {
 		description string
-		eap         EAPNak
+		eap         EapNak
 		expMarshal  []byte
 		expErr      bool
 	}{
 		{
 			description: "EAP nak is empty",
-			eap: EAPNak{
+			eap: EapNak{
 				NakData: nil,
 			},
 			expErr: true,
 		},
 		{
-			description: "EAPNak marshal",
-			eap:         validEAPNak,
-			expMarshal:  validEAPNakByte,
+			description: "EapNak Marshal",
+			eap:         validEapNak,
+			expMarshal:  validEapNakByte,
 			expErr:      false,
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			result, err := tc.eap.marshal()
+			result, err := tc.eap.Marshal()
 			if tc.expErr {
 				require.Error(t, err)
 			} else {
@@ -57,23 +57,23 @@ func TestEAPNakMarshal(t *testing.T) {
 	}
 }
 
-func TestEAPNakUnmarshal(t *testing.T) {
+func TestEapNakUnmarshal(t *testing.T) {
 	testcases := []struct {
 		description string
 		b           []byte
-		expMarshal  EAPNak
+		expMarshal  EapNak
 	}{
 		{
-			description: "EAPNak Unmarshal",
-			b:           validEAPNakByte,
-			expMarshal:  validEAPNak,
+			description: "EapNak Unmarshal",
+			b:           validEapNakByte,
+			expMarshal:  validEapNak,
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.description, func(t *testing.T) {
-			var eap EAPNak
-			err := eap.unmarshal(tc.b)
+			var eap EapNak
+			err := eap.Unmarshal(tc.b)
 			require.NoError(t, err)
 			require.Equal(t, tc.expMarshal, eap)
 		})

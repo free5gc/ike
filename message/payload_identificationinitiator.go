@@ -1,6 +1,8 @@
 package message
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+)
 
 var _ IKEPayload = &IdentificationInitiator{}
 
@@ -9,16 +11,18 @@ type IdentificationInitiator struct {
 	IDData []byte
 }
 
-func (identification *IdentificationInitiator) Type() IKEPayloadType { return TypeIDi }
+func (identification *IdentificationInitiator) Type() IkePayloadType {
+	return TypeIDi
+}
 
-func (identification *IdentificationInitiator) marshal() ([]byte, error) {
+func (identification *IdentificationInitiator) Marshal() ([]byte, error) {
 	identificationData := make([]byte, 4)
 	identificationData[0] = identification.IDType
 	identificationData = append(identificationData, identification.IDData...)
 	return identificationData, nil
 }
 
-func (identification *IdentificationInitiator) unmarshal(b []byte) error {
+func (identification *IdentificationInitiator) Unmarshal(b []byte) error {
 	if len(b) > 0 {
 		// bounds checking
 		if len(b) <= 4 {

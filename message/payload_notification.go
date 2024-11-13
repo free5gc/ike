@@ -15,9 +15,9 @@ type Notification struct {
 	NotificationData  []byte
 }
 
-func (notification *Notification) Type() IKEPayloadType { return TypeN }
+func (notification *Notification) Type() IkePayloadType { return TypeN }
 
-func (notification *Notification) marshal() ([]byte, error) {
+func (notification *Notification) Marshal() ([]byte, error) {
 	notificationData := make([]byte, 4)
 
 	notificationData[0] = notification.ProtocolID
@@ -33,7 +33,7 @@ func (notification *Notification) marshal() ([]byte, error) {
 	return notificationData, nil
 }
 
-func (notification *Notification) unmarshal(b []byte) error {
+func (notification *Notification) Unmarshal(b []byte) error {
 	if len(b) > 0 {
 		// bounds checking
 		if len(b) < 4 {

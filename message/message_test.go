@@ -1,7 +1,6 @@
 package message
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -62,17 +61,15 @@ func TestEncodeDecodeUsingPublicData(t *testing.T) {
 	ikeMsg := new(IKEMessage)
 	err := ikeMsg.Decode(data)
 	if err != nil {
-		t.Fatalf("Decode failed: %+v", err)
+		require.NoError(t, err, "Decode failed")
 	}
 
 	verifyData, err := ikeMsg.Encode()
 	if err != nil {
-		t.Fatalf("Encode failed: %+v", err)
+		require.NoError(t, err, "Encode failed")
 	}
 
-	if !bytes.Equal(data, verifyData) {
-		t.FailNow()
-	}
+	require.Equal(t, data, verifyData)
 }
 
 var (

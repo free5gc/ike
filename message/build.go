@@ -5,6 +5,8 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
+
+	eap_message "github.com/free5gc/ike/eap"
 )
 
 func (container *IKEPayloadContainer) Reset() {
@@ -32,7 +34,7 @@ func (container *IKEPayloadContainer) BuildCertificate(certificateEncode uint8, 
 	*container = append(*container, certificate)
 }
 
-func (container *IKEPayloadContainer) BuildEncrypted(nextPayload IKEPayloadType,
+func (container *IKEPayloadContainer) BuildEncrypted(nextPayload IkePayloadType,
 	encryptedData []byte,
 ) *Encrypted {
 	encrypted := new(Encrypted)
@@ -195,39 +197,52 @@ func (container *TransformContainer) BuildTransform(
 	*container = append(*container, transform)
 }
 
-func (container *IKEPayloadContainer) BuildEAP(code uint8, identifier uint8) *EAP {
-	eap := new(EAP)
-	eap.Code = code
-	eap.Identifier = identifier
+func (container *IKEPayloadContainer) BuildEAP(code eap_message.EapCode, identifier uint8) *PayloadEap {
+	eap := &PayloadEap{
+		EAP: &eap_message.EAP{
+			Code:       code,
+			Identifier: identifier,
+		},
+	}
+
 	*container = append(*container, eap)
 	return eap
 }
 
 func (container *IKEPayloadContainer) BuildEAPSuccess(identifier uint8) {
-	eap := new(EAP)
-	eap.Code = EAPCodeSuccess
-	eap.Identifier = identifier
+	eap := &PayloadEap{
+		EAP: &eap_message.EAP{
+			Code:       eap_message.EapCodeSuccess,
+			Identifier: identifier,
+		},
+	}
+
 	*container = append(*container, eap)
 }
 
 func (container *IKEPayloadContainer) BuildEAPfailure(identifier uint8) {
-	eap := new(EAP)
-	eap.Code = EAPCodeFailure
-	eap.Identifier = identifier
+	eap := &PayloadEap{
+		EAP: &eap_message.EAP{
+			Code:       eap_message.EapCodeFailure,
+			Identifier: identifier,
+		},
+	}
+
 	*container = append(*container, eap)
 }
 
-func (container *EAPTypeDataContainer) BuildEAPExpanded(vendorID uint32, vendorType uint32, vendorData []byte) {
-	eapExpanded := new(EAPExpanded)
+func BuildEapExpanded(vendorID uint32, vendorType uint32, vendorData []byte) *eap_message.EapExpanded {
+	eapExpanded := new(eap_message.EapExpanded)
 	eapExpanded.VendorID = vendorID
 	eapExpanded.VendorType = vendorType
 	eapExpanded.VendorData = append(eapExpanded.VendorData, vendorData...)
-	*container = append(*container, eapExpanded)
+
+	return eapExpanded
 }
 
 func (container *IKEPayloadContainer) BuildEAP5GStart(identifier uint8) {
-	eap := container.BuildEAP(EAPCodeRequest, identifier)
-	eap.EAPTypeData.BuildEAPExpanded(VendorID3GPP, VendorTypeEAP5G,
+	eap := container.BuildEAP(eap_message.EapCodeRequest, identifier)
+	eap.EapTypeData = BuildEapExpanded(eap_message.VendorId3GPP, eap_message.VendorTypeEAP5G,
 		[]byte{EAP5GType5GStart, EAP5GSpareValue})
 }
 
@@ -249,8 +264,9 @@ func (container *IKEPayloadContainer) BuildEAP5GNAS(identifier uint8, nasPDU []b
 	vendorData = append(vendorData, header...)
 	vendorData = append(vendorData, nasPDU...)
 
-	eap := container.BuildEAP(EAPCodeRequest, identifier)
-	eap.EAPTypeData.BuildEAPExpanded(VendorID3GPP, VendorTypeEAP5G, vendorData)
+	eap := container.BuildEAP(eap_message.EapCodeRequest, identifier)
+	eap.EapTypeData = BuildEapExpanded(eap_message.VendorId3GPP, eap_message.VendorTypeEAP5G, vendorData)
+
 	return nil
 }
 
