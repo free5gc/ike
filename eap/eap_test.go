@@ -270,12 +270,10 @@ func TestEapAkaMac(t *testing.T) {
 			eap := new(eap_message.EAP)
 			eap.Code = eap_message.EapCodeResponse
 			eap.Identifier = tc.eapID
-			eap.EapTypeData = new(eap_message.EapAkaPrime)
+			eap.EapTypeData = eap_message.NewEapAkaPrime(eap_message.SubtypeAkaChallenge)
 
 			// Build EAP-AKA' packet
 			eapAkaPrime := eap.EapTypeData.(*eap_message.EapAkaPrime)
-			eapAkaPrime.Init(eap_message.SubtypeAkaChallenge)
-
 			attrs := []struct {
 				eapAkaPrimeAttrType eap_message.EapAkaPrimeAttrType
 				value               string

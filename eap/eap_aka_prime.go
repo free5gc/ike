@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"sort"
-	"unsafe"
 
 	"github.com/pkg/errors"
 )
@@ -89,16 +88,22 @@ type EapAkaPrime struct {
 	attributes map[EapAkaPrimeAttrType]*EapAkaPrimeAttr
 }
 
+func NewEapAkaPrime(subType EapAkaSubtype) *EapAkaPrime {
+	return &EapAkaPrime{
+		subType:    subType,
+		attributes: make(map[EapAkaPrimeAttrType]*EapAkaPrimeAttr),
+	}
+}
+
 func (eapAkaPrime *EapAkaPrime) Type() EapType { return EapTypeAkaPrime }
 
 func (eapAkaPrime *EapAkaPrime) SubType() EapAkaSubtype { return eapAkaPrime.subType }
 
-func (eapAkaPrime *EapAkaPrime) Init(subType EapAkaSubtype) {
-	eapAkaPrime.subType = subType
-	eapAkaPrime.attributes = make(map[EapAkaPrimeAttrType]*EapAkaPrimeAttr)
-}
-
 func (eapAkaPrime *EapAkaPrime) SetAttr(attrType EapAkaPrimeAttrType, value []byte) error {
+	if eapAkaPrime.attributes == nil {
+		eapAkaPrime.attributes = make(map[EapAkaPrimeAttrType]*EapAkaPrimeAttr)
+	}
+
 	attr := new(EapAkaPrimeAttr)
 
 	err := attr.setAttr(attrType, value)
@@ -111,17 +116,16 @@ func (eapAkaPrime *EapAkaPrime) SetAttr(attrType EapAkaPrimeAttrType, value []by
 }
 
 func (eapAkaPrime *EapAkaPrime) GetAttr(attrType EapAkaPrimeAttrType) (EapAkaPrimeAttr, error) {
+	if eapAkaPrime.attributes == nil {
+		return EapAkaPrimeAttr{}, errors.Errorf("EAP-AKA' attributes map is nil")
+	}
+
 	for _, attr := range eapAkaPrime.attributes {
 		if attr.attrType == attrType {
 			return *attr, nil
 		}
 	}
 	return EapAkaPrimeAttr{}, errors.Errorf("EAP-AKA' attribute[%s] is not found", attrType)
-}
-
-func (eapAkaPrime *EapAkaPrime) InitMac() error {
-	zeros := make([]byte, 16)
-	return eapAkaPrime.SetAttr(AT_MAC, zeros)
 }
 
 func (eapAkaPrime *EapAkaPrime) Marshal() ([]byte, error) {
@@ -172,6 +176,7 @@ func (eapAkaPrime *EapAkaPrime) Marshal() ([]byte, error) {
 
 func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 	var err error
+	var n int
 
 	if len(rawData) < 4 {
 		return errors.New("EAP-AKA' Unmarshal(): no sufficient bytes to decode the EAP-AKA' type")
@@ -193,12 +198,15 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 	}
 	eapAkaPrime.subType = EapAkaSubtype(subType)
 
-	buf := make([]byte, unsafe.Sizeof(eapAkaPrime.reserved))
-	_, err = io.ReadFull(bufReader, buf)
+	buf := make([]byte, EapAkaHeaderReservedLen)
+	n, err = io.ReadFull(bufReader, buf)
 	if err != nil {
 		return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read reserved failed")
 	}
-	binary.BigEndian.PutUint16(buf, eapAkaPrime.reserved)
+	if n != EapAkaHeaderReservedLen {
+		return errors.New("EAP-AKA' Unmarshal(): incomplete reserved bytes")
+	}
+	eapAkaPrime.reserved = binary.BigEndian.Uint16(buf)
 
 	if eapAkaPrime.attributes == nil {
 		eapAkaPrime.attributes = map[EapAkaPrimeAttrType]*EapAkaPrimeAttr{}
@@ -233,9 +241,16 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 		case AT_RAND:
 			fallthrough
 		case AT_AUTN:
+			if attr.length != 5 {
+				return errors.Errorf("EAP-AKA' Unmarshal(): %s attribute length must be 5", attr.attrType)
+			}
+
 			// In this case, reserved is no meaning
 			reserved := make([]byte, EapAkaAttrReservedLen)
-			_, err = io.ReadFull(bufReader, reserved)
+			n, err = io.ReadFull(bufReader, reserved)
+			if n != EapAkaAttrReservedLen {
+				return errors.Errorf("EAP-AKA' Unmarshal(): incomplete reserved bytes for %s", attr.attrType)
+			}
 			if err != nil {
 				if err == io.EOF {
 					break
@@ -244,8 +259,20 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 			}
 
 			valLen := 4*attr.length - EapAkaAttrTypeLen - EapAkaAttrLengthLen - EapAkaAttrReservedLen
+			if valLen != 16 {
+				return errors.Errorf("EAP-AKA' Unmarshal(): %s attribute value length must be 16, but got %d",
+					attr.attrType, valLen,
+				)
+			}
 			attr.value = make([]byte, valLen)
-			_, err = io.ReadFull(bufReader, attr.value)
+
+			n, err = io.ReadFull(bufReader, attr.value)
+			if n != int(valLen) {
+				return errors.Errorf("EAP-AKA' Unmarshal(): %s attribute value length mismatch, "+
+					"expect %d bytes but got %d bytes",
+					attr.attrType, valLen, n,
+				)
+			}
 			if err != nil {
 				if err == io.EOF {
 					break
@@ -256,31 +283,59 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 			fallthrough
 		case AT_RES:
 			// In this case, reserved will contains the actual length of value
-			reserved := make([]byte, EapAkaAttrReservedLen) // The unit of reserved is bit
-			_, err = io.ReadFull(bufReader, reserved)
+
+			reserved := make([]byte, EapAkaAttrReservedLen) // The reserved field is the length of the RES in bits
+			n, err = io.ReadFull(bufReader, reserved)
+			if n != EapAkaAttrReservedLen {
+				return errors.Errorf("EAP-AKA' Unmarshal(): incomplete reserved bytes for %s", attr.attrType)
+			}
 			if err != nil {
 				if err == io.EOF {
 					break
 				}
 				return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read %s attribute/reserved failed", attr.attrType)
 			}
+
 			valBitsLen := binary.BigEndian.Uint16(reserved)
 			attr.reserved = valBitsLen
+
 			valBytesLen := valBitsLen / 8
+			totalLen := uint16(attr.length * 4)
+			paddingLen := totalLen - valBytesLen - EapAkaAttrTypeLen - EapAkaAttrLengthLen - EapAkaAttrReservedLen
 
 			attr.value = make([]byte, valBytesLen)
-			_, err = io.ReadFull(bufReader, attr.value)
+			n, err = io.ReadFull(bufReader, attr.value)
+			if n != int(valBytesLen) {
+				return errors.Errorf("EAP-AKA' Unmarshal(): %s attribute value length mismatch, "+
+					"expect %d bytes but got %d bytes",
+					attr.attrType, valBytesLen, n,
+				)
+			}
 			if err != nil {
 				if err == io.EOF {
 					break
 				}
 				return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read %s attribute/value failed", attr.attrType)
 			}
-			// TODO: AT_RES may have padding
+
+			// Handle padding
+			if paddingLen > 0 {
+				padding := make([]byte, paddingLen)
+				_, err = io.ReadFull(bufReader, padding)
+				if err != nil {
+					return errors.Wrapf(err, "EAP-AKA' Unmarshal(): read %s attribute/padding failed", attr.attrType)
+				}
+			}
 		case AT_KDF:
 			valLen := 4*attr.length - EapAkaAttrTypeLen - EapAkaAttrLengthLen
 			attr.value = make([]byte, valLen)
-			_, err = io.ReadFull(bufReader, attr.value)
+			n, err = io.ReadFull(bufReader, attr.value)
+			if n != int(valLen) {
+				return errors.Errorf("EAP-AKA' Unmarshal(): %s attribute value length mismatch, "+
+					"expect %d bytes but got %d bytes",
+					attr.attrType, valLen, n,
+				)
+			}
 			if err != nil {
 				if err == io.EOF {
 					break
@@ -289,10 +344,16 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 			}
 		}
 
+		// Set attribute
 		eapAkaPrime.attributes[attr.attrType] = attr
 	}
 
 	return nil
+}
+
+func (eapAkaPrime *EapAkaPrime) initMAC() error {
+	zeros := make([]byte, 16)
+	return eapAkaPrime.SetAttr(AT_MAC, zeros)
 }
 
 func (eapAkaPrime *EapAkaPrime) getAttrsKeys() []EapAkaPrimeAttrType {
@@ -413,7 +474,6 @@ func (attr *EapAkaPrimeAttr) setAttr(attrType EapAkaPrimeAttrType, value []byte)
 		// |                                                               |
 		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-		// TODO: Add padding
 		valBytesLen := len(value)
 		valBitsLen := valBytesLen * 8
 
@@ -423,9 +483,16 @@ func (attr *EapAkaPrimeAttr) setAttr(attrType EapAkaPrimeAttrType, value []byte)
 			}
 		}
 
+		// Calculate padding bytes needed to make total length multiple of 4
+		totalLen := EapAkaAttrTypeLen + EapAkaAttrLengthLen + EapAkaAttrReservedLen + valBytesLen
+		paddingBytes := (4 - (totalLen % 4)) % 4
+
 		attr.reserved = uint16(valBitsLen) // The unit of reserved is bit
-		attr.length = uint8((EapAkaAttrTypeLen + EapAkaAttrTypeLen + EapAkaAttrReservedLen + valBytesLen) / 4)
-		attr.value = make([]byte, valBytesLen)
+		attr.length = uint8((totalLen + paddingBytes) / 4)
+
+		// Create value slice with padding
+		paddedLen := valBytesLen + paddingBytes
+		attr.value = make([]byte, paddedLen)
 		copy(attr.value, value)
 	case AT_KDF:
 		// RFC 5448:
@@ -475,13 +542,15 @@ func (attr *EapAkaPrimeAttr) setAttr(attrType EapAkaPrimeAttrType, value []byte)
 	return err
 }
 
+func (attr *EapAkaPrimeAttr) GetAttrType() EapAkaPrimeAttrType { return attr.attrType }
+
 func (attr *EapAkaPrimeAttr) GetValue() []byte { return attr.value }
 
 // RFC 9048 - 3.4.1. PRF'
 func EapAkaPrimePRF(
 	ikPrime, ckPrime []byte,
 	identity string,
-) (k_encr, k_aut, k_re, msk, emsk []byte) {
+) (k_encr, k_aut, k_re, msk, emsk []byte, err error) {
 	// PRF'(K,S) = T1 | T2 | T3 | T4 | ...
 	// where:
 	// T1 = HMAC-SHA-256 (K, S | 0x01)
@@ -490,15 +559,20 @@ func EapAkaPrimePRF(
 	// T4 = HMAC-SHA-256 (K, T3 | S | 0x04)
 	// ...
 
-	key := make([]byte, 0)
+	if len(ikPrime) == 0 || len(ckPrime) == 0 {
+		return nil, nil, nil, nil, nil, errors.New("EAP-AKA' PRF: invalid input key length")
+	}
+
+	key := make([]byte, 0, len(ikPrime)+len(ckPrime))
 	key = append(key, ikPrime...)
 	key = append(key, ckPrime...)
 	sBase := []byte("EAP-AKA'" + identity)
 	sBaseLen := len(sBase)
 
-	MK := []byte("") // MK = PRF'(IK'|CK',"EAP-AKA'"|Identity)
-	prev := []byte("")
+	MK := make([]byte, 0) // MK = PRF'(IK'|CK',"EAP-AKA'"|Identity)
+	prev := make([]byte, 0)
 	const prfRounds = 208/32 + 1
+
 	for i := 0; i < prfRounds; i++ {
 		// Create a new HMAC by defining the hash type and the key (as byte array)
 		h := hmac.New(sha256.New, key)
@@ -513,8 +587,9 @@ func EapAkaPrimePRF(
 		s = append(s, sBaseWithNum...)
 
 		// Write Data to it
-		if _, err := h.Write(s); err != nil {
-			return nil, nil, nil, nil, nil
+		_, err = h.Write(s)
+		if err != nil {
+			return nil, nil, nil, nil, nil, errors.Wrap(err, "EAP-AKA' PRF: HMAC computation failed")
 		}
 
 		// Get result
@@ -523,11 +598,15 @@ func EapAkaPrimePRF(
 		prev = sha
 	}
 
+	if len(MK) < 208 {
+		return nil, nil, nil, nil, nil, errors.New("EAP-AKA' PRF: insufficient key material generated")
+	}
+
 	k_encr = MK[0:16]  // K_encr = MK[0..127]
 	k_aut = MK[16:48]  // K_aut  = MK[128..383]
 	k_re = MK[48:80]   // K_re   = MK[384..639]
 	msk = MK[80:144]   // MSK    = MK[640..1151]
 	emsk = MK[144:208] // EMSK   = MK[1152..1663]
 
-	return k_encr, k_aut, k_re, msk, emsk
+	return k_encr, k_aut, k_re, msk, emsk, nil
 }

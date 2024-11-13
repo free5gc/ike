@@ -173,7 +173,7 @@ func (eap *EAP) CalcEapAkaPrimeAtMAC(key []byte) ([]byte, error) {
 	eapAkaPrime := eap.EapTypeData.(*EapAkaPrime)
 
 	// Reset AT_MAC
-	err := eapAkaPrime.InitMac()
+	err := eapAkaPrime.initMAC()
 	if err != nil {
 		return nil, errors.Wrapf(err, "EAP init EAP-AKA' AT_MAC failed")
 	}
