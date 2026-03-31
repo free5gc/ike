@@ -55,6 +55,11 @@ func (m *IKEMessage) Decode(b []byte) error {
 }
 
 func (m *IKEMessage) DecodePayload(b []byte) error {
+	// If NextPayload is not 0 but payload bytes are empty, it's a malformed message
+	if m.NextPayload != 0 && len(b) == 0 {
+		return errors.Errorf("DecodePayload(): NextPayload is %d but payloadbytes are empty", m.NextPayload)
+	}
+
 	err := m.Payloads.Decode(m.NextPayload, b)
 	if err != nil {
 		return errors.Errorf("DecodePayload(): DecodePayload failed: %v", err)

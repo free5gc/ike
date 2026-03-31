@@ -49,7 +49,8 @@ func DecodeDecrypt(
 		}
 	}
 
-	if ikeMsg.Payloads[0].Type() == message.TypeSK {
+	// Check payload is not empty and the first payload is Encrypted, then decrypt the message
+	if len(ikeMsg.Payloads) > 0 && ikeMsg.Payloads[0].Type() == message.TypeSK {
 		if ikesaKey == nil {
 			return nil, errors.Errorf("IKE decode decrypt: need ikesaKey to decrypt")
 		}
