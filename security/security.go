@@ -203,7 +203,12 @@ func CalculateDiffieHellmanMaterials(
 	}
 
 	peerPublicValueBig := new(big.Int).SetBytes(peerPublicValue)
-	return ikesaKey.DhInfo.GetPublicValue(secret), ikesaKey.DhInfo.GetSharedKey(secret, peerPublicValueBig), nil
+	sharedKey, err := ikesaKey.DhInfo.GetSharedKey(secret, peerPublicValueBig)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "CalculateDiffieHellmanMaterials() failed to get shared key")
+	}
+
+	return ikesaKey.DhInfo.GetPublicValue(secret), sharedKey, nil
 }
 
 func (ikesaKey *IKESAKey) GenerateKeyForIKESA(

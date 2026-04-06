@@ -3,6 +3,8 @@ package dh
 import (
 	"math/big"
 
+	"github.com/pkg/errors"
+
 	"github.com/free5gc/ike/message"
 )
 
@@ -47,11 +49,19 @@ func (t *DH2048BitModp) getAttribute() (bool, uint16, uint16, []byte) {
 	return false, 0, 0, nil
 }
 
-func (t *DH2048BitModp) GetSharedKey(secret, peerPublicValue *big.Int) []byte {
+func (t *DH2048BitModp) GetSharedKey(secret, peerPublicValue *big.Int) ([]byte, error) {
+	// Validate peerPublicValue: must be in the range (1, p-1)
+	one := big.NewInt(1)
+	pMinusOne := new(big.Int).Sub(t.factor, one)
+
+	// if peerPublicValue <= 1 or peerPublicValue >= p-1
+	if peerPublicValue.Cmp(one) <= 0 || peerPublicValue.Cmp(pMinusOne) >= 0 {
+		return nil, errors.New("invalid DH public value.")
+	}
 	sharedKey := new(big.Int).Exp(peerPublicValue, secret, t.factor).Bytes()
 	prependZero := make([]byte, t.factorBytesLength-len(sharedKey))
 	sharedKey = append(prependZero, sharedKey...)
-	return sharedKey
+	return sharedKey, nil
 }
 
 func (t *DH2048BitModp) GetPublicValue(secret *big.Int) []byte {
