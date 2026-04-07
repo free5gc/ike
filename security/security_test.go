@@ -70,7 +70,7 @@ func TestConcatenateNonceAndSPI(t *testing.T) {
 func TestIKEToProposal(t *testing.T) {
 	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrType := encr.StrToType("ENCR_AES_CBC_256")
-	integType := integ.StrToType("AUTH_HMAC_MD5_96")
+	integType := integ.StrToType("AUTH_HMAC_SHA1_96")
 	prfType := prf.StrToType("PRF_HMAC_SHA1")
 
 	ikesaKey := IKESAKey{
@@ -95,7 +95,7 @@ func TestIKEToProposal(t *testing.T) {
 func TestIKESetProposal(t *testing.T) {
 	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrType := encr.StrToType("ENCR_AES_CBC_256")
-	integType := integ.StrToType("AUTH_HMAC_MD5_96")
+	integType := integ.StrToType("AUTH_HMAC_SHA1_96")
 	prfType := prf.StrToType("PRF_HMAC_SHA1")
 
 	proposal := new(message.Proposal)
@@ -278,7 +278,7 @@ func TestGenerateKeyForChildSA(t *testing.T) {
 func TestChildToProposal(t *testing.T) {
 	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrKType := encr.StrToKType("ENCR_AES_CBC_256")
-	integKType := integ.StrToKType("AUTH_HMAC_MD5_96")
+	integKType := integ.StrToKType("AUTH_HMAC_SHA1_96")
 	esnType, err := esn.StrToType("ESN_ENABLE")
 	require.NoError(t, err)
 
@@ -304,7 +304,7 @@ func TestChildToProposal(t *testing.T) {
 func TestChildSetProposal(t *testing.T) {
 	dhType := dh.StrToType("DH_1024_BIT_MODP")
 	encrKType := encr.StrToKType("ENCR_AES_CBC_256")
-	integKType := integ.StrToKType("AUTH_HMAC_MD5_96")
+	integKType := integ.StrToKType("AUTH_HMAC_SHA1_96")
 	esnType, err := esn.StrToType("ESN_ENABLE")
 	require.NoError(t, err)
 
