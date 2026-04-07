@@ -141,6 +141,11 @@ func (eap *EAP) Unmarshal(b []byte) error {
 		eap.Code = EapCode(b[0])
 		eap.Identifier = b[1]
 
+		// EAP Request or Response
+		if (eap.Code == EapCodeRequest || eap.Code == EapCodeResponse) && eapPayloadLength < 5 {
+			return errors.New("EAP payload too short for Request/Response: length")
+		}
+
 		// EAP Success or Failure
 		if eapPayloadLength == 4 {
 			return nil

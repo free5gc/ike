@@ -198,11 +198,19 @@ func (securityAssociation *SecurityAssociation) Unmarshal(b []byte) error {
 			transform.TransformType = transformData[4]
 			transform.TransformID = binary.BigEndian.Uint16(transformData[6:8])
 			if transformLength > 8 {
+				if len(transformData) < 10 {
+					return errors.Errorf("Transform: attribute data too short to read Type (length: %d)", len(transformData))
+				}
+
 				transform.AttributePresent = true
 				transform.AttributeFormat = ((transformData[8] & 0x80) >> 7)
 				transform.AttributeType = binary.BigEndian.Uint16(transformData[8:10]) & 0x7f
 
 				if transform.AttributeFormat == 0 {
+					if len(transformData) < 12 {
+						return errors.Errorf("Transform: attribute data too short to read Length (length: %d)", len(transformData))
+					}
+
 					attributeLength := binary.BigEndian.Uint16(transformData[10:12])
 					// bounds checking
 					if (12 + attributeLength) != transformLength {
@@ -211,6 +219,10 @@ func (securityAssociation *SecurityAssociation) Unmarshal(b []byte) error {
 					}
 					copy(transform.VariableLengthAttributeValue, transformData[12:12+attributeLength])
 				} else {
+					if len(transformData) < 12 {
+						return errors.Errorf("Transform: attribute data too short to read Value (length: %d)", len(transformData))
+					}
+
 					transform.AttributeValue = binary.BigEndian.Uint16(transformData[10:12])
 				}
 			}
