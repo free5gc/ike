@@ -22,17 +22,12 @@ var (
 func init() {
 	// INTEG String
 	integString = make(map[uint16]func(uint16, uint16, []byte) string)
-	integString[message.AUTH_HMAC_MD5_96] = toString_AUTH_HMAC_MD5_96
 	integString[message.AUTH_HMAC_SHA1_96] = toString_AUTH_HMAC_SHA1_96
 	integString[message.AUTH_HMAC_SHA2_256_128] = toString_AUTH_HMAC_SHA2_256_128
 
 	// INTEG Types
 	integTypes = make(map[string]INTEGType)
 
-	integTypes[AUTH_HMAC_MD5_96] = &AuthHmacMd5_95{
-		keyLength:    16,
-		outputLength: 12,
-	}
 	integTypes[AUTH_HMAC_SHA1_96] = &AuthHmacSha1_96{
 		keyLength:    20,
 		outputLength: 12,
@@ -45,10 +40,6 @@ func init() {
 	// INTEG Kernel Types
 	integKTypes = make(map[string]INTEGKType)
 
-	integKTypes[AUTH_HMAC_MD5_96] = &AuthHmacMd5_95{
-		keyLength:    16,
-		outputLength: 12,
-	}
 	integKTypes[AUTH_HMAC_SHA1_96] = &AuthHmacSha1_96{
 		keyLength:    20,
 		outputLength: 12,
