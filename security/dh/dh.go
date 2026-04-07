@@ -91,6 +91,6 @@ func ToTransform(dhType DHType) *message.Transform {
 type DHType interface {
 	TransformID() uint16
 	getAttribute() (bool, uint16, uint16, []byte)
-	GetSharedKey(secret, peerPublicValue *big.Int) []byte
+	GetSharedKey(secret, peerPublicValue *big.Int) ([]byte, error)
 	GetPublicValue(secret *big.Int) []byte
 }
