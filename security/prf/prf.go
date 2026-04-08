@@ -20,17 +20,12 @@ var (
 func init() {
 	// PRF String
 	prfString = make(map[uint16]func(uint16, uint16, []byte) string)
-	prfString[message.PRF_HMAC_MD5] = toString_PRF_HMAC_MD5
 	prfString[message.PRF_HMAC_SHA1] = toString_PRF_HMAC_SHA1
 	prfString[message.PRF_HMAC_SHA2_256] = toString_PRF_HMAC_SHA2_256
 
 	// PRF Types
 	prfTypes = make(map[string]PRFType)
 
-	prfTypes[PRF_HMAC_MD5] = &PrfHmacMd5{
-		keyLength:    16,
-		outputLength: 16,
-	}
 	prfTypes[PRF_HMAC_SHA1] = &PrfHmacSha1{
 		keyLength:    20,
 		outputLength: 20,

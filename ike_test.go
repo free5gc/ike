@@ -575,38 +575,6 @@ func TestVerifyIntegrity(t *testing.T) {
 		expectedValid bool
 	}{
 		{
-			name:       "HMAC MD5 96 - valid",
-			key:        "0123456789abcdef0123456789abcdef",
-			originData: []byte("hello world"),
-			checksum:   "c30f366e411540f68221d04a",
-			ikeSAKey: &security.IKESAKey{
-				IntegInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
-			},
-			role:          message.Role_Responder,
-			expectedValid: true,
-		},
-		{
-			name:       "HMAC MD5 96 - invalid checksum",
-			key:        "0123456789abcdef0123456789abcdef",
-			originData: []byte("hello world"),
-			checksum:   "01231875aa",
-			ikeSAKey: &security.IKESAKey{
-				IntegInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
-			},
-			role:          message.Role_Responder,
-			expectedValid: false,
-		},
-		{
-			name:       "HMAC MD5 96 - invalid key length",
-			key:        "0123",
-			originData: []byte("hello world"),
-			ikeSAKey: &security.IKESAKey{
-				IntegInfo: integ.StrToType("AUTH_HMAC_MD5_96"),
-			},
-			role:          message.Role_Responder,
-			expectedValid: false,
-		},
-		{
 			name:       "HMAC SHA1 96 - valid",
 			key:        "0123456789abcdef0123456789abcdef01234567",
 			originData: []byte("hello world"),
