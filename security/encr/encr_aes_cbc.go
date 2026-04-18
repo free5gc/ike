@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
@@ -147,6 +148,9 @@ func (encr *EncrAesCbcCrypto) Decrypt(cipherText []byte) ([]byte, error) {
 	// fmt.Printf("Decrypted content:\n%s", hex.Dump(plainText))
 	// Remove padding
 	padding := int(plainText[len(plainText)-1]) + 1
+	if padding > len(plainText) {
+		return nil, fmt.Errorf("invalid padding length %d exceeds plaintext length %d", padding, len(plainText))
+	}
 	plainText = plainText[:len(plainText)-padding]
 
 	// fmt.Printf("Decrypted content with out padding:\n%s", hex.Dump(plainText))
