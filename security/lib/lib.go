@@ -13,17 +13,16 @@ func PKCS7Padding(plainText []byte, blockSize int) ([]byte, error) {
 	if padding == 0 {
 		padding = blockSize
 	}
-	maxNum := math.MaxUint8
+	if padding < 0 || padding > math.MaxUint8 {
+		return nil, errors.Errorf("PKCS7Padding: invalid padding size")
+	}
 	paddingText := make([]byte, padding)
 	_, err := rand.Read(paddingText)
 	if err != nil {
 		return nil, errors.Wrapf(err, "PKCS7Padding()")
 	}
 
-	for i := 0; i < padding-1; i++ {
-		paddingText[i] = byte(int(paddingText[i]) % (maxNum + 1))
-	}
-
+	// Set last byte to padding value minus 1
 	paddingText[len(paddingText)-1] = byte(padding - 1)
 	return append(plainText, paddingText...), nil
 }
