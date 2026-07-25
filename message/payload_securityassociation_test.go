@@ -260,6 +260,38 @@ func TestSecurityAssociationUnmarshal(t *testing.T) {
 			expErr: true,
 		},
 		{
+			// proposalLength=8 but spiSize=10, so the SPI region overruns the
+			// proposal: b[18:8] pre-fix.
+			description: "SPI size exceeds proposal length",
+			b: []byte{
+				0x00, 0x00, 0x00, 0x08, 0x01, 0x01, 0x0a, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			},
+			expErr: true,
+		},
+		{
+			// Smallest overrun: proposalLength=8, spiSize=1 -> b[9:8] pre-fix.
+			description: "SPI size overruns proposal by one byte",
+			b: []byte{
+				0x00, 0x00, 0x00, 0x08, 0x01, 0x01, 0x01, 0x00,
+				0x00,
+			},
+			expErr: true,
+		},
+		{
+			// spiSize=0xf8 (248): 8+spiSize wraps to 0 in uint8 arithmetic, so the
+			// length guard passes and b[8:0] is sliced pre-fix. This is the byte
+			// overflow boundary (248-255) that a guard written in byte arithmetic
+			// still misses.
+			description: "SPI size overflows uint8 offset arithmetic",
+			b: []byte{
+				0x00, 0x00, 0x00, 0x08, 0x01, 0x01, 0xf8, 0x00,
+				0x00,
+			},
+			expErr: true,
+		},
+		{
 			description: "Illegal attribute length",
 			b: []byte{
 				0x00, 0x00, 0x00, 0x18, 0x02, 0x01, 0x03, 0x01,
