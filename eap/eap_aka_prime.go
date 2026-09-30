@@ -46,23 +46,30 @@ const (
 	AT_AUTN              EapAkaPrimeAttrType = 2
 	AT_RES               EapAkaPrimeAttrType = 3
 	AT_AUTS              EapAkaPrimeAttrType = 4
+	AT_PERMANENT_ID_REQ  EapAkaPrimeAttrType = 10
 	AT_MAC               EapAkaPrimeAttrType = 11
 	AT_NOTIFICATION      EapAkaPrimeAttrType = 12
+	AT_ANY_ID_REQ        EapAkaPrimeAttrType = 13
 	AT_IDENTITY          EapAkaPrimeAttrType = 14
+	AT_FULLAUTH_ID_REQ   EapAkaPrimeAttrType = 17
 	AT_CLIENT_ERROR_CODE EapAkaPrimeAttrType = 22
 	AT_KDF_INPUT         EapAkaPrimeAttrType = 23
 	AT_KDF               EapAkaPrimeAttrType = 24
 	AT_CHECKCODE         EapAkaPrimeAttrType = 134
 )
 
+// Also the set of non-skippable attribute types accepted by Unmarshal().
 var attrTypeStr map[EapAkaPrimeAttrType]string = map[EapAkaPrimeAttrType]string{
 	AT_RAND:              "AT_RAND",
 	AT_AUTN:              "AT_AUTN",
 	AT_RES:               "AT_RES",
 	AT_AUTS:              "AT_AUTS",
+	AT_PERMANENT_ID_REQ:  "AT_PERMANENT_ID_REQ",
 	AT_MAC:               "AT_MAC",
 	AT_NOTIFICATION:      "AT_NOTIFICATION",
+	AT_ANY_ID_REQ:        "AT_ANY_ID_REQ",
 	AT_IDENTITY:          "AT_IDENTITY",
+	AT_FULLAUTH_ID_REQ:   "AT_FULLAUTH_ID_REQ",
 	AT_CLIENT_ERROR_CODE: "AT_CLIENT_ERROR_CODE",
 	AT_KDF_INPUT:         "AT_KDF_INPUT",
 	AT_KDF:               "AT_KDF",
@@ -247,6 +254,18 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 		attr := &EapAkaPrimeAttr{
 			attrType: EapAkaPrimeAttrType(typeAndLength[0]),
 			length:   typeAndLength[1],
+		}
+
+		// RFC 4187 section 8.1: attribute types 0-127 are non-skippable, so an
+		// unrecognized one must be rejected. Types 128-255 are skippable.
+		// attrTypeStr defines the recognized types. AT_PADDING, AT_COUNTER,
+		// AT_COUNTER_TOO_SMALL and AT_NONCE_S are deliberately left out: they are
+		// only valid inside AT_ENCR_DATA, which is not decrypted here. AT_NONCE_MT,
+		// AT_VERSION_LIST and AT_SELECTED_VERSION are EAP-SIM only.
+		if _, ok := attrTypeStr[attr.attrType]; !ok && attr.attrType < 128 {
+			return errors.Errorf("EAP-AKA' Unmarshal(): unrecognized non-skippable attribute type %d",
+				attr.attrType.Value(),
+			)
 		}
 
 		// Read the whole attribute at once. Length counts 4-byte units,

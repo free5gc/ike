@@ -823,6 +823,16 @@ func TestEapAkaPrimeUnmarshalInvalidAttr(t *testing.T) {
 			errContains: "incomplete attribute header",
 		},
 		{
+			name:        "Unrecognized non-skippable attribute",
+			attr:        []byte{0x7f, 0x01, 0x00, 0x00},
+			errContains: "unrecognized non-skippable attribute type 127",
+		},
+		{
+			name:        "AT_PADDING outside AT_ENCR_DATA",
+			attr:        []byte{0x06, 0x01, 0x00, 0x00},
+			errContains: "unrecognized non-skippable attribute type 6",
+		},
+		{
 			name:        "Unknown attribute truncated",
 			attr:        []byte{0x87, 0x02, 0x00, 0x00, 0x01},
 			errContains: "value length mismatch",
@@ -869,6 +879,14 @@ func TestEapAkaPrimeRawRoundTrip(t *testing.T) {
 			raw: []byte{
 				byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
 				0x87, 0x01, 0x00, 0x00,
+				0x18, 0x01, 0x00, 0x01,
+			},
+		},
+		{
+			name: "Non-skippable AT_ANY_ID_REQ",
+			raw: []byte{
+				byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
+				0x0d, 0x01, 0x00, 0x00,
 				0x18, 0x01, 0x00, 0x01,
 			},
 		},
