@@ -224,3 +224,41 @@ func TestParsePapAVPsRejectsDuplicateAVP(t *testing.T) {
 		t.Fatal("duplicate User-Password was accepted")
 	}
 }
+
+// TestParsePapAVPsAcceptsEmptyValues: an empty value used to be
+// indistinguishable from an absent AVP, because the parser marked "seen" by
+// the field being non-nil and copying an empty value yields nil. A peer
+// sending a User-Password of 16 zero octets (an empty password padded per
+// RFC 5281 Section 11.2.2) therefore read as an incomplete stream, so the
+// terminator re-prompted and failed instead of handing the caller a
+// credential to reject. Whether an empty value is acceptable is the caller's
+// decision, not the parser's.
+func TestParsePapAVPsAcceptsEmptyValues(t *testing.T) {
+	name := encodeAVP(avpCodeUserName, true, []byte(testUserName))
+	pass := encodeAVP(avpCodeUserPassword, true, []byte(testPassword))
+
+	emptyPass := encodeAVP(avpCodeUserPassword, true, make([]byte, 16))
+	cred, err := ParsePapAVPs(append(append([]byte(nil), name...), emptyPass...))
+	if err != nil {
+		t.Fatalf("empty password: ParsePapAVPs error = %v", err)
+	}
+	if string(cred.UserName) != testUserName || len(cred.UserPassword) != 0 {
+		t.Fatalf("empty password: got name=%q pass=%q", cred.UserName, cred.UserPassword)
+	}
+
+	emptyName := encodeAVP(avpCodeUserName, true, nil)
+	cred, err = ParsePapAVPs(append(append([]byte(nil), emptyName...), pass...))
+	if err != nil {
+		t.Fatalf("empty User-Name: ParsePapAVPs error = %v", err)
+	}
+	if len(cred.UserName) != 0 || string(cred.UserPassword) != testPassword {
+		t.Fatalf("empty User-Name: got name=%q pass=%q", cred.UserName, cred.UserPassword)
+	}
+
+	// The duplicate check must see the empty AVP too, otherwise a peer can
+	// hide a second identity behind an empty first one.
+	shadowed := append(append(append([]byte(nil), emptyName...), name...), pass...)
+	if _, err = ParsePapAVPs(shadowed); err == nil {
+		t.Fatal("a User-Name after an empty User-Name was accepted")
+	}
+}

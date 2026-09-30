@@ -37,8 +37,14 @@ type PapCredential struct {
 // only one of the two PAP AVPs -- yields errPapAVPsIncomplete, because the
 // tunnel is a byte stream and the rest may still be on its way. Only a stream
 // that cannot be valid whatever follows is a hard error.
+//
+// An AVP that carries an empty value is present, not missing: whether an
+// empty identity or password is acceptable is the caller's decision. Presence
+// is therefore tracked separately from the value, which for an empty AVP is a
+// zero-length slice.
 func ParsePapAVPs(b []byte) (*PapCredential, error) {
 	cred := &PapCredential{}
+	var sawUserName, sawUserPassword bool
 	pos := 0
 	for pos+avpHeaderLen <= len(b) {
 		code := binary.BigEndian.Uint32(b[pos : pos+4])
@@ -73,19 +79,21 @@ func ParsePapAVPs(b []byte) (*PapCredential, error) {
 		} else {
 			switch code {
 			case avpCodeUserName:
-				if cred.UserName != nil {
+				if sawUserName {
 					return nil, errors.Errorf("ParsePapAVPs: duplicate User-Name AVP at pos %d", pos)
 				}
-				cred.UserName = append([]byte(nil), data...)
+				sawUserName = true
+				cred.UserName = append([]byte{}, data...)
 			case avpCodeUserPassword:
-				if cred.UserPassword != nil {
+				if sawUserPassword {
 					return nil, errors.Errorf("ParsePapAVPs: duplicate User-Password AVP at pos %d", pos)
 				}
+				sawUserPassword = true
 				// RFC 5281 §11.2.2: the PAP password is zero-padded to a
 				// 16-octet boundary to obfuscate its length, and the AVP
 				// Length counts the padding. Strip trailing NULs to recover
 				// the cleartext (a text password never ends in NUL).
-				cred.UserPassword = append([]byte(nil), bytes.TrimRight(data, "\x00")...)
+				cred.UserPassword = append([]byte{}, bytes.TrimRight(data, "\x00")...)
 			}
 		}
 		// Advance to next 4-byte-aligned AVP.
@@ -94,7 +102,7 @@ func ParsePapAVPs(b []byte) (*PapCredential, error) {
 			pos++
 		}
 	}
-	if cred.UserName == nil || cred.UserPassword == nil {
+	if !sawUserName || !sawUserPassword {
 		return nil, errPapAVPsIncomplete
 	}
 	return cred, nil
