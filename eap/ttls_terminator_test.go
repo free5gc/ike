@@ -605,3 +605,94 @@ func TestTerminatorDoesNotStallOnPartialRecord(t *testing.T) {
 			" noticing the engine was waiting for input", elapsed)
 	}
 }
+
+// deliverToPeer hands one terminator step's TLS bytes to the peer's transport.
+func deliverToPeer(t *testing.T, feed *feedConn, step *TerminatorStep) {
+	t.Helper()
+	var pkt EapTtls
+	if err := pkt.Unmarshal(step.OutTypeData); err != nil {
+		t.Fatalf("unmarshal server output: %v", err)
+	}
+	if len(pkt.TLSData) == 0 {
+		return
+	}
+	if err := feed.writeToClient(pkt.TLSData); err != nil {
+		t.Fatalf("writeToClient: %v", err)
+	}
+}
+
+// pollClientBytes waits for the peer's TLS engine to produce its next flight.
+func pollClientBytes(t *testing.T, feed *feedConn, deadline time.Time) []byte {
+	t.Helper()
+	for {
+		if raw := feed.readFromClient(); len(raw) > 0 {
+			return raw
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("pollClientBytes: timed out waiting for peer output")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+// TestTerminatorReportsHandshakeCompleteOnTls12: waitForBridgeOutput returned
+// the instant any outbound bytes appeared, which races the bridge's handshake
+// goroutine. On TLS 1.2 Go writes the server's ChangeCipherSpec+Finished
+// before HandshakeContext returns, so hsDone was still false when the
+// terminator checked it right afterwards. The round carrying that final
+// flight therefore came back without AwaitingInner and with the terminator
+// still in the handshake state, so the RFC 9427 Section 3 check for inner
+// data delivered alongside the peer's Finished was skipped for exactly the
+// round in which it can first apply.
+func TestTerminatorReportsHandshakeCompleteOnTls12(t *testing.T) {
+	srvCfg := testTLSServerConfig(t)
+	srvCfg.MinVersion = tls.VersionTLS12
+	srvCfg.MaxVersion = tls.VersionTLS12
+	term := NewTerminator(srvCfg, 0)
+	t.Cleanup(func() {
+		if cerr := term.Close(); cerr != nil {
+			t.Errorf("Close: %v", cerr)
+		}
+	})
+
+	step, err := term.Process(nil)
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+
+	clientConn, feed := newMemConnPair()
+	client := tls.Client(clientConn, testTLSClientConfig(t, term.cfg))
+	hsDone := make(chan error, 1)
+	go func() { hsDone <- client.HandshakeContext(context.Background()) }()
+
+	deadline := time.Now().Add(5 * time.Second)
+	// TLS 1.2 with no fragmentation: the peer sends exactly two handshake
+	// flights (ClientHello, then ChangeCipherSpec+Finished), so the step
+	// produced after the second one is the server's final flight.
+	for round := 1; round <= 2; round++ {
+		deliverToPeer(t, feed, step)
+		pending := pollClientBytes(t, feed, deadline)
+		if step, err = term.Process(nextClientFragment(t, &pending, 0)); err != nil {
+			t.Fatalf("round %d: Process: %v", round, err)
+		}
+	}
+
+	if !step.AwaitingInner {
+		t.Errorf("the step carrying the server's final TLS 1.2 flight lacks AwaitingInner: %+v", step)
+	}
+	if term.state != ttlsStateInner {
+		t.Errorf("terminator state = %v after the final flight, want the inner state", term.state)
+	}
+
+	// Prove that step really was the final flight: delivering it, and
+	// nothing else, completes the peer's handshake.
+	deliverToPeer(t, feed, step)
+	select {
+	case err = <-hsDone:
+		if err != nil {
+			t.Fatalf("client handshake failed: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("peer handshake did not complete on the step asserted to be the final flight")
+	}
+}

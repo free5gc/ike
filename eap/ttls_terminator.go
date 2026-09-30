@@ -289,17 +289,18 @@ func (t *Terminator) process(inTypeData []byte) (*TerminatorStep, error) {
 		// both keeps the EAP exchange alive and acts as the implicit
 		// prompt for the peer to start sending its inner PAP data).
 		//
-		// emitOutbound's internal wait (waitForBridgeOutput) blocks until
-		// either output appears or the bridge's background handshake
-		// goroutine reports done -- so only AFTER it returns is
-		// bridge.handshakeDone() guaranteed to reflect that goroutine's
-		// current state. Checking handshakeDone() before calling
-		// emitOutbound (as an earlier version of this code did) races: the
-		// goroutine may not have processed the just-fed inbound record yet,
-		// so the check can read false even though the handshake is about
-		// to complete, leaving t.state stuck at ttlsStateHandshake forever
-		// and causing the next round's inner AVP data to be misrouted
-		// through the handshake path instead of takeAppData.
+		// emitOutbound's internal wait (waitForBridgeOutput) returns only
+		// once the round has settled -- the handshake goroutine has
+		// recorded its result, or the engine is parked waiting for input --
+		// so only AFTER it returns is bridge.handshakeDone() guaranteed to
+		// reflect that goroutine's current state. Checking handshakeDone()
+		// before calling emitOutbound (as an earlier version of this code
+		// did) races: the goroutine may not have processed the just-fed
+		// inbound record yet, so the check can read false even though the
+		// handshake is about to complete, leaving t.state stuck at
+		// ttlsStateHandshake forever and causing the next round's inner AVP
+		// data to be misrouted through the handshake path instead of
+		// takeAppData.
 		step, err := t.emitOutbound()
 		if err != nil {
 			return nil, err
@@ -423,41 +424,47 @@ func (t *Terminator) emitOutbound() (*TerminatorStep, error) {
 	return &TerminatorStep{OutTypeData: out}, nil
 }
 
-// waitForBridgeOutput polls the bridge for output produced by its
-// background handshake goroutine. It returns as soon as output appears. If
-// none has appeared yet but the handshake has finished, that's a legitimate
-// "nothing more to flush" result (Go's tls.Conn.Handshake performs all of
-// its writes -- including any post-handshake session tickets -- before
-// returning, so once handshakeDone() is true any output it was going to
-// produce is already visible to readOutbound()). If neither happens within
-// bridgeOutputTimeout, something is stuck and that's reported as an error
-// rather than silently returning an empty packet (which would otherwise
-// look identical to the legitimate case and desync the peer).
+// waitForBridgeOutput polls the bridge for the output its background
+// handshake goroutine produces this round, and returns once the round has
+// settled: either the handshake goroutine has recorded its result, or the
+// engine is parked waiting for input the peer has not sent yet. Both are
+// terminal for the round -- Go's tls.Conn.Handshake performs all of its
+// writes, including any post-handshake session tickets, before returning, so
+// once handshakeDone() is true everything the engine was going to produce is
+// already visible to readOutbound().
+//
+// It deliberately does NOT return the instant output appears. That races the
+// handshake goroutine: on TLS 1.2 the engine writes the server's
+// ChangeCipherSpec+Finished and only then returns from HandshakeContext, so
+// hsDone is still false at the moment the flight becomes readable. A caller
+// checking handshakeDone() right afterwards would miss the handshake-complete
+// round, and with it the RFC 9427 Section 3 check for inner data the peer
+// delivered alongside its Finished.
+//
+// If the round settles in neither way within bridgeOutputTimeout, something
+// is stuck: output already collected is still returned (the peer needs it),
+// and only an empty result is reported as an error rather than silently
+// returning an empty packet, which would otherwise look identical to the
+// legitimate "nothing more to flush" case and desync the peer.
 func (t *Terminator) waitForBridgeOutput() ([]byte, error) {
 	timer := time.NewTimer(bridgeOutputTimeout)
 	defer timer.Stop()
+	var out []byte
 	for {
-		if out := t.bridge.readOutbound(); len(out) > 0 {
-			return out, nil
-		}
-		if t.bridge.handshakeDone() {
-			return nil, nil
-		}
-		if t.bridge.engineWaiting() {
-			// The engine consumed everything the peer sent and is waiting
-			// for more, so this round produces nothing further. Check the
-			// buffer once more before saying so: the engine writes its
-			// flight and only then goes back to read, so output produced
-			// since the check at the top of the loop is already there.
-			if out := t.bridge.readOutbound(); len(out) > 0 {
-				return out, nil
-			}
-			return nil, nil
+		out = append(out, t.bridge.readOutbound()...)
+		if t.bridge.handshakeDone() || t.bridge.engineWaiting() {
+			// Drain once more before leaving: the engine writes its flight
+			// and only then records the handshake result or goes back to
+			// read, so output produced since the drain above is there now.
+			return append(out, t.bridge.readOutbound()...), nil
 		}
 		select {
 		case <-t.bridge.done:
-			return nil, nil
+			return append(out, t.bridge.readOutbound()...), nil
 		case <-timer.C:
+			if len(out) > 0 {
+				return out, nil
+			}
 			return nil, errors.Errorf("Terminator: timed out waiting for TLS engine output")
 		case <-time.After(time.Millisecond):
 		}
