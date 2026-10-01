@@ -25,6 +25,7 @@ const (
 	EapTypeGTC
 	EapTypeAkaPrime EapType = 50
 	EapTypeExpanded EapType = 254
+	EapTypeTtls     EapType = 21
 )
 
 var typeStr = map[EapType]string{
@@ -36,6 +37,7 @@ var typeStr = map[EapType]string{
 	EapTypeGTC:          "EAP-GTC",
 	EapTypeAkaPrime:     "EAP-AKA'",
 	EapTypeExpanded:     "EAP-Expanded",
+	EapTypeTtls:         "EAP-TTLS",
 }
 
 func (eapType EapType) String() string {
@@ -167,6 +169,8 @@ func (eap *EAP) Unmarshal(b []byte) error {
 			eapTypeData = new(EapAkaPrime)
 		case EapTypeExpanded:
 			eapTypeData = new(EapExpanded)
+		case EapTypeTtls:
+			eapTypeData = new(EapTtls)
 		default:
 			return errors.Errorf("EAP: EAP type[%d] is not supported", eapType)
 		}
