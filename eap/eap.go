@@ -190,14 +190,16 @@ func (eap *EAP) CalcEapAkaPrimeAtMAC(key []byte) ([]byte, error) {
 	}
 	eapAkaPrime := eap.EapTypeData.(*EapAkaPrime)
 
-	// Reset AT_MAC
-	err := eapAkaPrime.initMAC()
+	// Calculate over a copy with AT_MAC zeroed, leaving the received AT_MAC intact
+	zeroMAC, err := eapAkaPrime.withZeroMAC()
 	if err != nil {
 		return nil, errors.Wrapf(err, "EAP init EAP-AKA' AT_MAC failed")
 	}
+	macInput := *eap
+	macInput.EapTypeData = zeroMAC
 
 	// It will need the whole EAP message to calculate AT_MAC
-	eapBytes, err := eap.Marshal()
+	eapBytes, err := macInput.Marshal()
 	if err != nil {
 		return nil, errors.Wrapf(err, "EAP marshal failed")
 	}

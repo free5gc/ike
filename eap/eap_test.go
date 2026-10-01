@@ -1,6 +1,9 @@
 package eap_test
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/hex"
 	"testing"
 
@@ -344,4 +347,143 @@ func TestEapAkaMac(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestEapAkaMacPreservesReceivedAttributeOrder(t *testing.T) {
+	packet, err := hex.DecodeString(
+		"02ab002c32010000" +
+			"03030040c4532b691a62a48c" +
+			"86010000" +
+			"0b050000d5300e0989ee0bbd17d642b1f4abeeb6",
+	)
+	require.NoError(t, err)
+
+	key, err := hex.DecodeString("36ba2ad66f240be3fc8e793f91d5d39953c07c45232b65b8e2f6cc5c06d3b9d0")
+	require.NoError(t, err)
+
+	var eap eap_message.EAP
+	require.NoError(t, eap.Unmarshal(packet))
+
+	mac, err := eap.CalcEapAkaPrimeAtMAC(key)
+	require.NoError(t, err)
+	require.Equal(t, "d5300e0989ee0bbd17d642b1f4abeeb6", hex.EncodeToString(mac))
+}
+
+func TestEapAkaMacKdfInputPadding(t *testing.T) {
+	// AT_KDF_INPUT with an 11-byte name carries 1 padding byte, which must be
+	// part of the MAC input.
+	key := bytes.Repeat([]byte{0x11}, 32)
+	packet := []byte{
+		byte(eap_message.EapCodeRequest), 1, 0, 44,
+		byte(eap_message.EapTypeAkaPrime), byte(eap_message.SubtypeAkaChallenge), 0, 0,
+		0x17, 0x04, 0x00, 0x0b, 'f', 'r', 'e', 'e', '5', 'g', 'c', '.', 'o', 'r', 'g', 0x00,
+		0x0b, 0x05, 0x00, 0x00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	}
+	h := hmac.New(sha256.New, key)
+	h.Write(packet)
+
+	var eap eap_message.EAP
+	require.NoError(t, eap.Unmarshal(packet))
+
+	mac, err := eap.CalcEapAkaPrimeAtMAC(key)
+	require.NoError(t, err)
+	require.Equal(t, h.Sum(nil)[:16], mac)
+}
+
+func TestEapAkaMacRawAttributes(t *testing.T) {
+	// Messages that cannot be reproduced from the attribute map: the MAC must
+	// be computed over the received bytes with the AT_MAC value zeroed.
+	key := bytes.Repeat([]byte{0x22}, 32)
+	testCases := []struct {
+		name   string
+		length byte // EAP length: 8 header bytes + attrs + 20 bytes AT_MAC
+		attrs  []byte
+	}{
+		{
+			name:   "Multiple AT_KDF",
+			length: 36,
+			attrs: []byte{
+				0x18, 0x01, 0x00, 0x02,
+				0x18, 0x01, 0x00, 0x01,
+			},
+		},
+		{
+			name:   "Unknown skippable AT_RESULT_IND",
+			length: 32,
+			attrs:  []byte{0x87, 0x01, 0x00, 0x00},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			packet := []byte{
+				byte(eap_message.EapCodeRequest), 1, 0, tc.length,
+				byte(eap_message.EapTypeAkaPrime), byte(eap_message.SubtypeAkaChallenge), 0, 0,
+			}
+			packet = append(packet, tc.attrs...)
+			packet = append(packet, 0x0b, 0x05, 0x00, 0x00)
+			packet = append(packet, make([]byte, 16)...)
+
+			h := hmac.New(sha256.New, key)
+			h.Write(packet)
+
+			// Put a non-zero MAC on the wire; it must be zeroed for the calculation
+			received := append([]byte{}, packet...)
+			copy(received[len(received)-16:], bytes.Repeat([]byte{0xff}, 16))
+
+			var eap eap_message.EAP
+			require.NoError(t, eap.Unmarshal(received))
+
+			mac, err := eap.CalcEapAkaPrimeAtMAC(key)
+			require.NoError(t, err)
+			require.Equal(t, h.Sum(nil)[:16], mac)
+		})
+	}
+}
+
+func TestEapAkaMacKeepsReceivedMac(t *testing.T) {
+	packet, err := hex.DecodeString(
+		"02ab002c32010000" +
+			"03030040c4532b691a62a48c" +
+			"86010000" +
+			"0b050000d5300e0989ee0bbd17d642b1f4abeeb6",
+	)
+	require.NoError(t, err)
+	key, err := hex.DecodeString("36ba2ad66f240be3fc8e793f91d5d39953c07c45232b65b8e2f6cc5c06d3b9d0")
+	require.NoError(t, err)
+
+	var eap eap_message.EAP
+	require.NoError(t, eap.Unmarshal(packet))
+	_, err = eap.CalcEapAkaPrimeAtMAC(key)
+	require.NoError(t, err)
+
+	// CalcEapAkaPrimeAtMAC must not zero the received AT_MAC
+	attr, err := eap.EapTypeData.(*eap_message.EapAkaPrime).GetAttr(eap_message.AT_MAC)
+	require.NoError(t, err)
+	require.Equal(t, "d5300e0989ee0bbd17d642b1f4abeeb6", hex.EncodeToString(attr.GetValue()))
+	out, err := eap.Marshal()
+	require.NoError(t, err)
+	require.Equal(t, packet, out)
+}
+
+func TestEapAkaMacConstructedMessage(t *testing.T) {
+	// A constructed message without AT_MAC: the MAC is calculated as if a
+	// zeroed AT_MAC were present, and the message itself is left unchanged.
+	key := bytes.Repeat([]byte{0x33}, 32)
+	akaPrime := eap_message.NewEapAkaPrime(eap_message.SubtypeAkaChallenge)
+	require.NoError(t, akaPrime.SetAttr(eap_message.AT_RES, []byte{1, 2, 3, 4}))
+	eap := eap_message.EAP{Code: eap_message.EapCodeResponse, Identifier: 7, EapTypeData: akaPrime}
+
+	mac, err := eap.CalcEapAkaPrimeAtMAC(key)
+	require.NoError(t, err)
+
+	_, err = akaPrime.GetAttr(eap_message.AT_MAC)
+	require.Error(t, err)
+
+	require.NoError(t, akaPrime.SetAttr(eap_message.AT_MAC, make([]byte, 16)))
+	zeroed, err := eap.Marshal()
+	require.NoError(t, err)
+	h := hmac.New(sha256.New, key)
+	h.Write(zeroed)
+	require.Equal(t, h.Sum(nil)[:16], mac)
 }

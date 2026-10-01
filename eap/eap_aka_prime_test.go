@@ -1,6 +1,7 @@
 package eap
 
 import (
+	"bytes"
 	"encoding/hex"
 	"testing"
 
@@ -141,6 +142,18 @@ func TestEapAkaPrimeSetGetAttr(t *testing.T) {
 			expectErr: false,
 		},
 		{
+			name:      "Set AT_KDF_INPUT max length",
+			attrType:  AT_KDF_INPUT,
+			value:     make([]byte, 1016), // 255*4 - 4 header bytes
+			expectErr: false,
+		},
+		{
+			name:      "Set AT_KDF_INPUT too long",
+			attrType:  AT_KDF_INPUT,
+			value:     make([]byte, 1017),
+			expectErr: true,
+		},
+		{
 			name:      "Set AT_CHECKCODE empty",
 			attrType:  AT_CHECKCODE,
 			value:     []byte{},
@@ -211,7 +224,7 @@ func TestEapAkaPrimeSetGetAttr(t *testing.T) {
 				require.Equal(t, uint8(1), attr.length)
 			case AT_MAC, AT_RAND, AT_AUTN:
 				require.Equal(t, uint8(5), attr.length)
-			case AT_NOTIFICATION:
+			case AT_NOTIFICATION, AT_CLIENT_ERROR_CODE:
 				require.Equal(t, uint8(1), attr.length)
 			}
 		})
@@ -297,7 +310,14 @@ func TestEapAkaPrimeAttrLength(t *testing.T) {
 			attrType:         AT_KDF_INPUT,
 			value:            []byte("test.free5gc.org"),
 			expectedLen:      5,
-			expectedReserved: uint16(len("test.free5gc.org") * 8),
+			expectedReserved: uint16(len("test.free5gc.org")),
+		},
+		{
+			name:             "AT_KDF_INPUT max length",
+			attrType:         AT_KDF_INPUT,
+			value:            make([]byte, 1016),
+			expectedLen:      255,
+			expectedReserved: 1016,
 		},
 	}
 
@@ -375,7 +395,7 @@ func TestEapAkaPrimeMarshal(t *testing.T) {
 				byte(SubtypeAkaIdentity), // Subtype
 				0x00, 0x00,               // Reserved
 				0x17, 0x04, // AT_KDF_INPUT header (type=23, length=4)
-				0x00, 0x58, // AT_KDF_INPUT reserved (88 bits)
+				0x00, 0x0b, // AT_KDF_INPUT reserved (11 bytes)
 				'f', 'r', 'e', 'e', '5', 'g', 'c', '.', 'o', 'r', 'g', // AT_KDF_INPUT value
 				0x00,                   // Padding
 				0x18, 0x01, 0x00, 0x01, // AT_KDF (type=24, length=1)
@@ -530,7 +550,7 @@ func TestEapAkaPrimeUnmarshal(t *testing.T) {
 				byte(SubtypeAkaIdentity), // Subtype
 				0x00, 0x00,               // Reserved
 				0x17, 0x04, // AT_KDF_INPUT header (type=23, length=4)
-				0x00, 0x58, // AT_KDF_INPUT reserved (88 bits)
+				0x00, 0x0b, // AT_KDF_INPUT reserved (11 bytes)
 				'f', 'r', 'e', 'e', '5', 'g', 'c', '.', 'o', 'r', 'g', // AT_KDF_INPUT value
 				0x00,                   // Padding
 				0x18, 0x01, 0x00, 0x01, // AT_KDF (type=24, length=1, value=1)
@@ -592,6 +612,35 @@ func TestEapAkaPrimeUnmarshal(t *testing.T) {
 			expectErr: false,
 		},
 		{
+			name: "AT_CLIENT_ERROR_CODE basic",
+			rawData: []byte{
+				byte(EapTypeAkaPrime),
+				byte(SubtypeAkaClientError),
+				0x00, 0x00,
+				0x16, 0x01, 0x00, 0x01, // AT_CLIENT_ERROR_CODE (type=22, length=1, value=1)
+			},
+			expectedAttrs: map[EapAkaPrimeAttrType][]byte{
+				AT_CLIENT_ERROR_CODE: {0x00, 0x01},
+			},
+			expectErr: false,
+		},
+		{
+			name: "AT_IDENTITY with padding",
+			rawData: []byte{
+				byte(EapTypeAkaPrime),
+				byte(SubtypeAkaIdentity),
+				0x00, 0x00,
+				0x0e, 0x03, // AT_IDENTITY header (type=14, length=3)
+				0x00, 0x05, // Actual Identity Length (5 bytes)
+				'a', 'l', 'i', 'c', 'e', // Identity
+				0x00, 0x00, 0x00, // Padding
+			},
+			expectedAttrs: map[EapAkaPrimeAttrType][]byte{
+				AT_IDENTITY: []byte("alice"),
+			},
+			expectErr: false,
+		},
+		{
 			name: "AT_AUTS basic",
 			rawData: []byte{
 				byte(EapTypeAkaPrime),
@@ -637,4 +686,313 @@ func TestEapAkaPrimeUnmarshal(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestEapAkaPrimeKdfInputLongNameRoundTrip(t *testing.T) {
+	// attr.length >= 64 (name >= 249 bytes) used to overflow uint8 in Unmarshal
+	for _, n := range []int{248, 249, 300, 1016} {
+		name := bytes.Repeat([]byte{'a'}, n)
+		m := NewEapAkaPrime(SubtypeAkaChallenge)
+		require.NoError(t, m.SetAttr(AT_KDF_INPUT, name))
+		raw, err := m.Marshal()
+		require.NoError(t, err)
+
+		var got EapAkaPrime
+		require.NoError(t, got.Unmarshal(raw), "n=%d", n)
+		attr, err := got.GetAttr(AT_KDF_INPUT)
+		require.NoError(t, err)
+		require.Equal(t, name, attr.GetValue(), "n=%d", n)
+	}
+}
+
+func TestEapAkaPrimeUnmarshalValueLengthExceedsAttr(t *testing.T) {
+	testCases := []struct {
+		name string
+		raw  []byte
+	}{
+		{
+			name: "AT_KDF_INPUT",
+			raw: []byte{
+				byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
+				0x17, 0x02, 0x00, 0x05, // length=2 (8 bytes) but claims 5-byte name
+				'a', 'b', 'c', 'd',
+			},
+		},
+		{
+			name: "AT_IDENTITY",
+			raw: []byte{
+				byte(EapTypeAkaPrime), byte(SubtypeAkaIdentity), 0x00, 0x00,
+				0x0e, 0x02, 0x00, 0x05, // length=2 (8 bytes) but claims 5-byte identity
+				'a', 'b', 'c', 'd',
+			},
+		},
+		{
+			name: "AT_RES",
+			raw: []byte{
+				byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
+				0x03, 0x02, 0x00, 0x40, // length=2 (8 bytes) but claims 64-bit RES
+				0x01, 0x02, 0x03, 0x04,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var got EapAkaPrime
+			require.ErrorContains(t, got.Unmarshal(tc.raw), "exceeds attribute length")
+		})
+	}
+}
+
+func TestEapAkaPrimePaddingRoundTrip(t *testing.T) {
+	testCases := []struct {
+		name string
+		raw  []byte
+	}{
+		{
+			name: "AT_KDF_INPUT 11-byte name",
+			raw: []byte{
+				byte(EapTypeAkaPrime), byte(SubtypeAkaIdentity), 0x00, 0x00,
+				0x17, 0x04, 0x00, 0x0b, 'f', 'r', 'e', 'e', '5', 'g', 'c', '.', 'o', 'r', 'g', 0x00,
+				0x18, 0x01, 0x00, 0x01,
+			},
+		},
+		{
+			name: "AT_RES 40 bits",
+			raw: []byte{
+				byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
+				0x03, 0x03, 0x00, 0x28, 0x01, 0x02, 0x03, 0x04, 0x05, 0x00, 0x00, 0x00,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var m EapAkaPrime
+			require.NoError(t, m.Unmarshal(tc.raw))
+			out, err := m.Marshal()
+			require.NoError(t, err)
+			require.Equal(t, tc.raw, out)
+		})
+	}
+}
+
+func TestEapAkaPrimeSetAttrValueExcludesPadding(t *testing.T) {
+	testCases := []struct {
+		name     string
+		attrType EapAkaPrimeAttrType
+		value    []byte
+		expected []byte
+	}{
+		{
+			name:     "AT_KDF_INPUT 11-byte name",
+			attrType: AT_KDF_INPUT,
+			value:    []byte("free5gc.org"),
+			expected: []byte{0x17, 0x04, 0x00, 0x0b, 'f', 'r', 'e', 'e', '5', 'g', 'c', '.', 'o', 'r', 'g', 0x00},
+		},
+		{
+			name:     "AT_RES 40 bits",
+			attrType: AT_RES,
+			value:    []byte{0x01, 0x02, 0x03, 0x04, 0x05},
+			expected: []byte{0x03, 0x03, 0x00, 0x28, 0x01, 0x02, 0x03, 0x04, 0x05, 0x00, 0x00, 0x00},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			m := NewEapAkaPrime(SubtypeAkaChallenge)
+			require.NoError(t, m.SetAttr(tc.attrType, tc.value))
+
+			attr, err := m.GetAttr(tc.attrType)
+			require.NoError(t, err)
+			require.Equal(t, tc.value, attr.GetValue())
+
+			out, err := m.Marshal()
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, out[4:])
+		})
+	}
+}
+
+func TestEapAkaPrimeUnmarshalInvalidAttr(t *testing.T) {
+	header := []byte{byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00}
+	testCases := []struct {
+		name        string
+		attr        []byte
+		errContains string
+	}{
+		{
+			name:        "AT_CHECKCODE length 0",
+			attr:        []byte{0x86, 0x00, 0x00, 0x00},
+			errContains: "exceeds attribute length",
+		},
+		{
+			name:        "AT_CHECKCODE length 64 truncated",
+			attr:        append([]byte{0x86, 0x40, 0x00, 0x00}, make([]byte, 20)...),
+			errContains: "value length mismatch",
+		},
+		{
+			name:        "AT_RES shorter than 32 bits",
+			attr:        []byte{0x03, 0x02, 0x00, 0x18, 0x01, 0x02, 0x03, 0x00},
+			errContains: "between 32 and 128 bits",
+		},
+		{
+			name:        "AT_RES longer than 128 bits",
+			attr:        append([]byte{0x03, 0x06, 0x00, 0x88}, make([]byte, 20)...),
+			errContains: "between 32 and 128 bits",
+		},
+		{
+			name:        "Unknown attribute length 0",
+			attr:        []byte{0x87, 0x00, 0x00, 0x00},
+			errContains: "exceeds attribute length",
+		},
+		{
+			name: "Duplicate AT_MAC",
+			attr: append(
+				append([]byte{0x0b, 0x05, 0x00, 0x00}, make([]byte, 16)...),
+				append([]byte{0x0b, 0x05, 0x00, 0x00}, make([]byte, 16)...)...,
+			),
+			errContains: "duplicate AT_MAC",
+		},
+		{
+			name:        "Truncated attribute header",
+			attr:        []byte{0x18},
+			errContains: "incomplete attribute header",
+		},
+		{
+			name:        "Unrecognized non-skippable attribute",
+			attr:        []byte{0x7f, 0x01, 0x00, 0x00},
+			errContains: "unrecognized non-skippable attribute type 127",
+		},
+		{
+			name:        "AT_PADDING outside AT_ENCR_DATA",
+			attr:        []byte{0x06, 0x01, 0x00, 0x00},
+			errContains: "unrecognized non-skippable attribute type 6",
+		},
+		{
+			name:        "Unknown attribute truncated",
+			attr:        []byte{0x87, 0x02, 0x00, 0x00, 0x01},
+			errContains: "value length mismatch",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			raw := append(append([]byte{}, header...), tc.attr...)
+			var m EapAkaPrime
+			require.ErrorContains(t, m.Unmarshal(raw), tc.errContains)
+		})
+	}
+}
+
+func TestEapAkaPrimeUnmarshalResNonByteAlignedBits(t *testing.T) {
+	// 36-bit RES occupies 5 bytes (last 4 bits are zero padding)
+	raw := []byte{
+		byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
+		0x03, 0x03, 0x00, 0x24, 0x01, 0x02, 0x03, 0x04, 0x50, 0x00, 0x00, 0x00,
+	}
+	var m EapAkaPrime
+	require.NoError(t, m.Unmarshal(raw))
+	attr, err := m.GetAttr(AT_RES)
+	require.NoError(t, err)
+	require.Equal(t, []byte{0x01, 0x02, 0x03, 0x04, 0x50}, attr.GetValue())
+}
+
+func TestEapAkaPrimeRawRoundTrip(t *testing.T) {
+	testCases := []struct {
+		name string
+		raw  []byte
+	}{
+		{
+			name: "Multiple AT_KDF",
+			raw: []byte{
+				byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
+				0x18, 0x01, 0x00, 0x02,
+				0x18, 0x01, 0x00, 0x01,
+			},
+		},
+		{
+			name: "Unknown skippable AT_RESULT_IND",
+			raw: []byte{
+				byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
+				0x87, 0x01, 0x00, 0x00,
+				0x18, 0x01, 0x00, 0x01,
+			},
+		},
+		{
+			name: "Non-skippable AT_ANY_ID_REQ",
+			raw: []byte{
+				byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
+				0x0d, 0x01, 0x00, 0x00,
+				0x18, 0x01, 0x00, 0x01,
+			},
+		},
+		{
+			name: "AT_IDENTITY with padding",
+			raw: []byte{
+				byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
+				0x0e, 0x03, 0x00, 0x05, 'a', 'l', 'i', 'c', 'e', 0x00, 0x00, 0x00, // AT_IDENTITY
+				0x18, 0x01, 0x00, 0x01,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var m EapAkaPrime
+			require.NoError(t, m.Unmarshal(tc.raw))
+
+			attr, err := m.GetAttr(AT_KDF)
+			require.NoError(t, err)
+			require.Equal(t, []byte{0x00, 0x01}, attr.GetValue())
+
+			out, err := m.Marshal()
+			require.NoError(t, err)
+			require.Equal(t, tc.raw, out)
+		})
+	}
+}
+
+func TestEapAkaPrimeSetAttrAfterUnmarshal(t *testing.T) {
+	raw := []byte{
+		byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
+		0x18, 0x01, 0x00, 0x02,
+		0x18, 0x01, 0x00, 0x01,
+		0x0b, 0x05, 0x00, 0x00,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	}
+	mac := bytes.Repeat([]byte{0xaa}, 16)
+
+	t.Run("AT_MAC falls back to re-marshal", func(t *testing.T) {
+		var m EapAkaPrime
+		require.NoError(t, m.Unmarshal(raw))
+		require.NoError(t, m.SetAttr(AT_MAC, mac))
+
+		out, err := m.Marshal()
+		require.NoError(t, err)
+		// Re-marshaled in attribute type order; only the last AT_KDF is kept
+		expected := append([]byte{
+			byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
+			0x0b, 0x05, 0x00, 0x00,
+		}, mac...)
+		expected = append(expected, 0x18, 0x01, 0x00, 0x01)
+		require.Equal(t, expected, out)
+		// The caller's buffer must not be modified
+		require.Equal(t, make([]byte, 16), raw[16:])
+	})
+
+	t.Run("Other attribute falls back to re-marshal", func(t *testing.T) {
+		var m EapAkaPrime
+		require.NoError(t, m.Unmarshal(raw))
+		require.NoError(t, m.SetAttr(AT_KDF, []byte{0x00, 0x03}))
+
+		out, err := m.Marshal()
+		require.NoError(t, err)
+		require.Equal(t, []byte{
+			byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
+			0x0b, 0x05, 0x00, 0x00,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0x18, 0x01, 0x00, 0x03,
+		}, out)
+	})
 }
