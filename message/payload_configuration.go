@@ -58,8 +58,9 @@ func (configuration *Configuration) Unmarshal(b []byte) error {
 			if len(configurationAttributeData) < 4 {
 				return errors.Errorf("ConfigurationAttribute: No sufficient bytes to decode next configuration attribute")
 			}
-			length := binary.BigEndian.Uint16(configurationAttributeData[2:4])
-			if len(configurationAttributeData) < int(4+length) {
+			length := int(binary.BigEndian.Uint16(configurationAttributeData[2:4]))
+			// promote to int before adding: 4+length in uint16 wraps for length >= 0xfffc
+			if len(configurationAttributeData) < 4+length {
 				return errors.Errorf("ConfigurationAttribute: TLV attribute length error")
 			}
 

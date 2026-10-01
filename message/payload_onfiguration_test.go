@@ -74,6 +74,14 @@ func TestConfigurationUnmarshal(t *testing.T) {
 			expErr:      true,
 		},
 		{
+			// length=0xfffe: 4+length wraps to 2 in uint16 arithmetic, so the
+			// length guard passes and configurationAttributeData[:0xfffe] is
+			// sliced on an empty buffer pre-fix.
+			description: "TLV attribute length overflows uint16 offset arithmetic",
+			b:           []byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0xff, 0xfe},
+			expErr:      true,
+		},
+		{
 			description: "Configuration Unmarshal",
 			b:           validConfigurationByte,
 			expMarshal:  validConfiguration,

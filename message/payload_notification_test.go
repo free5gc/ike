@@ -64,6 +64,13 @@ func TestNotification(t *testing.T) {
 			expErr:      true,
 		},
 		{
+			// spiSize=0xfc (252): 4+spiSize wraps to 0 in uint8 arithmetic, so the
+			// length guard passes and b[4:0] is sliced pre-fix.
+			description: "SPI size overflows uint8 offset arithmetic",
+			b:           []byte{0x01, 0xfc, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08},
+			expErr:      true,
+		},
+		{
 			description: "Notification Unmarshal",
 			b:           validNotificationByte,
 			expMarshal:  validNotification,

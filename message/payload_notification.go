@@ -44,15 +44,18 @@ func (notification *Notification) Unmarshal(b []byte) error {
 			return errors.Errorf("Notification: No sufficient bytes to decode next notification")
 		}
 		spiSize := b[1]
-		if len(b) < int(4+spiSize) {
+		// spiSize is a uint8, so 4+spiSize overflows for spiSize >= 252; promote to
+		// int once and use it for every subsequent bound/slice to avoid a wrapped index.
+		spiEnd := 4 + int(spiSize)
+		if len(b) < spiEnd {
 			return errors.Errorf("Notification: No sufficient bytes to get SPI according to the length specified in header")
 		}
 
 		notification.ProtocolID = b[0]
 		notification.NotifyMessageType = binary.BigEndian.Uint16(b[2:4])
 
-		notification.SPI = append(notification.SPI, b[4:4+spiSize]...)
-		notification.NotificationData = append(notification.NotificationData, b[4+spiSize:]...)
+		notification.SPI = append(notification.SPI, b[4:spiEnd]...)
+		notification.NotificationData = append(notification.NotificationData, b[spiEnd:]...)
 	}
 
 	return nil
