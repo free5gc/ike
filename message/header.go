@@ -64,7 +64,7 @@ func (h *IKEHeader) Marshal() ([]byte, error) {
 	binary.BigEndian.PutUint32(b[20:24], h.MessageID)
 
 	totalLen := IKE_HEADER_LEN + len(h.PayloadBytes)
-	if totalLen < 0 || totalLen > math.MaxUint32 {
+	if totalLen < 0 || uint64(totalLen) > math.MaxUint32 {
 		return nil, errors.Errorf("length exceeds uint32 limit or is negative: %d", totalLen)
 	}
 	binary.BigEndian.PutUint32(b[24:IKE_HEADER_LEN], uint32(totalLen))
