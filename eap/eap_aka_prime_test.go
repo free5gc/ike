@@ -224,7 +224,7 @@ func TestEapAkaPrimeSetGetAttr(t *testing.T) {
 				require.Equal(t, uint8(1), attr.length)
 			case AT_MAC, AT_RAND, AT_AUTN:
 				require.Equal(t, uint8(5), attr.length)
-			case AT_NOTIFICATION:
+			case AT_NOTIFICATION, AT_CLIENT_ERROR_CODE:
 				require.Equal(t, uint8(1), attr.length)
 			}
 		})
@@ -612,6 +612,35 @@ func TestEapAkaPrimeUnmarshal(t *testing.T) {
 			expectErr: false,
 		},
 		{
+			name: "AT_CLIENT_ERROR_CODE basic",
+			rawData: []byte{
+				byte(EapTypeAkaPrime),
+				byte(SubtypeAkaClientError),
+				0x00, 0x00,
+				0x16, 0x01, 0x00, 0x01, // AT_CLIENT_ERROR_CODE (type=22, length=1, value=1)
+			},
+			expectedAttrs: map[EapAkaPrimeAttrType][]byte{
+				AT_CLIENT_ERROR_CODE: {0x00, 0x01},
+			},
+			expectErr: false,
+		},
+		{
+			name: "AT_IDENTITY with padding",
+			rawData: []byte{
+				byte(EapTypeAkaPrime),
+				byte(SubtypeAkaIdentity),
+				0x00, 0x00,
+				0x0e, 0x03, // AT_IDENTITY header (type=14, length=3)
+				0x00, 0x05, // Actual Identity Length (5 bytes)
+				'a', 'l', 'i', 'c', 'e', // Identity
+				0x00, 0x00, 0x00, // Padding
+			},
+			expectedAttrs: map[EapAkaPrimeAttrType][]byte{
+				AT_IDENTITY: []byte("alice"),
+			},
+			expectErr: false,
+		},
+		{
 			name: "AT_AUTS basic",
 			rawData: []byte{
 				byte(EapTypeAkaPrime),
@@ -686,6 +715,14 @@ func TestEapAkaPrimeUnmarshalValueLengthExceedsAttr(t *testing.T) {
 			raw: []byte{
 				byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
 				0x17, 0x02, 0x00, 0x05, // length=2 (8 bytes) but claims 5-byte name
+				'a', 'b', 'c', 'd',
+			},
+		},
+		{
+			name: "AT_IDENTITY",
+			raw: []byte{
+				byte(EapTypeAkaPrime), byte(SubtypeAkaIdentity), 0x00, 0x00,
+				0x0e, 0x02, 0x00, 0x05, // length=2 (8 bytes) but claims 5-byte identity
 				'a', 'b', 'c', 'd',
 			},
 		},
@@ -891,7 +928,7 @@ func TestEapAkaPrimeRawRoundTrip(t *testing.T) {
 			},
 		},
 		{
-			name: "Unknown attribute with value",
+			name: "AT_IDENTITY with padding",
 			raw: []byte{
 				byte(EapTypeAkaPrime), byte(SubtypeAkaChallenge), 0x00, 0x00,
 				0x0e, 0x03, 0x00, 0x05, 'a', 'l', 'i', 'c', 'e', 0x00, 0x00, 0x00, // AT_IDENTITY

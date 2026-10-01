@@ -292,8 +292,7 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 
 		// By default the value is the rest of the attribute, kept as-is
 		// including any padding. This covers AT_CHECKCODE and attributes
-		// without dedicated handling (e.g. AT_IDENTITY, or skippable ones such
-		// as AT_RESULT_IND).
+		// without dedicated handling (e.g. skippable ones such as AT_RESULT_IND).
 		valLen := len(body)
 		switch attr.attrType {
 		case AT_MAC, AT_RAND, AT_AUTN:
@@ -304,9 +303,9 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 			if attr.length != 4 {
 				return errors.Errorf("EAP-AKA' Unmarshal(): %s attribute length must be 4", attr.attrType)
 			}
-		case AT_KDF_INPUT:
-			// For AT_KDF_INPUT, the reserved field is the actual network name
-			// length in bytes, not bits.
+		case AT_KDF_INPUT, AT_IDENTITY:
+			// The reserved field is the actual network name (AT_KDF_INPUT) or
+			// identity (AT_IDENTITY) length in bytes, not bits.
 			valLen = int(attr.reserved)
 		case AT_RES:
 			// The reserved field is the length of the RES in bits
@@ -317,7 +316,7 @@ func (eapAkaPrime *EapAkaPrime) Unmarshal(rawData []byte) error {
 			}
 			// Round up: the unused trailing bits of the last byte are zero padding
 			valLen = (int(attr.reserved) + 7) / 8
-		case AT_KDF, AT_NOTIFICATION:
+		case AT_KDF, AT_NOTIFICATION, AT_CLIENT_ERROR_CODE:
 			// The reserved field carries the value
 			valLen = 0
 		}
@@ -600,6 +599,20 @@ func (attr *EapAkaPrimeAttr) setAttr(attrType EapAkaPrimeAttrType, value []byte)
 		attr.length = 1
 		attr.reserved = binary.BigEndian.Uint16(value)
 		attr.value = nil
+	case AT_CLIENT_ERROR_CODE:
+		// RFC 4187 Section 10.20:
+		// 0                   1                   2                   3
+		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |AT_CLIENT_ERR..| Length = 1    |     Client Error Code         |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		valLen := len(value)
+		if valLen != 2 {
+			return errors.Errorf("%s needs exactly 2 bytes for Client Error Code, but got %d bytes", attrType, valLen)
+		}
+		attr.length = 1
+		attr.reserved = binary.BigEndian.Uint16(value)
+		attr.value = nil
 	default:
 		err = errors.Errorf("%s is not supported", attrType)
 	}
@@ -611,7 +624,7 @@ func (attr *EapAkaPrimeAttr) GetAttrType() EapAkaPrimeAttrType { return attr.att
 
 func (attr *EapAkaPrimeAttr) GetValue() []byte {
 	var b []byte
-	if attr.attrType == AT_KDF || attr.attrType == AT_NOTIFICATION {
+	if attr.attrType == AT_KDF || attr.attrType == AT_NOTIFICATION || attr.attrType == AT_CLIENT_ERROR_CODE {
 		b = make([]byte, EapAkaAttrReservedLen)
 		binary.BigEndian.PutUint16(b, attr.reserved)
 		return b
