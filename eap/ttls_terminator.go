@@ -391,7 +391,7 @@ func (t *Terminator) emitOutbound() (*TerminatorStep, error) {
 			return nil, err
 		}
 		total := len(msg)
-		if total > math.MaxUint32 {
+		if uint64(total) > math.MaxUint32 {
 			return nil, errors.Errorf("Terminator: outbound message too large (%d bytes)", total)
 		}
 		t.outPending = msg
