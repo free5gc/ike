@@ -301,6 +301,45 @@ func TestSecurityAssociationUnmarshal(t *testing.T) {
 			expErr: true,
 		},
 		{
+			// attributeLength=0xfffd, transformLength=9: 12+attributeLength wraps
+			// to 9 in uint16 arithmetic, so the length guard passes and
+			// transformData[12:9] is sliced pre-fix.
+			description: "Attribute length overflows uint16 offset arithmetic",
+			b: []byte{
+				0x00, 0x00, 0x00, 0x14, 0x01, 0x01, 0x00, 0x01,
+				0x00, 0x00, 0x00, 0x09, 0x01, 0x00, 0x00, 0x0c,
+				0x00, 0x0e, 0xff, 0xfd,
+			},
+			expErr: true,
+		},
+		{
+			description: "Variable length attribute value is preserved",
+			b: []byte{
+				0x00, 0x00, 0x00, 0x16, 0x01, 0x01, 0x00, 0x01,
+				0x00, 0x00, 0x00, 0x0e, 0x01, 0x00, 0x00, 0x0c,
+				0x00, 0x0e, 0x00, 0x02, 0xaa, 0xbb,
+			},
+			expSA: &SecurityAssociation{
+				ProposalContainer{
+					&Proposal{
+						ProposalNumber: 1,
+						ProtocolID:     1,
+						EncryptionAlgorithm: TransformContainer{
+							&Transform{
+								TransformType:                TypeEncryptionAlgorithm,
+								TransformID:                  ENCR_AES_CBC,
+								AttributePresent:             true,
+								AttributeFormat:              AttributeFormatUseTLV,
+								AttributeType:                AttributeTypeKeyLength,
+								VariableLengthAttributeValue: []byte{0xaa, 0xbb},
+							},
+						},
+					},
+				},
+			},
+			expErr: false,
+		},
+		{
 			description: "SecurityAssociation Unmarshal",
 			b:           validSecurityAssociationByte,
 			expSA:       validSecurityAssociation,

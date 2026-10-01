@@ -221,11 +221,15 @@ func (securityAssociation *SecurityAssociation) Unmarshal(b []byte) error {
 
 					attributeLength := binary.BigEndian.Uint16(transformData[10:12])
 					// bounds checking
-					if (12 + attributeLength) != transformLength {
+					// promote to int before adding: 12+attributeLength in uint16 wraps for
+					// attributeLength >= 0xfff4
+					attributeEnd := 12 + int(attributeLength)
+					if attributeEnd != int(transformLength) {
 						return errors.Errorf("Illegal attribute length %d not satisfies the transform length %d",
 							attributeLength, transformLength)
 					}
-					copy(transform.VariableLengthAttributeValue, transformData[12:12+attributeLength])
+					transform.VariableLengthAttributeValue = append(
+						transform.VariableLengthAttributeValue, transformData[12:attributeEnd]...)
 				} else {
 					if len(transformData) < 12 {
 						return errors.Errorf("Transform: attribute data too short to read Value (length: %d)", len(transformData))
