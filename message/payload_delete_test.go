@@ -98,6 +98,22 @@ func TestDeleteUnmarshal(t *testing.T) {
 			},
 			expErr: false,
 		},
+		{
+			description: "SPI data is not a whole number of 4-byte words",
+			// The header declares one 4-byte SPI but the payload body is one byte longer, so
+			// the trailing partial word used to be read as a whole one.
+			b: []byte{
+				0x03, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
+			},
+			expErr: true,
+		},
+		{
+			description: "No SPI is declared but the body still carries trailing bytes",
+			b: []byte{
+				0x01, 0x00, 0x00, 0x00, 0xAA, 0xBB, 0xCC,
+			},
+			expErr: true,
+		},
 	}
 
 	for _, tc := range testcases {

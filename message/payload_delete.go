@@ -50,6 +50,12 @@ func (d *Delete) Unmarshal(b []byte) error {
 		if len(b) < (4 + (int(spiSize) * int(numberOfSPI))) {
 			return errors.Errorf("Delete: No Sufficient bytes to get SPIs according to the length specified in header")
 		}
+		// The SPIs are read as 4-byte words below, so the bytes after the 4-byte header have to
+		// be a whole number of them. A body that is not a multiple of 4 used to read its trailing
+		// partial word as a whole one and panic with "slice bounds out of range".
+		if (len(b)-4)%4 != 0 {
+			return errors.Errorf("Delete: SPI data length %d is not a multiple of 4", len(b)-4)
+		}
 
 		d.ProtocolID = b[0]
 		d.SPISize = spiSize
