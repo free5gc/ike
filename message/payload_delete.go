@@ -47,12 +47,18 @@ func (d *Delete) Unmarshal(b []byte) error {
 		}
 		spiSize := b[1]
 		numberOfSPI := binary.BigEndian.Uint16(b[2:4])
-		if len(b) < (4 + (int(spiSize) * int(numberOfSPI))) {
-			return errors.Errorf("Delete: No Sufficient bytes to get SPIs according to the length specified in header")
+		// RFC 7296 gives the Delete payload no padding: the body after the generic header is
+		// exactly SPI Size x Num of SPIs bytes. Requiring equality (not just a lower bound)
+		// also rejects a body with trailing garbage, which the loop below would read as SPIs.
+		if len(b) != (4 + (int(spiSize) * int(numberOfSPI))) {
+			return errors.Errorf("Delete: body length %d does not match header (spiSize %d x %d SPIs)",
+				len(b), spiSize, numberOfSPI)
 		}
 		// The SPIs are read as 4-byte words below, so the bytes after the 4-byte header have to
-		// be a whole number of them. A body that is not a multiple of 4 used to read its trailing
-		// partial word as a whole one and panic with "slice bounds out of range".
+		// be a whole number of them. The length-match check above does not guarantee that on its
+		// own (e.g. spiSize 2 with one SPI gives a 6-byte body), and a body that is not a
+		// multiple of 4 used to read its trailing partial word as a whole one and panic with
+		// "slice bounds out of range".
 		if (len(b)-4)%4 != 0 {
 			return errors.Errorf("Delete: SPI data length %d is not a multiple of 4", len(b)-4)
 		}
