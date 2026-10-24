@@ -98,6 +98,41 @@ func TestDeleteUnmarshal(t *testing.T) {
 			},
 			expErr: false,
 		},
+		{
+			description: "SPI data is not a whole number of 4-byte words",
+			// The header declares one 4-byte SPI but the payload body is one byte longer, so
+			// the trailing partial word used to be read as a whole one.
+			b: []byte{
+				0x03, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
+			},
+			expErr: true,
+		},
+		{
+			description: "No SPI is declared but the body still carries trailing bytes",
+			b: []byte{
+				0x01, 0x00, 0x00, 0x00, 0xAA, 0xBB, 0xCC,
+			},
+			expErr: true,
+		},
+		{
+			description: "Trailing garbage that is a whole number of 4-byte words",
+			// The header declares one 4-byte SPI but the body carries two words; the extra
+			// word used to be parsed as a second SPI.
+			b: []byte{
+				0x03, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+				0xAA, 0xBB, 0xCC, 0xDD,
+			},
+			expErr: true,
+		},
+		{
+			description: "SPI size that is not a multiple of 4 matches the header but not the word loop",
+			// spiSize 2 with one declared SPI gives a 6-byte body: the length matches the
+			// header exactly, but the 4-byte word loop used to read past it.
+			b: []byte{
+				0x03, 0x02, 0x00, 0x01, 0x00, 0x01,
+			},
+			expErr: true,
+		},
 	}
 
 	for _, tc := range testcases {
